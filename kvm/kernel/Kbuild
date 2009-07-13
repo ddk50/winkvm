@@ -1,0 +1,5 @@
+EXTRA_CFLAGS := -I$(src)/include -include $(src)/external-module-compat.h
+obj-m := kvm.o kvm-intel.o kvm-amd.o
+kvm-objs := kvm_main.o mmu.o x86_emulate.o
+kvm-intel-objs := vmx.o vmx-debug.o
+kvm-amd-objs := svm.o

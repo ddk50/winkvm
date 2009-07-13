@@ -1,0 +1,55 @@
+DESTDIR =
+KERNEL=`uname -r`
+
+rpmrelease = devel
+
+.PHONY: kernel user qemu clean
+
+all: kernel user qemu
+
+qemu kernel user:
+	$(MAKE) -C $@
+
+qemu: user
+
+clean: 
+	@for d in kernel user qemu; do 	\
+		$(MAKE) -C $$d $@; 	\
+	done
+
+bindir = /usr/bin
+bin = $(bindir)/kvm
+initdir = /etc/init.d
+confdir = /etc/kvm
+utilsdir = /etc/kvm/utils
+arch := $(shell uname -i)
+ifeq (${arch},i386)
+	qtarget := qemu 
+else
+	qtarget := qemu-system-x86_64
+endif
+
+install:
+	mkdir -p $(DESTDIR)/$(bindir)
+	mkdir -p $(DESTDIR)/$(confdir)
+	mkdir -p $(DESTDIR)/$(initdir)
+	mkdir -p $(DESTDIR)/$(utilsdir)
+	cp qemu/$(arch)-softmmu/$(qtarget) $(DESTDIR)/$(bin)
+	mkdir -p /usr/share/kvm
+	cp -a qemu/pc-bios/* /usr/share/kvm
+	cp scripts/kvm $(DESTDIR)/$(initdir)/kvm
+	cp scripts/qemu-ifup $(DESTDIR)/$(confdir)/qemu-ifup
+	cp kvm $(DESTDIR)/$(utilsdir)/kvm
+	mkdir -p $(DESTDIR)/lib/modules/$(KERNEL)/misc
+	cp kernel/kvm.ko $(DESTDIR)/lib/modules/$(KERNEL)/misc
+	depmod -b $(DESTDIR)/
+
+tmpspec = .tmp.kvm.spec
+
+rpm:	user qemu
+	mkdir -p BUILD RPMS/$$(uname -i)
+	sed 's/^Release:.*/Release: $(rpmrelease)/' kvm.spec > $(tmpspec)
+	rpmbuild --define="kverrel $$(uname -r)" \
+		 --define="objdir $$(pwd)" \
+		 --define="_topdir $$(pwd)" \
+		-bb $(tmpspec)

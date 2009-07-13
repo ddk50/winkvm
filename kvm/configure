@@ -1,0 +1,100 @@
+#!/bin/bash
+
+prefix=/usr/local
+kerneldir=/lib/modules/$(uname -r)/build
+want_module=1
+qemu_cc=$(ls /usr/bin/gcc3* /usr/bin/gcc-3* 2>/dev/null | tail -n1)
+disable_gcc_check=
+
+usage() {
+    cat <<-EOF
+	Usage: $0 [options]
+
+	Options include:
+
+	    --prefix=PREFIX        where to install things ($prefix)
+	    --with-patched-kernel  don't use external module
+	    --kerneldir=DIR        kernel build directory ($kerneldir)
+	    --qemu-cc="$qemu_cc"   compiler for qemu (needs gcc3.x) ($qemu_cc)
+	    --disable-gcc-check    don't insist on gcc-3.x
+                                   - this will break running without kvm
+EOF
+    exit 1
+}
+
+
+# prefer gcc if its version is 3.* ( over a compat-gcc )
+# do it before parsing command line arguments to enable the user
+#    to specify a specific gcc he/she likes.
+if gcc -v 2>&1 | grep -q 'gcc *version *3\.[2-4]\.[0-9]'; then
+	qemu_cc=gcc
+fi
+
+while [[ "$1" = -* ]]; do
+    opt="$1"; shift
+    arg=
+    if [[ "$opt" = *=* ]]; then
+	arg="${opt#*=}"
+	opt="${opt%%=*}"
+    fi
+    case "$opt" in
+	--prefix)
+	    prefix="$arg"
+	    ;;
+	--kerneldir)
+	    kerneldir="$arg"
+	    ;;
+	--with-patched-kernel)
+	    want_module=
+	    ;;
+	--qemu-cc)
+	    qemu_cc="$arg"
+	    ;;
+	--disable-gcc-check)
+	    disable_gcc_check=1
+	    ;;
+	--help)
+	    usage
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+
+if [[ -z "$qemu_cc" ]]; then
+    echo "$0: cannot locate gcc 3.x. please install it or specify with --qemu-cc"
+    exit 1
+fi
+
+libkvm_kerneldir="$kerneldir"
+if (( want_module )); then
+    libkvm_kerneldir=$(readlink -f kernel)
+fi
+
+target_cpu() {
+    if [[ $(uname -m) = i?86 ]]; then
+	echo i386
+    else
+	uname -m
+    fi
+}
+
+(cd user; ./configure --prefix="$prefix" --kerneldir="$libkvm_kerneldir")
+(cd qemu; ./configure --target-list=$(target_cpu)-softmmu --cc="$qemu_cc" \
+    --disable-kqemu --extra-cflags="-I $PWD/../user" \
+    --extra-ldflags="-L $PWD/../user" \
+    --enable-kvm --kernel-path="$libkvm_kerneldir" \
+    --enable-alsa \
+    ${disable_gcc_check:+"--disable-gcc-check"} \
+    --prefix="$prefix"
+)
+
+
+
+cat <<EOF > config.mak
+PREFIX=$prefix
+KERNELDIR=$kerneldir
+WANT_MODULE=$want_module
+EOF
+

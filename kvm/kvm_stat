@@ -1,0 +1,63 @@
+#!/usr/bin/python
+
+import curses
+import sys, os, time
+
+class Stats:
+    def __init__(self):
+        self.base = '/sys/kernel/debug/kvm'
+        self.values = {}
+        for key in os.listdir(self.base):
+            self.values[key] = None
+    def get(self):
+        for key, oldval in self.values.iteritems():
+            newval = int(file(self.base + '/' + key).read())
+            newdelta = None
+            if oldval is not None:
+                newdelta = newval - oldval[0]
+            self.values[key] = (newval, newdelta)
+        return self.values
+
+if not os.access('/sys/kernel/debug', os.F_OK):
+    print 'Please enable CONFIG_DEBUGFS in your kernel'
+    sys.exit(1)
+if not os.access('/sys/kernel/debug/kvm', os.F_OK):
+    print "Please mount debugfs ('mount -t debugfs debugfs /sys/kernel/debug')"
+    print "and ensure the kvm modules are loaded"
+    sys.exit(1)
+
+stats = Stats()
+        
+def main(screen, stats):
+    curses.use_default_colors()
+    curses.noecho()
+    def refresh():
+        screen.erase()
+        screen.addstr(0, 0, 'kvm statistics')
+        row = 2
+        s = stats.get()
+        for key in sorted(s.keys()):
+            values = s[key]
+            screen.addstr(row, 1, key)
+            screen.addstr(row, 12, '%10d' % (values[0],))
+            if values[1] is not None:
+                screen.addstr(row, 22, '%8d' % (values[1],))
+            row += 1
+        screen.refresh()
+
+    while True:
+        refresh()
+        curses.halfdelay(10)
+        try:
+            c = screen.getkey()
+            if c == 'q':
+                break
+        except KeyboardInterrupt:
+            break
+        except curses.error:
+            continue
+        
+
+import curses.wrapper
+curses.wrapper(main, stats)
+

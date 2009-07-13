@@ -1,0 +1,216 @@
+#!/usr/bin/python
+
+import sys, os, time, re
+import optparse, commands
+
+optparser = optparse.OptionParser()
+
+optparser.add_option('--no-reload-module',
+                     help = 'do not reload kvm module',
+                     action = 'store_false',
+                     dest = 'reload',
+                     default = True,
+                     )
+
+optparser.add_option('--install',
+                     help = 'start up guest in installer boot cd',
+                     action = 'store_true',
+                     default = False,
+                     )
+
+optparser.add_option('--debugger',
+                     help = 'wait for gdb',
+                     action = 'store_true',
+                     default = False,
+                     )
+
+optparser.add_option('--no-tap',
+                     help = 'run the guest without tap netif',
+                     action = 'store_true',
+                     dest = 'notap',
+                     default = False,
+                     )
+
+optparser.add_option('--mac',
+                     help = 'use this specific mac addr',
+                     dest = 'mac',
+                     default = None,
+                     )
+
+optparser.add_option('--vnc',
+                     help = 'use VNC rather than SDL',
+                     dest = 'vnc',
+                     default = None,
+                     )
+
+optparser.add_option('--no-kvm',
+                     help = 'use standard qemu, without kvm',
+                     action = 'store_false',
+                     dest = 'kvm',
+                     default = True,
+                     )
+optparser.add_option('--image',
+                     help = 'select disk image',
+                     dest = 'image',
+                     default = '/tmp/disk',
+                     )
+optparser.add_option('--cdrom',
+                     help = 'select cdrom image',
+                     dest = 'cdrom',
+                     default = None,
+                     )
+optparser.add_option('--loadvm',
+                     help = 'select saved vm-image',
+                     dest = 'saved_image',
+                     default = None,
+                     )
+
+optparser.add_option('--monitor',
+                     help = 'redirect monitor (currently only stdio or tcp)',
+                     dest = 'monitor',
+                     default = None,
+                     )
+
+optparser.add_option('--stopped',
+                     help = 'start image in stopped mode',
+                     action = 'store_true',
+                     default = False,
+                     )
+
+optparser.add_option('-n', '--dry-run',
+                     help = "just print the qemu command line; don't run it",
+                     action = 'store_true',
+                     dest = 'dry_run',
+                     default = False,
+                     )
+
+
+(options, args) = optparser.parse_args()
+
+if len(args) > 0:
+    options.image = args[0]
+
+if len(args) > 1:
+    options.cdrom = args[1]
+
+def remove_module(module):
+    module = module.replace('-', '_')
+    lines = commands.getoutput('/sbin/lsmod').split('\n')
+    for x in lines:
+        if x.startswith(module + ' '):
+            if os.spawnl(os.P_WAIT, '/sbin/rmmod', 'rmmod', module) != 0:
+                raise Exception('failed to remove %s module' % (module,))
+
+def insert_module(module):
+    if os.spawnl(os.P_WAIT, '/sbin/insmod', 'insmod',
+                 'kernel/%s.ko' % (module,)) != 0:
+        if os.spawnl(os.P_WAIT, '/sbin/modprobe', 'modprobe', module) != 0:
+            raise Exception('failed to load kvm module')
+
+def vendor():
+    for x in file('/proc/cpuinfo').readlines():
+        m = re.match(r'vendor_id[ \t]*: *([a-zA-Z]+),*', x)
+        if m:
+            return m.group(1)
+    return unknown
+
+vendor_module = {
+    'GenuineIntel': 'kvm-intel',
+    'AuthenticAMD': 'kvm-amd',
+    }[vendor()]
+
+if options.kvm and options.reload:
+    for module in [vendor_module, 'kvm']:
+        remove_module(module)
+    for module in ['kvm', vendor_module]:
+        insert_module(module)
+    for i in range(5):
+        if os.access('/dev/kvm', os.F_OK):
+            break
+        time.sleep(0.1 + 0.2 * i)
+    if not os.access('/dev/kvm', os.F_OK):
+        print '/dev/kvm not present'
+
+disk = options.image
+if options.install:
+    fd = file(disk, 'w')
+    fd.truncate()
+    fd.seek(10*1024*1024*1024-1)
+    fd.write('\0')
+    fd.close()
+
+bootdisk = 'c'
+if options.install:
+    bootdisk = 'd'
+
+import platform
+arch = platform.machine()
+# check 32-bit userspace on 64-bit kernel
+if platform.architecture()[0] == '32bit':
+    arch = 'i386'
+
+if arch == 'x86_64':
+    cmd = 'qemu-system-' + arch
+else:
+    cmd = 'qemu'
+
+local_cmd = 'qemu/' + arch + '-softmmu/' + cmd
+if os.access(local_cmd, os.F_OK):
+    cmd = local_cmd
+else:
+    cmd = '/usr/bin/kvm'
+
+qemu_args = (cmd, '-boot', bootdisk,
+             '-hda', disk, '-m', '384',
+             '-serial', 'file:/tmp/serial.log',
+             #'-usbdevice', 'tablet',
+          )
+
+if options.cdrom:
+    qemu_args += ('-cdrom', options.cdrom,)
+
+if not options.kvm:
+    qemu_args += ('-no-kvm',)
+
+if options.debugger:
+    qemu_args += ('-s',)
+
+if not options.notap:
+    mac = options.mac
+    if not mac:
+        for line in commands.getoutput('/sbin/ip link show eth0').splitlines():
+            m = re.match(r'.*link/ether (..:..:..:..:..:..).*', line)
+            if m:
+                mac = m.group(1)
+        if not mac:
+            raise Exception, 'Unable to determine eth0 mac address'
+        mac_components = mac.split(':')
+        mac_components[0] = 'a0'
+        mac = ':'.join(mac_components)
+            
+    qemu_args += ('-net', 'nic,macaddr=%s,model=rtl8139' % (mac,),
+                  '-net', 'tap,script=/etc/kvm/qemu-ifup',)
+
+if options.vnc:
+    qemu_args += ('-vnc', str(options.vnc))
+
+if options.saved_image:
+    qemu_args += ('-loadvm' , options.saved_image, )
+
+if options.monitor:
+    if options.monitor == 'stdio':
+        qemu_args += ('-monitor' , 'stdio', )
+    elif options.monitor == 'tcp':
+        qemu_args += ('-monitor' , 'tcp:0:5555,server,nowait', )
+    else:
+        raise Exception('illegal monitor option %s' % option.monitor)
+
+if options.stopped:
+    qemu_args += ('-S',)
+
+if options.dry_run:
+    def concat_func(x,y): return x + ' ' + y
+    print reduce(concat_func, qemu_args)
+    sys.exit(0)
+
+os.execvp(cmd, qemu_args)

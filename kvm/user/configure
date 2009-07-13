@@ -1,0 +1,44 @@
+#!/bin/bash
+
+prefix=/usr/local
+kerneldir=/lib/modules/$(uname -r)/build
+
+usage() {
+    cat <<-EOF
+	Usage: $0 [options]
+
+	Options include:
+
+	    --prefix=PREFIX        where to install things ($prefix)
+	    --kerneldir=DIR        kernel build directory for kvm.h ($kerneldir)
+EOF
+    exit 1
+}
+
+while [[ "$1" = -* ]]; do
+    opt="$1"; shift
+    arg=
+    if [[ "$opt" = *=* ]]; then
+	arg="${opt#*=}"
+	opt="${opt%%=*}"
+    fi
+    case "$opt" in
+	--prefix)
+	    prefix="$arg"
+	    ;;
+	--kerneldir)
+	    kerneldir="$arg"
+	    ;;
+	--help)
+	    usage
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+
+cat <<EOF > config.mak
+PREFIX=$prefix
+KERNELDIR=$(readlink -f $kerneldir)
+EOF

@@ -1,0 +1,4 @@
+sudo /sbin/rmmod kvm
+sudo /sbin/insmod ../kernel/kvm.ko
+sudo chmod a+rw /dev/hvm
+../qemu/x86_64-softmmu/qemu-system-x86_64 -boot c -L /usr/share/qemu -hda /tmp/mkbootdisk/boot.img -m 384 -serial file:/tmp/qemu_serial.out

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+kernel="$1"
+mnt_dir="/tmp/mkbootdisk/mnt"
+img_file="/tmp/mkbootdisk/boot.img"
+
+[[ -f "$kernel" ]] || { echo need kernel; exit 1; }
+
+mkdir -p $mnt_dir
+
+[[ -d "$mnt_dir" ]] || { echo mount dir err; exit 1; }
+
+dd < /dev/zero > $img_file bs=1M count=10
+mkfs -t vfat $img_file
+
+mount -o loop $img_file $mnt_dir
+
+cp "$kernel" $mnt_dir/kernel
+
+cat <<EOF > $mnt_dir/SYSLINUX.CFG
+DEFAULT kernel
+APPEND console=ttyS0
+EOF
+
+umount $mnt_dir
+
+syslinux $img_file
+
