@@ -4,7 +4,7 @@
 #ifdef CONFIG_X86_64
 /*
  * avoid save/load MSR_SYSCALL_MASK and MSR_LSTAR by std vt
- * mechanism (cpu bug AA24)
+ * mechanism (cpu bug AA24) 
  */
 #define NR_BAD_MSRS 2
 #else
