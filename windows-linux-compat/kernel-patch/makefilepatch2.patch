@@ -1,0 +1,11 @@
+--- /mnt/share/linux/arch/x86/Makefile_32	2009-07-10 23:06:52.000000000 +0900
++++ /mnt/share/linux_orig/arch/x86/Makefile_32	2008-02-11 14:51:11.000000000 +0900
+@@ -37,7 +37,7 @@
+ endif
+ CHECKFLAGS	+= -D__i386__
+ 
+-KBUILD_CFLAGS += -pipe -msoft-float -freg-struct-return
++KBUILD_CFLAGS += -pipe -msoft-float -mregparm=3 -freg-struct-return
+ 
+ # prevent gcc from keeping the stack 16 byte aligned
+ KBUILD_CFLAGS += $(call cc-option,-mpreferred-stack-boundary=2)

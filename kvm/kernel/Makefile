@@ -8,10 +8,10 @@ INSTALLDIR = $(patsubst %/build,%/extra,$(KERNELDIR))
 
 rpmrelease = devel
 
-LINUX = ../linux-2.6
+LINUX = ../../../../linux
 
 all::
-	$(MAKE) -C $(KERNELDIR) M=`pwd` "$$@"
+	$(MAKE) -C $(KERNELDIR) V=1 M=`pwd` "$$@"
 
 sync:
 	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
