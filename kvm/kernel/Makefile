@@ -10,6 +10,8 @@ rpmrelease = devel
 
 LINUX = ../../../../linux
 
+EXTRA_CFLAGS += -save-temps
+
 all::
 	$(MAKE) -C $(KERNELDIR) V=1 M=`pwd` "$$@"
 
