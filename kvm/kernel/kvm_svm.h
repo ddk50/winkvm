@@ -1,10 +1,12 @@
 #ifndef __KVM_SVM_H
 #define __KVM_SVM_H
 
+#ifndef __WINKVM__
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/list.h>
 #include <asm/msr.h>
+#endif
 
 #include "svm.h"
 #include "kvm.h"

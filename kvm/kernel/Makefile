@@ -10,23 +10,23 @@ rpmrelease = devel
 
 LINUX = ../../../../linux
 
-EXTRA_CFLAGS += -save-temps
+EXTRA_CFLAGS +=
 
 all:: sync
-	$(MAKE) -C $(KERNELDIR) V=1 M=`pwd` "$$@"
+	$(MAKE) CC="gcc -D__WINKVM__ -save-temps" -C $(KERNELDIR) V=1 M=`pwd` "$$@"
 
 sync:
 ##	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
 	rsync "$(LINUX)"/include/linux/kvm.h \
-	       "$(LINUX)"/include/linux/kvm_para.h \
-			include/linux
+		  "$(LINUX)"/include/linux/kvm_para.h \
+		   include/linux
 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
-			windows-linux-compat/asm
+		   windows-linux-compat/asm
 	rsync "$(LINUX)"/include/linux/winkvmint.h \
-		  "$(LINUX)"/include/linux/winkvmlist.h  \
-		  "$(LINUX)"/include/linux/winkvmstab.h  \
+		  "$(LINUX)"/include/linux/winkvmlist.h	 \
+		  "$(LINUX)"/include/linux/winkvmstab.h	 \
 		  "$(LINUX)"/include/linux/winkvmtypes.h \
-		    windows-linux-compat/linux
+			windows-linux-compat/linux
 	sed -i 's/f_path\./f_/' kvm_main.c
 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
 	mv kvm_main.c kvm_main.c.orig
@@ -34,9 +34,9 @@ sync:
 		 { print "#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)\n"; \
 		   hacking_get_sb = 1 \
 		 } \
-	     { print } \
-	     /\}/ && hacking_get_sb { print "\n#endif"; hacking_get_sb = 0 } \
-	     ' kvm_main.c.orig > kvm_main.c
+		 { print } \
+		 /\}/ && hacking_get_sb { print "\n#endif"; hacking_get_sb = 0 } \
+		 ' kvm_main.c.orig > kvm_main.c
 	rm kvm_main.c.orig
 
 install:

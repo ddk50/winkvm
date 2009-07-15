@@ -14,12 +14,16 @@
  *
  */
 
+#ifndef __WINKVM__
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/vmalloc.h>
 #include <linux/highmem.h>
 #include <linux/profile.h>
 #include <asm/desc.h>
+#endif
+
+#include <linux/winkvmstab.h>
 
 #include "kvm_svm.h"
 #include "x86_emulate.h"

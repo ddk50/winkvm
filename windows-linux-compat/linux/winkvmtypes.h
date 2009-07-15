@@ -4,6 +4,8 @@
 
 #ifdef __WINKVM__
 
+/* campatible header */
+
 /* for IA32 only */
 #include <linux/winkvmint.h>
 #include <linux/winkvmlist.h>

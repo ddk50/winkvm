@@ -7,16 +7,23 @@
  * Avoid picking up the kernel's kvm.h in case we have a newer one.
  */
 
+#ifndef __WINKVM__
 #include <linux/compiler.h>
 #include <linux/version.h>
-#include "include/linux/kvm.h"
 #include <linux/cpu.h>
+#else
+#include "include/linux/kvm.h"
+#endif
+
+#include <linux/winkvmstab.h>
 
 /*
  * 2.6.16 does not have GFP_NOWAIT
  */
 
+#ifndef __WINKVM__
 #include <linux/gfp.h>
+#endif
 
 #ifndef GFP_NOWAIT
 #define GFP_NOWAIT (GFP_ATOMIC & ~__GFP_HIGH)
@@ -26,7 +33,9 @@
 /*
  * kvm profiling support needs 2.6.20
  */
+#ifndef __WINKVM__
 #include <linux/profile.h>
+#endif
 
 #ifndef KVM_PROFILING
 #define KVM_PROFILING 1234
@@ -38,8 +47,10 @@
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
 
+#ifndef __WINKVM__
 #include <linux/spinlock.h>
 #include <linux/smp.h>
+#endif
 
 static spinlock_t scfs_lock = SPIN_LOCK_UNLOCKED;
 static int scfs_cpu;
@@ -116,12 +127,16 @@ static struct super_block *kvmfs_get_sb(struct file_system_type *fs_type,
 
 #endif
 
+#ifndef __WINKVM__
 #include <linux/magic.h>
+#endif
 #ifndef KVMFS_SUPER_MAGIC
 #define KVMFS_SUPER_MAGIC 0x19700426
 #endif
 
+#ifndef __WINKVM__
 #include <linux/miscdevice.h>
+#endif
 #ifndef KVM_MINOR
 #define KVM_MINOR 232
 #endif

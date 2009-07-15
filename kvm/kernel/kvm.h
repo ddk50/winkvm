@@ -6,15 +6,19 @@
  * the COPYING file in the top-level directory.
  */
 
+#ifndef __WINKVM__
 #include <linux/types.h>
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/mm.h>
+#endif
 
-#include "vmx.h"
+#include <linux/winkvmstab.h>
+#include <linux/winkvmlist.h>
 #include <linux/kvm.h>
 #include <linux/kvm_para.h>
+#include "vmx.h"
 
 #define CR0_PE_MASK (1ULL << 0)
 #define CR0_TS_MASK (1ULL << 3)
