@@ -10,10 +10,10 @@ rpmrelease = devel
 
 LINUX = ../../../../linux
 
-EXTRA_CFLAGS += -save-temps
+EXTRA_CFLAGS +=
 
 all:: sync
-	$(MAKE) -C $(KERNELDIR) V=1 M=`pwd` "$$@"
+	$(MAKE) CC="gcc -D__WINKVM__ -save-temps" -C $(KERNELDIR) V=1 M=`pwd` "$$@"
 
 sync:
 ##	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
@@ -21,12 +21,14 @@ sync:
 	       "$(LINUX)"/include/linux/kvm_para.h \
 			include/linux
 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
-			windows-linux-compat/asm
+		  "$(LINUX)"/include/asm/msr-index.h \
+		  "$(LINUX)"/include/asm/processor-flags.h \
+		    ../../windows-linux-compat/asm
 	rsync "$(LINUX)"/include/linux/winkvmint.h \
 		  "$(LINUX)"/include/linux/winkvmlist.h  \
 		  "$(LINUX)"/include/linux/winkvmstab.h  \
 		  "$(LINUX)"/include/linux/winkvmtypes.h \
-		    windows-linux-compat/linux
+		    ../../windows-linux-compat/linux
 	sed -i 's/f_path\./f_/' kvm_main.c
 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
 	mv kvm_main.c kvm_main.c.orig
