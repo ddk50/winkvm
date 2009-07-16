@@ -2578,11 +2578,23 @@ hpa_t bad_page_address;
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
+
 static int kvmfs_get_sb(struct file_system_type *fs_type, int flags,
 			const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	return get_sb_pseudo(fs_type, "kvm:", NULL, KVMFS_SUPER_MAGIC, mnt);
 }
+
+#endif
+
+#endif
+
+#endif
 
 #endif
 

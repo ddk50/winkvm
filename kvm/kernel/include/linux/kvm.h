@@ -8,8 +8,12 @@
  *       notice.
  */
 
+#ifndef __WINKVM__
 #include <asm/types.h>
 #include <linux/ioctl.h>
+#else
+#include <linux/winkvmtypes.h>
+#endif
 
 #define KVM_API_VERSION 4
 
