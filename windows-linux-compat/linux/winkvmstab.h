@@ -4,8 +4,11 @@
 
 #ifdef __WINKVM__
 
+#include <linux/winkvmtypes.h>
+#include <linux/winkvmgfp.h>
+
 #include <asm/msr-index.h>
-#include "winkvmtypes.h"
+#include <asm/errno.h>
 
 #define KERN_EMERG      "<0>"   /* system is unusable                   */
 #define KERN_ALERT      "<1>"   /* action must be taken immediately     */
@@ -24,14 +27,21 @@
 		}										\
 	} while(0);
 
+#define THIS_MODULE NULL
 #define MODULE_INFO(ver, verstr);
 #define MODULE_AUTHOR(author);
 #define MODULE_LICENSE(form);
 
-extern void *wkstab_kmalloc(int, int);
+#define __init
+#define __exit
 
-#define kmalloc(size, type)						\
-	wkstab_kmalloc(size, type);
+#define module_init(x)
+#define module_exit(x)
+
+// extern void *wkstab_kmalloc(int, int);
+
+// #define kmalloc(size, type)						\
+// 	wkstab_kmalloc(size, type);
 
 #define hrtimer_kallsyms_resolve() do {} while (0);
 
@@ -47,6 +57,7 @@ extern void *wkstab_kmalloc(int, int);
 #define EFER_SVME		(1<<_EFER_SVME)
 #endif
 
+
 /* remove this!! */
 #define X86_SHADOW_INT_MOV_SS  1
 #define X86_SHADOW_INT_STI     2
@@ -57,51 +68,74 @@ extern int winkvmstab_first_cpu(void);
 extern int winkvmstab_get_nr_cpus(void);
 extern int winkvmstab_next_cpu(int cpu);
 
-#define winkvmstab_for_each_online_cpu(cpu) \
+#define for_each_online_cpu(cpu) \
 	for ((cpu) = winkvmstab_first_cpu();	\
 		 (cpu) < winkvmstab_get_nr_cpus();	\
 		 (cpu) = winkvmstab_next_cpu((cpu)))
 
-#define winkvmstab_for_each_possible_cpu(cpu) \	
-	for ((cpu) = winkvmstab_first_cpu(); \
-		 (cpu) < winkvmstab_get_nr_cpus(); \
-		 (cpu) = winkvmstab_next_cpu((cpu)))		
+#define for_each_possible_cpu(cpu) \
+  for ((cpu) = winkvmstab_first_cpu(); \
+	   (cpu) < winkvmstab_get_nr_cpus(); \	   
+	   (cpu) = winkvmstab_next_cpu((cpu)))		
 
-#define winkvmstab_for_each_present_cpu(cpu) \	
-	for ((cpu) = winkvmstab_first_cpu();		\
-		 (cpu) < winkvmstab_get_nr_cpus();		\
-		 (cpu) = winkvmstab_next_cpu((cpu)))		
+#define for_each_present_cpu(cpu) \	
+	  for ((cpu) = winkvmstab_first_cpu(); \
+		   (cpu) < winkvmstab_get_nr_cpus(); \
+		   (cpu) = winkvmstab_next_cpu((cpu)))		
 	
 extern int raw_smp_processor_id(void);
+extern void get_cpu(void);
+extern void put_cpu(void);
 
-extern unsigned long
-winkvm_do_mmap(struct file *file, unsigned long addr,
-			   unsigned long len, unsigned long prot,
-			   unsigned long flag, unsigned long offset);
+extern void spin_lock(spinlock_t *lock);
+extern void spin_unlock(spinlock_t *lock);
 
-/* not fastcall */
-extern void winkvm_free_page(unsigned long addr);
-extern void winkvm_free_pages(unsigned long addr, unsigned int order);
-extern void __winkvm_free_page(struct page* page);
-extern void __winkvm_free_pages(struct page* page, unsigned int order);
-extern struct page *winkvm_alloc_page(int gfp_mask);
-extern struct page *winkvm_alloc_pages(int gfp_mask, unsigned int order);
-extern struct page *winkvm_alloc_pages_node(int nid, int gfp_mask, unsigned int order);
-extern unsigned long __winkvm_get_free_pages(int gfp_mask, unsigned int order);
+// extern unsigned long
+// winkvm_do_mmap(struct file *file, unsigned long addr,
+// 			   unsigned long len, unsigned long prot,
+// 			   unsigned long flag, unsigned long offset);
 
-extern int winkvm_init(void *opaque, unsigned int vcpu_size);
-extern void winkvm_exit(void);
+// /* not fastcall */
+// extern void winkvm_free_page(unsigned long addr);
+// extern void winkvm_free_pages(unsigned long addr, unsigned int order);
+// extern void __winkvm_free_page(struct page* page);
+// extern void __winkvm_free_pages(struct page* page, unsigned int order);
+// extern struct page *winkvm_alloc_page(int gfp_mask);
+// extern struct page *winkvm_alloc_pages(int gfp_mask, unsigned int order);
+// extern struct page *winkvm_alloc_pages_node(int nid, int gfp_mask, unsigned int order);
+// extern unsigned long __winkvm_get_free_pages(int gfp_mask, unsigned int order);
 
-void *kmap(struct page *page);
-void kunmap(struct page *page);
-void *kmap_atomic_prot(struct page *page, enum km_type type, pgprot_t prot);
-void *kmap_atomic(struct page *page, enum km_type type);
-void kunmap_atomic(void *kvaddr, enum km_type type);
-void *kmap_atomic_pfn(unsigned long pfn, enum km_type type);
-struct page *kmap_atomic_to_page(void *ptr);
+// extern int winkvm_init(void *opaque, unsigned int vcpu_size);
+// extern void winkvm_exit(void);
+
+extern void *kmap(struct page *page);
+extern void kunmap(struct page *page);
+extern void *kmap_atomic_prot(struct page *page, enum km_type type, pgprot_t prot);
+extern void *kmap_atomic(struct page *page, enum km_type type);
+extern void kunmap_atomic(void *kvaddr, enum km_type type);
+extern void *kmap_atomic_pfn(unsigned long pfn, enum km_type type);
+extern struct page *kmap_atomic_to_page(void *ptr);
 
 extern struct page *pfn_to_page(unsigned long pfn);
 extern unsigned long page_to_pfn(struct page *page);
+
+extern struct page *alloc_pages(unsigned int flags, unsigned int order);
+extern struct page *alloc_page(unsigned int flags);
+
+extern void __free_page(struct page *page);
+extern void __free_pages(struct page *page, unsigned int order);
+
+extern void free_page(unsigned long addr);
+extern void free_pages(unsigned long addr, unsigned long order);
+
+extern void *vmalloc(unsigned long size);
+extern void vfree(void *addr);
+
+extern void *kmalloc(size_t size, int flags);
+extern void *kzalloc(size_t size, int flags);
+extern void kfree(void *obj);
+
+extern void *page_address(struct page *page);
 
 #define page_private(page)		((page)->private)
 #define set_page_private(page, v)	((page)->private = (v))
@@ -151,7 +185,7 @@ static inline int test_bit(int nr, const void *addr)
 	const u32 *p = (const u32 *)addr;
 
 	asm("btl %2,%1; setc %0" : "=qm" (v) : "m" (*p), "Ir" (nr));
-	return v;
+	return v;	
 }
 
 #endif /* __WINKVM__ */

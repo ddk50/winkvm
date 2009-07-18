@@ -23,11 +23,16 @@ sync:
 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
 		  "$(LINUX)"/include/asm/msr-index.h \
 		  "$(LINUX)"/include/asm/processor-flags.h \
+		  "$(LINUX)"/include/asm/segment_32.h \
+		  "$(LINUX)"/include/asm/errno.h \
 		    ../../windows-linux-compat/asm
+	rsync "$(LINUX)"/include/asm-generic/errno.h \
+			../../windows-linux-compat/asm-generic
 	rsync "$(LINUX)"/include/linux/winkvmint.h \
 		  "$(LINUX)"/include/linux/winkvmlist.h  \
 		  "$(LINUX)"/include/linux/winkvmstab.h  \
 		  "$(LINUX)"/include/linux/winkvmtypes.h \
+		  "$(LINUX)"/include/linux/winkvmgfp.h \
 		    ../../windows-linux-compat/linux
 	sed -i 's/f_path\./f_/' kvm_main.c
 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c

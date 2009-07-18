@@ -21,9 +21,13 @@
 #include <linux/highmem.h>
 #include <linux/profile.h>
 #include <asm/desc.h>
+#else
+#include <asm/msr-index.h>
+#include <asm/processor-flags.h>
 #endif
 
 #include <linux/winkvmstab.h>
+#include <asm/winkvmmisc.h>
 
 #include "kvm_svm.h"
 #include "x86_emulate.h"
@@ -51,7 +55,7 @@ MODULE_LICENSE("GPL");
 unsigned long iopm_base;
 unsigned long msrpm_base;
 
-struct kvm_ldttss_desc {
+struct kvm_ldttss_desc {	
 	u16 limit0;
 	u16 base0;
 	unsigned base1 : 8, type : 5, dpl : 2, p : 1;
@@ -71,7 +75,12 @@ struct svm_cpu_data {
 	struct page *save_area;
 };
 
+#ifndef __WINKVM__
 static DEFINE_PER_CPU(struct svm_cpu_data *, svm_data);
+#else
+#define __WINKVM_CPUNUMS__ 4
+static struct svm_cpu_data *g_svm_data[__WINKVM_CPUNUMS__];
+#endif /* __WINKVM__ */
 
 struct svm_init_data {
 	int cpu;
@@ -112,8 +121,8 @@ static inline u8 pop_irq(struct kvm_vcpu *vcpu)
 	return irq;
 }
 
-static inline void push_irq(struct kvm_vcpu *vcpu, u8 irq)
-{
+static inline void push_irq(struct kvm_vcpu *vcpu, u8 irq) 
+{  
 	set_bit(irq, vcpu->irq_pending);
 	set_bit(irq / BITS_PER_LONG, &vcpu->irq_summary);
 }
@@ -249,10 +258,14 @@ static int has_svm(void)
 {
 	uint32_t eax, ebx, ecx, edx;
 
+#ifndef __WINKVM__
 	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
 		printk(KERN_INFO "has_svm: not amd\n");
 		return 0;
 	}
+#else
+	printk(KERN_INFO "%s %d implement me!\n", __FUNCTION__, __LINE__);	
+#endif /* __WINKVM__ */
 
 	cpuid(0x80000000, &eax, &ebx, &ecx, &edx);
 	if (eax < SVM_CPUID_FUNC) {
@@ -270,8 +283,12 @@ static int has_svm(void)
 
 static void svm_hardware_disable(void *garbage)
 {
+#ifndef __WINKVM__
 	struct svm_cpu_data *svm_data
-		= per_cpu(svm_data, raw_smp_processor_id());
+		= per_cpu(svm_data, raw_smp_processor_id());	
+#else
+	struct svm_cpu_data *svm_data = g_svm_data[raw_smp_processor_id()];
+#endif /* __WINKVM__ */
 
 	if (svm_data) {
 		uint64_t efer;
@@ -279,7 +296,11 @@ static void svm_hardware_disable(void *garbage)
 		wrmsrl(MSR_VM_HSAVE_PA, 0);
 		rdmsrl(MSR_EFER, efer);
 		wrmsrl(MSR_EFER, efer & ~MSR_EFER_SVME_MASK);
+#ifndef __WINKVM__
 		per_cpu(svm_data, raw_smp_processor_id()) = NULL;
+#else
+		g_svm_data[raw_smp_processor_id()] = NULL;		
+#endif /* __WINKVM__ */
 		__free_page(svm_data->save_area);
 		kfree(svm_data);
 	}
@@ -302,7 +323,13 @@ static void svm_hardware_enable(void *garbage)
 		printk(KERN_ERR "svm_cpu_init: err EOPNOTSUPP on %d\n", me);
 		return;
 	}
+
+#ifndef __WINKVM__
 	svm_data = per_cpu(svm_data, me);
+#else
+	svm_data = g_svm_data[me];	
+#endif /* __WINKVM__ */
+	
 
 	if (!svm_data) {
 		printk(KERN_ERR "svm_cpu_init: svm_data is NULL on %d\n",
@@ -339,8 +366,12 @@ static int svm_cpu_init(int cpu)
 	if (!svm_data->save_area)
 		goto err_1;
 
+#ifndef __WINKVM__
 	per_cpu(svm_data, cpu) = svm_data;
-
+#else
+	g_svm_data[cpu] = svm_data;	
+#endif
+	
 	return 0;
 
 err_1:
@@ -1247,7 +1278,7 @@ static int interrupt_window_interception(struct kvm_vcpu *vcpu,
 		++kvm_stat.irq_window_exits;
 		kvm_run->exit_reason = KVM_EXIT_IRQ_WINDOW_OPEN;
 		return 0;
-	}
+	}	
 
 	return 1;
 }
@@ -1327,8 +1358,13 @@ static int handle_exit(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 static void reload_tss(struct kvm_vcpu *vcpu)
 {
 	int cpu = raw_smp_processor_id();
+	struct svm_cpu_data *svm_data;
 
-	struct svm_cpu_data *svm_data = per_cpu(svm_data, cpu);
+#ifndef __WINKVM__	
+	svm_data = per_cpu(svm_data, cpu);
+#else
+	svm_data = g_svm_data[cpu];	
+#endif
 	svm_data->tss_desc->type = 9; //available 32/64-bit TSS
 	load_TR_desc();
 }
@@ -1337,7 +1373,11 @@ static void pre_svm_run(struct kvm_vcpu *vcpu)
 {
 	int cpu = raw_smp_processor_id();
 
+#ifndef __WINKVM__	
 	struct svm_cpu_data *svm_data = per_cpu(svm_data, cpu);
+#else
+	struct svm_cpu_data *svm_data = g_svm_data[cpu];	
+#endif
 
 	vcpu->svm->vmcb->control.tlb_ctl = TLB_CONTROL_DO_NOTHING;
 	if (vcpu->cpu != cpu ||
@@ -1600,9 +1640,11 @@ again:
 	/*
 	 * Profile KVM exit RIPs:
 	 */
+#ifndef __WINKVM__
 	if (unlikely(prof_on == KVM_PROFILING))
 		profile_hit(KVM_PROFILING,
 			(void *)(unsigned long)vcpu->svm->vmcb->save.rip);
+#endif	
 
 	stgi();
 
@@ -1619,11 +1661,16 @@ again:
 
 	r = handle_exit(vcpu, kvm_run);
 	if (r > 0) {
+
+#ifndef __WINKVM__
 		if (signal_pending(current)) {
 			++kvm_stat.signal_exits;
 			post_kvm_run_save(vcpu, kvm_run);
 			return -EINTR;
 		}
+#else
+		
+#endif
 
 		if (dm_request_for_irq_injection(vcpu, kvm_run)) {
 			++kvm_stat.request_irq_exits;
@@ -1745,7 +1792,7 @@ static struct kvm_arch_ops svm_arch_ops = {
 
 static int __init svm_init(void)
 {
-	return kvm_init_arch(&svm_arch_ops, THIS_MODULE);
+	return kvm_init_arch(&svm_arch_ops, THIS_MODULE);	
 }
 
 static void __exit svm_exit(void)

@@ -55,4 +55,6 @@ typedef unsigned long int       uint64_t;
 typedef unsigned long long int  uint64_t;
 #endif
 
+typedef unsigned int            size_t;
+
 #endif /* _WINKVMINT_H_ */
