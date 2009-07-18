@@ -18,6 +18,7 @@
 #include "kvm.h"
 #include "vmx.h"
 #include "kvm_vmx.h"
+#ifndef __WINKVM__
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -25,14 +26,26 @@
 #include <linux/profile.h>
 #include <asm/io.h>
 #include <asm/desc.h>
+#else
+#include <asm/msr-index.h>
+#include <asm/processor-flags.h>
+#endif
+
+#include <linux/winkvmstab.h>
+#include <asm/winkvmmisc.h>
 
 #include "segment_descriptor.h"
 
 MODULE_AUTHOR("Qumranet");
 MODULE_LICENSE("GPL");
 
+#ifndef __WINKVM__
 static DEFINE_PER_CPU(struct vmcs *, vmxarea);
 static DEFINE_PER_CPU(struct vmcs *, current_vmcs);
+#else
+static struct vmcs *g_vmxarea_[__WINKVM_CPUNUMS__];
+static struct vmcs *g_current_vmcs_[__WINKVM_CPUNUMS__];
+#endif /* __WINKVM__ */
 
 #ifdef CONFIG_X86_64
 #define HOST_IS_64 1
@@ -121,6 +134,7 @@ static void __vcpu_clear(void *arg)
 
 	if (vcpu->cpu == cpu)
 		vmcs_clear(vcpu->vmcs);
+	
 	if (per_cpu(current_vmcs, cpu) == vcpu->vmcs)
 		per_cpu(current_vmcs, cpu) = NULL;
 }
@@ -213,11 +227,12 @@ static void vmx_vcpu_load(struct kvm_vcpu *vcpu)
 
 	if (vcpu->cpu != cpu)
 		vcpu_clear(vcpu);
-
+	
 	if (per_cpu(current_vmcs, cpu) != vcpu->vmcs) {
-		u8 error;
-
+		u8 error;		
+		
 		per_cpu(current_vmcs, cpu) = vcpu->vmcs;
+		
 		asm volatile (ASM_VMX_VMPTRLD_RAX "; setna %0"
 			      : "=g"(error) : "a"(&phys_addr), "m"(phys_addr)
 			      : "cc");
@@ -992,7 +1007,8 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	int i;
 	int ret = 0;
 	int nr_good_msrs;
-	extern asmlinkage void kvm_vmx_return(void);
+//	extern asmlinkage void kvm_vmx_return(void);
+	extern void kvm_vmx_return(void);	
 
 	if (!init_rmode_tss(vcpu->kvm)) {
 		ret = -ENOMEM;
@@ -1929,19 +1945,24 @@ again:
 		/*
 		 * Profile KVM exit RIPs:
 		 */
+#ifndef __WINKVM__
 		if (unlikely(prof_on == KVM_PROFILING))
 			profile_hit(KVM_PROFILING, (void *)vmcs_readl(GUEST_RIP));
+#endif
 
 		vcpu->launched = 1;
 		kvm_run->exit_type = KVM_EXIT_TYPE_VM_EXIT;
 		r = kvm_handle_exit(kvm_run, vcpu);
 		if (r > 0) {
 			/* Give scheduler a change to reschedule. */
+
+#ifndef __WINKVM__
 			if (signal_pending(current)) {
 				++kvm_stat.signal_exits;
 				post_kvm_run_save(vcpu, kvm_run);
 				return -EINTR;
 			}
+#endif			
 
 			if (dm_request_for_irq_injection(vcpu, kvm_run)) {
 				++kvm_stat.request_irq_exits;

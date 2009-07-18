@@ -25,6 +25,7 @@ sync:
 		  "$(LINUX)"/include/asm/processor-flags.h \
 		  "$(LINUX)"/include/asm/segment_32.h \
 		  "$(LINUX)"/include/asm/errno.h \
+		  "$(LINUX)"/include/asm/winkvm86.h \
 		    ../../windows-linux-compat/asm
 	rsync "$(LINUX)"/include/asm-generic/errno.h \
 			../../windows-linux-compat/asm-generic

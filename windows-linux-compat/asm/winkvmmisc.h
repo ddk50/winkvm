@@ -5,6 +5,7 @@
 #ifdef __WINKVM__
 
 #include <asm/segment_32.h>
+#include <asm/winkvm86.h>
 
 /* FIXME */
 //typedef int size_t;
@@ -170,6 +171,13 @@ static inline void clear_bit(int nr, volatile unsigned long * addr)
 		:"Ir" (nr));
 }
 
+#define rdmsr(msr,val1,val2)						\
+	do {								\
+		u64 __val = native_read_msr(msr);			\
+		(val1) = (u32)__val;					\
+		(val2) = (u32)(__val >> 32);				\
+	} while(0)
+
 static inline unsigned long long native_read_msr(unsigned int msr)
 {
 	unsigned long long val;
@@ -186,6 +194,23 @@ static inline void native_write_msr(unsigned int msr, unsigned long long val)
 static inline void wrmsr(u32 __msr, u32 __low, u32 __high)
 {
 	native_write_msr(__msr, ((u64)__high << 32) | __low);
+}
+
+#define rdmsr_safe(msr,p1,p2)						\
+	({								\
+		int __err = 1;						\		
+		u64 __val = native_read_msr(msr);	\		
+		(*p1) = (u32)__val;					\
+		(*p2) = (u32)(__val >> 32);				\
+		__err;							\
+	})
+	
+/* Warning */
+static inline int wrmsr_safe(u32 __msr, u32 __low, u32 __high)
+{
+/* 	return native_write_msr_safe(__msr, ((u64)__high << 32) | __low); */
+	native_write_msr(__msr, ((u64)__high << 32) | __low);	
+	return 1;	
 }
 
 #define rdmsrl(msr,val)							\
@@ -249,6 +274,54 @@ static inline unsigned long store_tr(void)
 	return tr;
 }
 
+static inline void write_cr4(unsigned long val) 
+{
+	asm volatile("movl %0,%%cr4": :"r" (val));
+}
+
+static inline unsigned long read_cr4(void)  
+{
+	unsigned long val;
+	asm volatile("movl %%cr4,%0\n\t" :"=r" (val));
+	return val;	
+}
+
+static inline unsigned long read_cr0(void)
+{
+	unsigned long val;
+	asm volatile("movl %%cr0,%0\n\t" :"=r" (val));
+	return val;
+}
+
+static inline void write_cr0(unsigned long val)
+{
+	asm volatile("movl %0,%%cr0": :"r" (val));
+}
+
+static inline unsigned long read_cr2(void)
+{
+	unsigned long val;
+	asm volatile("movl %%cr2,%0\n\t" :"=r" (val));
+	return val;
+}
+
+static inline void write_cr2(unsigned long val)
+{
+	asm volatile("movl %0,%%cr2": :"r" (val));
+}
+
+static inline unsigned long read_cr3(void)
+{
+	unsigned long val;
+	asm volatile("movl %%cr3,%0\n\t" :"=r" (val));
+	return val;
+}
+
+static inline void write_cr3(unsigned long val)
+{
+	asm volatile("movl %0,%%cr3": :"r" (val));
+}
+
 /**
  * container_of - cast a member of a structure out to the containing structure
  * @ptr:	the pointer to the member.
@@ -261,6 +334,37 @@ static inline unsigned long store_tr(void)
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
 #define DEFINE_PER_CPU(type, name) __typeof__(type) per_cpu__##name
+
+/* debug reg */
+#define set_debugreg(value, register)				\
+	native_set_debugreg(register, value)
+
+static inline void native_set_debugreg(int regno, unsigned long value)
+{
+	switch (regno) {
+	case 0:
+		asm("movl %0,%%db0"	: /* no output */ :"r" (value));
+		break;
+	case 1:
+		asm("movl %0,%%db1"	: /* no output */ :"r" (value));
+		break;
+	case 2:
+		asm("movl %0,%%db2"	: /* no output */ :"r" (value));
+		break;
+	case 3:
+		asm("movl %0,%%db3"	: /* no output */ :"r" (value));
+		break;
+	case 6:
+		asm("movl %0,%%db6"	: /* no output */ :"r" (value));
+		break;
+	case 7:
+		asm("movl %0,%%db7"	: /* no output */ :"r" (value));
+		break;
+	default:
+/* 		BUG();		 */
+		break;		
+	}
+}
 
 #endif /* __WINKVM__ */
 

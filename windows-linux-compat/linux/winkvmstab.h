@@ -81,14 +81,33 @@ extern int winkvmstab_next_cpu(int cpu);
 #define for_each_present_cpu(cpu) \	
 	  for ((cpu) = winkvmstab_first_cpu(); \
 		   (cpu) < winkvmstab_get_nr_cpus(); \
-		   (cpu) = winkvmstab_next_cpu((cpu)))		
+		   (cpu) = winkvmstab_next_cpu((cpu)))
+
+#define on_each_cpu(func,info,retry,wait)		\
+		({										\
+		  local_irq_disable();					\
+		  func(info);							\
+		  local_irq_enable();					\
+		  0;									\
+		})	  
 	
 extern int raw_smp_processor_id(void);
-extern void get_cpu(void);
-extern void put_cpu(void);
+extern int get_cpu(void);
+extern int put_cpu(void);
 
 extern void spin_lock(spinlock_t *lock);
 extern void spin_unlock(spinlock_t *lock);
+
+extern int cpu_to_node(int cpu);
+
+int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+							 int nonatomic, int wait);
+
+#define dump_stack()
+#define per_cpu(x, y) (g_##x##_[(y)])
+
+/* temporary */
+#define __WINKVM_CPUNUMS__ 4
 
 // extern unsigned long
 // winkvm_do_mmap(struct file *file, unsigned long addr,
@@ -119,8 +138,13 @@ extern struct page *kmap_atomic_to_page(void *ptr);
 extern struct page *pfn_to_page(unsigned long pfn);
 extern unsigned long page_to_pfn(struct page *page);
 
+extern int get_order(unsigned long size);
+
 extern struct page *alloc_pages(unsigned int flags, unsigned int order);
 extern struct page *alloc_page(unsigned int flags);
+
+extern struct page *alloc_pages_node(int nid, unsigned int gfp_mask,									 
+									 unsigned int order);
 
 extern void __free_page(struct page *page);
 extern void __free_pages(struct page *page, unsigned int order);
@@ -136,6 +160,15 @@ extern void *kzalloc(size_t size, int flags);
 extern void kfree(void *obj);
 
 extern void *page_address(struct page *page);
+extern unsigned long __pa(void *vaddr);
+
+static inline unsigned long virt_to_phys(void *address)  
+{
+	return __pa(address);	
+}
+
+extern void local_irq_enable(void);
+extern void local_irq_disable(void);
 
 #define page_private(page)		((page)->private)
 #define set_page_private(page, v)	((page)->private = (v))

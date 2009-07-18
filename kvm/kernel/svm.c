@@ -78,8 +78,7 @@ struct svm_cpu_data {
 #ifndef __WINKVM__
 static DEFINE_PER_CPU(struct svm_cpu_data *, svm_data);
 #else
-#define __WINKVM_CPUNUMS__ 4
-static struct svm_cpu_data *g_svm_data[__WINKVM_CPUNUMS__];
+static struct svm_cpu_data *g_svm_data_[__WINKVM_CPUNUMS__];
 #endif /* __WINKVM__ */
 
 struct svm_init_data {
@@ -283,12 +282,8 @@ static int has_svm(void)
 
 static void svm_hardware_disable(void *garbage)
 {
-#ifndef __WINKVM__
 	struct svm_cpu_data *svm_data
 		= per_cpu(svm_data, raw_smp_processor_id());	
-#else
-	struct svm_cpu_data *svm_data = g_svm_data[raw_smp_processor_id()];
-#endif /* __WINKVM__ */
 
 	if (svm_data) {
 		uint64_t efer;
@@ -296,11 +291,9 @@ static void svm_hardware_disable(void *garbage)
 		wrmsrl(MSR_VM_HSAVE_PA, 0);
 		rdmsrl(MSR_EFER, efer);
 		wrmsrl(MSR_EFER, efer & ~MSR_EFER_SVME_MASK);
-#ifndef __WINKVM__
+		
 		per_cpu(svm_data, raw_smp_processor_id()) = NULL;
-#else
-		g_svm_data[raw_smp_processor_id()] = NULL;		
-#endif /* __WINKVM__ */
+		
 		__free_page(svm_data->save_area);
 		kfree(svm_data);
 	}
@@ -323,13 +316,8 @@ static void svm_hardware_enable(void *garbage)
 		printk(KERN_ERR "svm_cpu_init: err EOPNOTSUPP on %d\n", me);
 		return;
 	}
-
-#ifndef __WINKVM__
-	svm_data = per_cpu(svm_data, me);
-#else
-	svm_data = g_svm_data[me];	
-#endif /* __WINKVM__ */
 	
+	svm_data = per_cpu(svm_data, me);	
 
 	if (!svm_data) {
 		printk(KERN_ERR "svm_cpu_init: svm_data is NULL on %d\n",
@@ -365,12 +353,8 @@ static int svm_cpu_init(int cpu)
 	r = -ENOMEM;
 	if (!svm_data->save_area)
 		goto err_1;
-
-#ifndef __WINKVM__
+	
 	per_cpu(svm_data, cpu) = svm_data;
-#else
-	g_svm_data[cpu] = svm_data;	
-#endif
 	
 	return 0;
 
@@ -1359,12 +1343,8 @@ static void reload_tss(struct kvm_vcpu *vcpu)
 {
 	int cpu = raw_smp_processor_id();
 	struct svm_cpu_data *svm_data;
-
-#ifndef __WINKVM__	
+	
 	svm_data = per_cpu(svm_data, cpu);
-#else
-	svm_data = g_svm_data[cpu];	
-#endif
 	svm_data->tss_desc->type = 9; //available 32/64-bit TSS
 	load_TR_desc();
 }
@@ -1372,12 +1352,8 @@ static void reload_tss(struct kvm_vcpu *vcpu)
 static void pre_svm_run(struct kvm_vcpu *vcpu)
 {
 	int cpu = raw_smp_processor_id();
-
-#ifndef __WINKVM__	
+	
 	struct svm_cpu_data *svm_data = per_cpu(svm_data, cpu);
-#else
-	struct svm_cpu_data *svm_data = g_svm_data[cpu];	
-#endif
 
 	vcpu->svm->vmcb->control.tlb_ctl = TLB_CONTROL_DO_NOTHING;
 	if (vcpu->cpu != cpu ||
