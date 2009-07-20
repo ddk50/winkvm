@@ -62,7 +62,7 @@ typedef int bool;
 #define __user
 
 enum km_type {
-	KM_BOUNCE_READ = 0,
+	KM_BOUNCE_READ = 0,	
 	KM_SKB_SUNRPC_DATA,
 	KM_SKB_DATA_SOFTIRQ,
 	KM_USER0,
@@ -78,11 +78,15 @@ enum km_type {
 	KM_TYPE_NR  
 };
 
-struct page {   
-	void *private;
+struct page {
+	union {
+		unsigned long private;
+		void *__mapping;
+	};	
+	void *virtual;	
 	unsigned long index;
 	unsigned long mapping;	
-	int test; 
+	int test;	
 };
 
 struct i387_fxsave_struct {

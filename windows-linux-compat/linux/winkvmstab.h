@@ -216,6 +216,7 @@ extern void kfree(void *obj);
 
 extern void *page_address(struct page *page);
 extern unsigned long __pa(void *vaddr);
+extern void *__va(unsigned long paddr);
 
 /* X86 only */
 #define PAGE_SHIFT	12
