@@ -11,6 +11,7 @@
 // #define smp_mb() KeMemoryBarrier()
 extern void smp_wmb(void);
 extern void smp_mb(void);
+extern void prefetch(const void *x);
 
 /*
  * Simple doubly linked list implementation.

@@ -16,12 +16,19 @@
  * the COPYING file in the top-level directory.
  *
  */
+#ifndef __WINKVM__
 #include <linux/types.h>
 #include <linux/string.h>
 #include <asm/page.h>
 #include <linux/mm.h>
 #include <linux/highmem.h>
 #include <linux/module.h>
+#else
+#include <linux/winkvmstab.h>
+#include <asm/winkvmmisc.h>
+#include <asm/msr-index.h>
+#include <asm/processor-flags.h>
+#endif
 
 #include "vmx.h"
 #include "kvm.h"

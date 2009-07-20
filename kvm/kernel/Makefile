@@ -35,17 +35,17 @@ sync:
 		  "$(LINUX)"/include/linux/winkvmtypes.h \
 		  "$(LINUX)"/include/linux/winkvmgfp.h \
 		    ../../windows-linux-compat/linux
-	sed -i 's/f_path\./f_/' kvm_main.c
-	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
-	mv kvm_main.c kvm_main.c.orig
-	awk '/^static int kvmfs_get_sb/ \
-		 { print "#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)\n"; \
-		   hacking_get_sb = 1 \
-		 } \
-	     { print } \
-	     /\}/ && hacking_get_sb { print "\n#endif"; hacking_get_sb = 0 } \
-	     ' kvm_main.c.orig > kvm_main.c
-	rm kvm_main.c.orig
+# 	sed -i 's/f_path\./f_/' kvm_main.c
+# 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
+# 	mv kvm_main.c kvm_main.c.orig
+# 	awk '/^static int kvmfs_get_sb/ \
+# 		 { print "#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)\n"; \
+# 		   hacking_get_sb = 1 \
+# 		 } \
+# 	     { print } \
+# 	     /\}/ && hacking_get_sb { print "\n#endif"; hacking_get_sb = 0 } \
+# 	     ' kvm_main.c.orig > kvm_main.c
+# 	rm kvm_main.c.orig
 
 install:
 	mkdir -p $(DESTDIR)/$(INSTALLDIR)

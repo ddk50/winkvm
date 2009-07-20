@@ -10,15 +10,6 @@
 #include <asm/msr-index.h>
 #include <asm/errno.h>
 
-#define KERN_EMERG      "<0>"   /* system is unusable                   */
-#define KERN_ALERT      "<1>"   /* action must be taken immediately     */
-#define KERN_CRIT       "<2>"   /* critical conditions                  */
-#define KERN_ERR        "<3>"   /* error conditions                     */
-#define KERN_WARNING    "<4>"   /* warning conditions                   */
-#define KERN_NOTICE     "<5>"   /* normal but significant condition     */
-#define KERN_INFO       "<6>"   /* informational                        */
-#define KERN_DEBUG      "<7>"   /* debug-level messages                 */
-
 #define BUG(x) do { } while(0);
 #define BUG_ON(x) \
 	do { \
@@ -38,11 +29,6 @@
 #define module_init(x)
 #define module_exit(x)
 
-// extern void *wkstab_kmalloc(int, int);
-
-// #define kmalloc(size, type)						\
-// 	wkstab_kmalloc(size, type);
-
 #define hrtimer_kallsyms_resolve() do {} while (0);
 
 #define __ex(x) x"\n\t"
@@ -57,7 +43,6 @@
 #define EFER_SVME		(1<<_EFER_SVME)
 #endif
 
-
 /* remove this!! */
 #define X86_SHADOW_INT_MOV_SS  1
 #define X86_SHADOW_INT_STI     2
@@ -68,15 +53,15 @@ extern int winkvmstab_first_cpu(void);
 extern int winkvmstab_get_nr_cpus(void);
 extern int winkvmstab_next_cpu(int cpu);
 
-#define for_each_online_cpu(cpu) \
-	for ((cpu) = winkvmstab_first_cpu();	\
-		 (cpu) < winkvmstab_get_nr_cpus();	\
-		 (cpu) = winkvmstab_next_cpu((cpu)))
+#define for_each_online_cpu(cpu) \	
+	for ((cpu) = winkvmstab_first_cpu(); \
+		 (cpu) < winkvmstab_get_nr_cpus(); \
+		 (cpu) = winkvmstab_next_cpu((cpu)))		
 
 #define for_each_possible_cpu(cpu) \
-  for ((cpu) = winkvmstab_first_cpu(); \
-	   (cpu) < winkvmstab_get_nr_cpus(); \	   
-	   (cpu) = winkvmstab_next_cpu((cpu)))		
+    for ((cpu) = winkvmstab_first_cpu(); \
+		 (cpu) < winkvmstab_get_nr_cpus(); \		 
+		 (cpu) = winkvmstab_next_cpu((cpu)))	
 
 #define for_each_present_cpu(cpu) \	
 	  for ((cpu) = winkvmstab_first_cpu(); \
@@ -95,37 +80,107 @@ extern int raw_smp_processor_id(void);
 extern int get_cpu(void);
 extern int put_cpu(void);
 
+extern void spin_lock_init(spinlock_t *lock);
 extern void spin_lock(spinlock_t *lock);
 extern void spin_unlock(spinlock_t *lock);
 
 extern int cpu_to_node(int cpu);
 
-int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-							 int nonatomic, int wait);
+extern int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+									int nonatomic, int wait);
 
 #define dump_stack()
 #define per_cpu(x, y) (g_##x##_[(y)])
 
+extern void mutex_init(struct mutex *lock);
+extern void mutex_lock(struct mutex *lock);
+extern void mutex_unlock(struct mutex *lock);
+extern int mutex_trylock(struct mutex *lock);
+
+extern int copy_to_user(void *to, const void *from, int n);
+extern int copy_from_user(void *to, const void *from, int n);
+
+extern void get_page(struct page *page);
+
 /* temporary */
 #define __WINKVM_CPUNUMS__ 4
 
-// extern unsigned long
-// winkvm_do_mmap(struct file *file, unsigned long addr,
-// 			   unsigned long len, unsigned long prot,
-// 			   unsigned long flag, unsigned long offset);
+/*
+ * Error return values for the *_nopage functions
+ */
+#define NOPAGE_SIGBUS	(NULL)
+#define NOPAGE_OOM	((struct page *) (-1))
 
-// /* not fastcall */
-// extern void winkvm_free_page(unsigned long addr);
-// extern void winkvm_free_pages(unsigned long addr, unsigned int order);
-// extern void __winkvm_free_page(struct page* page);
-// extern void __winkvm_free_pages(struct page* page, unsigned int order);
-// extern struct page *winkvm_alloc_page(int gfp_mask);
-// extern struct page *winkvm_alloc_pages(int gfp_mask, unsigned int order);
-// extern struct page *winkvm_alloc_pages_node(int nid, int gfp_mask, unsigned int order);
-// extern unsigned long __winkvm_get_free_pages(int gfp_mask, unsigned int order);
+/*
+ * Error return values for the *_nopfn functions
+ */
+#define NOPFN_SIGBUS	((unsigned long) -1)
+#define NOPFN_OOM	((unsigned long) -2)
+#define NOPFN_REFAULT	((unsigned long) -3)
 
-// extern int winkvm_init(void *opaque, unsigned int vcpu_size);
-// extern void winkvm_exit(void);
+/*
+ * Different kinds of faults, as returned by handle_mm_fault().
+ * Used to decide whether a process gets delivered SIGBUS or
+ * just gets major/minor fault counters bumped up.
+ */
+
+#define VM_FAULT_MINOR	0 /* For backwards compat. Remove me quickly. */
+
+#define VM_FAULT_OOM	0x0001
+#define VM_FAULT_SIGBUS	0x0002
+#define VM_FAULT_MAJOR	0x0004
+#define VM_FAULT_WRITE	0x0008	/* Special case for get_user_pages */
+
+#define VM_FAULT_NOPAGE	0x0100	/* ->fault installed the pte, not return page */
+#define VM_FAULT_LOCKED	0x0200	/* ->fault locked the returned page */
+
+#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS)
+
+/* notifier.h */
+
+#define SYS_DOWN	0x0001	/* Notify of system down */
+#define SYS_RESTART	SYS_DOWN
+#define SYS_HALT	0x0002	/* Notify of system halt */
+#define SYS_POWER_OFF	0x0003	/* Notify of system power off */
+
+
+#define NOTIFY_DONE		0x0000		/* Don't care */
+#define NOTIFY_OK		0x0001		/* Suits me */
+#define NOTIFY_STOP_MASK	0x8000		/* Don't call further */
+#define NOTIFY_BAD		(NOTIFY_STOP_MASK|0x0002)
+						/* Bad/Veto action */
+/*
+ * Clean way to return from the notifier and stop further calls.
+ */
+#define NOTIFY_STOP		(NOTIFY_OK|NOTIFY_STOP_MASK)
+
+#define CPU_ONLINE		0x0002 /* CPU (unsigned)v is up */
+#define CPU_UP_PREPARE		0x0003 /* CPU (unsigned)v coming up */
+#define CPU_UP_CANCELED		0x0004 /* CPU (unsigned)v NOT coming up */
+#define CPU_DOWN_PREPARE	0x0005 /* CPU (unsigned)v going down */
+#define CPU_DOWN_FAILED		0x0006 /* CPU (unsigned)v NOT going down */
+#define CPU_DEAD		0x0007 /* CPU (unsigned)v dead */
+#define CPU_LOCK_ACQUIRE	0x0008 /* Acquire all hotcpu locks */
+#define CPU_LOCK_RELEASE	0x0009 /* Release all hotcpu locks */
+#define CPU_DYING		0x000A /* CPU (unsigned)v not running any task,
+				        * not handling interrupts, soon dead */
+
+/* Used for CPU hotplug events occuring while tasks are frozen due to a suspend
+ * operation in progress
+ */
+#define CPU_TASKS_FROZEN	0x0010
+
+#define CPU_ONLINE_FROZEN	(CPU_ONLINE | CPU_TASKS_FROZEN)
+#define CPU_UP_PREPARE_FROZEN	(CPU_UP_PREPARE | CPU_TASKS_FROZEN)
+#define CPU_UP_CANCELED_FROZEN	(CPU_UP_CANCELED | CPU_TASKS_FROZEN)
+#define CPU_DOWN_PREPARE_FROZEN	(CPU_DOWN_PREPARE | CPU_TASKS_FROZEN)
+#define CPU_DOWN_FAILED_FROZEN	(CPU_DOWN_FAILED | CPU_TASKS_FROZEN)
+#define CPU_DEAD_FROZEN		(CPU_DEAD | CPU_TASKS_FROZEN)
+#define CPU_DYING_FROZEN	(CPU_DYING | CPU_TASKS_FROZEN)
+
+/* end notifier.h */
+
+extern void fput(struct file *file);
 
 extern void *kmap(struct page *page);
 extern void kunmap(struct page *page);
@@ -162,6 +217,17 @@ extern void kfree(void *obj);
 extern void *page_address(struct page *page);
 extern unsigned long __pa(void *vaddr);
 
+/* X86 only */
+#define PAGE_SHIFT	12
+#define PAGE_SIZE	(1UL << PAGE_SHIFT)
+#define PAGE_MASK	(~(PAGE_SIZE-1))
+
+#define LARGE_PAGE_MASK (~(LARGE_PAGE_SIZE-1))
+#define LARGE_PAGE_SIZE (1UL << PMD_SHIFT)
+#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+
+#define offset_in_page(p)	((unsigned long)(p) & ~PAGE_MASK)
+
 static inline unsigned long virt_to_phys(void *address)  
 {
 	return __pa(address);	
@@ -176,6 +242,7 @@ extern void local_irq_disable(void);
 static inline void account_system_vtime(struct task_struct *tsk)
 {
 }
+
 
 #ifdef CONFIG_SMP
 #ifndef __WINKVM__			  
@@ -219,6 +286,28 @@ static inline int test_bit(int nr, const void *addr)
 
 	asm("btl %2,%1; setc %0" : "=qm" (v) : "m" (*p), "Ir" (nr));
 	return v;	
+}
+
+#ifndef min
+#define min(x,y) ((x) < (y) ? x : y)
+#endif
+
+#define MAX_ERRNO	4095
+#define IS_ERR_VALUE(x) ((x) >= (unsigned long)-MAX_ERRNO)
+
+static inline void *ERR_PTR(long error)
+{
+	return (void *)error;	
+}
+
+static inline long PTR_ERR(const void *ptr)
+{
+	return (long) ptr;	
+}
+
+static inline long IS_ERR(const void *ptr)
+{
+	return 0;	
 }
 
 #endif /* __WINKVM__ */

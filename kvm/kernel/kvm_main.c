@@ -17,6 +17,7 @@
 
 #include "kvm.h"
 
+#ifndef __WINKVM__
 #include <linux/kvm.h>
 #include <linux/module.h>
 #include <linux/errno.h>
@@ -40,6 +41,13 @@
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/mount.h>
+#else
+#include <linux/winkvmstab.h>
+#include <linux/winkvmlist.h>
+#include <linux/kvm.h>
+#include <asm/processor-flags.h>
+#include <asm/winkvmmisc.h>
+#endif
 
 #include "x86_emulate.h"
 #include "segment_descriptor.h"
@@ -47,7 +55,13 @@
 MODULE_AUTHOR("Qumranet");
 MODULE_LICENSE("GPL");
 
+/* static DEFINE_SPINLOCK(kvm_lock); */
+#ifndef __WINKVM__
 static DEFINE_SPINLOCK(kvm_lock);
+#else
+static spinlock_t kvm_lock;
+#define KVM_MINOR 232
+#endif
 static LIST_HEAD(vm_list);
 
 struct kvm_arch_ops *kvm_arch_ops;
@@ -97,10 +111,11 @@ struct segment_descriptor_64 {
 #endif
 
 static long kvm_vcpu_ioctl(struct file *file, unsigned int ioctl,
-			   unsigned long arg);
+						   unsigned long arg);
 
 static struct inode *kvmfs_inode(struct file_operations *fops)
 {
+#ifndef __WINKVM__
 	int error = -ENOMEM;
 	struct inode *inode = new_inode(kvmfs_mnt->mnt_sb);
 
@@ -124,10 +139,14 @@ static struct inode *kvmfs_inode(struct file_operations *fops)
 
 eexit_1:
 	return ERR_PTR(error);
+#else
+	return NULL;	
+#endif /* __WINKVM__ */
 }
 
 static struct file *kvmfs_file(struct inode *inode, void *private_data)
 {
+#ifndef __WINKVM__  
 	struct file *file = get_empty_filp();
 
 	if (!file)
@@ -146,6 +165,9 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_version = 0;
 	file->private_data = private_data;
 	return file;
+#else
+	return NULL;	
+#endif /* __WINKVM__ */
 }
 
 unsigned long segment_base(u16 selector)
@@ -1534,9 +1556,12 @@ static int set_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 data)
 
 void kvm_resched(struct kvm_vcpu *vcpu)
 {
+#ifndef __WINKVM__
 	vcpu_put(vcpu);
 	cond_resched();
 	vcpu_load(vcpu);
+#else	
+#endif
 }
 EXPORT_SYMBOL_GPL(kvm_resched);
 
@@ -1963,11 +1988,13 @@ static struct file_operations kvm_vcpu_fops = {
  */
 static int create_vcpu_fd(struct kvm_vcpu *vcpu)
 {
+#ifndef __WINKVM__
 	int fd, r;
 	struct inode *inode;
 	struct file *file;
 
 	atomic_inc(&vcpu->kvm->filp->f_count);
+	
 	inode = kvmfs_inode(&kvm_vcpu_fops);
 	if (IS_ERR(inode)) {
 		r = PTR_ERR(inode);
@@ -1995,6 +2022,8 @@ out2:
 out1:
 	fput(vcpu->kvm->filp);
 	return r;
+#endif
+	return 0;   
 }
 
 /*
@@ -2055,6 +2084,7 @@ out:
 static long kvm_vcpu_ioctl(struct file *filp,
 			   unsigned int ioctl, unsigned long arg)
 {
+#ifndef __WINKVM__  
 	struct kvm_vcpu *vcpu = filp->private_data;
 	void __user *argp = (void __user *)arg;
 	int r = -EINVAL;
@@ -2094,7 +2124,7 @@ static long kvm_vcpu_ioctl(struct file *filp,
 		r = -EFAULT;
 		if (copy_from_user(&kvm_regs, argp, sizeof kvm_regs))
 			goto out;
-		r = kvm_vcpu_ioctl_set_regs(vcpu, &kvm_regs);
+		r = kvm_vcpu_ioctl_set_regs(vcpu, &kvm_regs);		
 		if (r)
 			goto out;
 		r = 0;
@@ -2175,11 +2205,15 @@ static long kvm_vcpu_ioctl(struct file *filp,
 	}
 out:
 	return r;
+#else
+	return -EINVAL;	
+#endif /* __WINKVM__ */	
 }
 
 static long kvm_vm_ioctl(struct file *filp,
 			   unsigned int ioctl, unsigned long arg)
 {
+#ifndef __WINKVM__
 	struct kvm *kvm = filp->private_data;
 	void __user *argp = (void __user *)arg;
 	int r = -EINVAL;
@@ -2228,6 +2262,9 @@ static long kvm_vm_ioctl(struct file *filp,
 	}
 out:
 	return r;
+#else
+	return -EINVAL;	
+#endif /* __WINKVM__ */	
 }
 
 static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
@@ -2235,8 +2272,8 @@ static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
 				  int *type)
 {
 	struct kvm *kvm = vma->vm_file->private_data;
-	unsigned long pgoff;
-	struct kvm_memory_slot *slot;
+	unsigned long pgoff;	
+	struct kvm_memory_slot *slot;	
 	struct page *page;
 
 	*type = VM_FAULT_MINOR;
@@ -2251,12 +2288,12 @@ static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
 	return page;
 }
 
-static struct vm_operations_struct kvm_vm_vm_ops = {
+static struct vm_operations_struct kvm_vm_vm_ops = {	
 	.nopage = kvm_vm_nopage,
 };
 
 static int kvm_vm_mmap(struct file *file, struct vm_area_struct *vma)
-{
+{	
 	vma->vm_ops = &kvm_vm_vm_ops;
 	return 0;
 }
@@ -2270,11 +2307,12 @@ static struct file_operations kvm_vm_fops = {
 
 static int kvm_dev_ioctl_create_vm(void)
 {
+#ifndef __WINKVM__
 	int fd, r;
 	struct inode *inode;
 	struct file *file;
 	struct kvm *kvm;
-
+	
 	inode = kvmfs_inode(&kvm_vm_fops);
 	if (IS_ERR(inode)) {
 		r = PTR_ERR(inode);
@@ -2286,7 +2324,7 @@ static int kvm_dev_ioctl_create_vm(void)
 		r = PTR_ERR(kvm);
 		goto out2;
 	}
-
+ 
 	file = kvmfs_file(inode, kvm);
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);
@@ -2310,11 +2348,23 @@ out2:
 	iput(inode);
 out1:
 	return r;
+#else
+	struct kvm *kvm;
+	int r = 0;	
+	kvm = kvm_create_vm();
+	if (IS_ERR(kvm)) {
+		r = PTR_ERR(kvm);
+		kvm_destroy_vm(kvm);		
+		return r;		
+	}
+	return r;	
+#endif
 }
 
 static long kvm_dev_ioctl(struct file *filp,
 			  unsigned int ioctl, unsigned long arg)
 {
+#ifndef __WINKVM__
 	void __user *argp = (void __user *)arg;
 	int r = -EINVAL;
 
@@ -2357,6 +2407,9 @@ static long kvm_dev_ioctl(struct file *filp,
 	}
 out:
 	return r;
+#else
+	return -EINVAL;	
+#endif /* __WINKVM__ */
 }
 
 static struct file_operations kvm_chardev_ops = {
@@ -2402,7 +2455,7 @@ static void decache_vcpus_on_cpu(int cpu)
 	int i;
 
 	spin_lock(&kvm_lock);
-	list_for_each_entry(vm, &vm_list, vm_list)
+	list_for_each_entry(vm, &vm_list, vm_list)		
 		for (i = 0; i < KVM_MAX_VCPUS; ++i) {
 			vcpu = &vm->vcpus[i];
 			/*
@@ -2448,6 +2501,7 @@ static int kvm_cpu_hotplug(struct notifier_block *notifier, unsigned long val,
 	return NOTIFY_OK;
 }
 
+#ifndef __WINKVM__
 static struct notifier_block kvm_cpu_notifier = {
 	.notifier_call = kvm_cpu_hotplug,
 	.priority = 20, /* must be > scheduler priority */
@@ -2471,7 +2525,9 @@ static void kvm_exit_debug(void)
 		debugfs_remove(p->dentry);
 	debugfs_remove(debugfs_dir);
 }
+#endif
 
+#ifndef __WINKVM__
 static int kvm_suspend(struct sys_device *dev, pm_message_t state)
 {
 	decache_vcpus_on_cpu(raw_smp_processor_id());
@@ -2496,686 +2552,28 @@ static struct sys_device kvm_sysdev = {
 	.cls = &kvm_sysdev_class,
 };
 
-hpa_t bad_page_address;
+/* hpa_t bad_page_address; */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
+/* #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16) */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
+/* static int kvmfs_get_sb(struct file_system_type *fs_type, int flags, */
+/* 			const char *dev_name, void *data, struct vfsmount *mnt) */
+/* { */
+/* 	return get_sb_pseudo(fs_type, "kvm:", NULL, KVMFS_SUPER_MAGIC, mnt); */
+/* } */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16)
-
-static int kvmfs_get_sb(struct file_system_type *fs_type, int flags,
-			const char *dev_name, void *data, struct vfsmount *mnt)
-{
-	return get_sb_pseudo(fs_type, "kvm:", NULL, KVMFS_SUPER_MAGIC, mnt);
-}
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
-
-#endif
+/* #endif */
 
 static struct file_system_type kvm_fs_type = {
 	.name		= "kvmfs",
 	.get_sb		= kvmfs_get_sb,
 	.kill_sb	= kill_anon_super,
 };
+#endif /* __WINKVM__ */
 
 int kvm_init_arch(struct kvm_arch_ops *ops, struct module *module)
 {
+#ifndef __WINKVM__
 	int r;
 
 	if (kvm_arch_ops) {
@@ -3235,10 +2633,14 @@ out_free_1:
 out:
 	kvm_arch_ops = NULL;
 	return r;
+#else
+	return 0;	
+#endif /* __WINKVM__ */
 }
 
 void kvm_exit_arch(void)
 {
+#ifndef __WINKVM__
 	misc_deregister(&kvm_dev);
 	sysdev_unregister(&kvm_sysdev);
 	sysdev_class_unregister(&kvm_sysdev_class);
@@ -3247,10 +2649,12 @@ void kvm_exit_arch(void)
 	on_each_cpu(kvm_arch_ops->hardware_disable, NULL, 0, 1);
 	kvm_arch_ops->hardware_unsetup();
 	kvm_arch_ops = NULL;
+#endif /* __WINKVM__ */	
 }
 
 static __init int kvm_init(void)
 {
+#ifndef __WINKVM__
 	static struct page *bad_page;
 	int r;
 
@@ -3283,14 +2687,19 @@ out2:
 	unregister_filesystem(&kvm_fs_type);
 out3:
 	return r;
+#else
+	return 0;	
+#endif	
 }
 
 static __exit void kvm_exit(void)
 {
+#ifndef __WINKVM__
 	kvm_exit_debug();
 	__free_page(pfn_to_page(bad_page_address >> PAGE_SHIFT));
 	mntput(kvmfs_mnt);
 	unregister_filesystem(&kvm_fs_type);
+#endif	
 }
 
 module_init(kvm_init)

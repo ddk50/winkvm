@@ -14,7 +14,11 @@
  *
  */
 
+#ifndef __WINKVM__
 #include <linux/highmem.h>
+#else
+#include <linux/winkvmstab.h>
+#endif
 
 #include "kvm.h"
 #include "debug.h"

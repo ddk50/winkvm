@@ -29,7 +29,10 @@
 #define DPRINTF(x...) do {} while (0)
 #endif
 #include "x86_emulate.h"
+#ifndef __WINKVM__
 #include <linux/module.h>
+#endif
+#include <linux/winkvmstab.h>
 
 /*
  * Opcode effective-address decode tables.
