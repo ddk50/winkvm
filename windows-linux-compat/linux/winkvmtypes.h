@@ -130,7 +130,7 @@ typedef struct __wait_queue_head wait_queue_head_t;
 typedef unsigned long sigset_t;
 
 struct rw_semaphore {
-	signed long		count;
+	signed long count;	
 };
 
 struct module {

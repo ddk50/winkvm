@@ -33,6 +33,7 @@
 #include <linux/module.h>
 #endif
 #include <linux/winkvmstab.h>
+#include <asm/winkvmmisc.h>
 
 /*
  * Opcode effective-address decode tables.
