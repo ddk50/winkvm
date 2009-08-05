@@ -360,7 +360,7 @@ static void reload_tss(void)
  */
 static int vmx_get_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *pdata)
 {
-	u64 data;
+	u64 data;	
 	struct vmx_msr_entry *msr;
 
 	if (!pdata) {
