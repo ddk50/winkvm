@@ -1,0 +1,396 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_INTERFACE DIALOGEX 0, 0, 446, 170
+STYLE WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_ACCEPTFILES
+CAPTION "FMOD 3.73"
+FONT 8, "Arial", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Loaded Files",IDC_STATIC,4,4,191,161
+    LISTBOX         IDC_SONGLIST,8,14,183,145,LBS_OWNERDRAWFIXED | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP,WS_EX_ACCEPTFILES
+    PUSHBUTTON      "Load File",IDC_LOAD,202,9,44,12
+    PUSHBUTTON      "Delete",IDC_DELETE,202,54,44,12
+    PUSHBUTTON      "Play",IDC_PLAY,202,69,44,12
+    PUSHBUTTON      "Options",IDC_CONFIG,202,109,44,12
+    CONTROL         "Playlist",IDC_PLAYLIST,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,207,138,36,13
+    GROUPBOX        "Current Module File",IDC_STATIC_INFO,252,5,191,117
+    LTEXT           "Song Volume",IDC_STATIC,260,98,53,8
+    CONTROL         "Progress1",IDC_PROGRESS1,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,258,109,181,10
+    GROUPBOX        "Effects",IDC_STATIC,252,126,134,39,BS_CENTER
+    CONTROL         "LowPass",IDC_LOWPASS,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,259,138,43,13
+    CONTROL         "Echo",IDC_ECHO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    259,149,30,13
+    CONTROL         "Slider1",IDC_SLIDER1,"msctls_trackbar32",TBS_NOTICKS | 
+                    WS_TABSTOP,340,98,101,10
+    CONTROL         "Reverb",IDC_REVERB,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,305,138,37,13
+    CONTROL         "Preverb",IDC_PREVERB,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,305,149,37,13
+    CONTROL         "Slider2",IDC_ECHOSLIDER,"msctls_trackbar32",TBS_VERT | 
+                    TBS_TOP | TBS_NOTICKS | WS_TABSTOP,348,135,10,24
+    CONTROL         "Slider2",IDC_CUTOFFSLIDER,"msctls_trackbar32",TBS_VERT | 
+                    TBS_TOP | TBS_NOTICKS | WS_TABSTOP,365,135,10,24
+    CONTROL         "Slider2",IDC_RESOSLIDER,"msctls_trackbar32",TBS_VERT | 
+                    TBS_TOP | TBS_NOTICKS | WS_TABSTOP,374,135,10,24
+    LTEXT           "ech   cf res",IDC_STATIC,346,156,38,8
+    PUSHBUTTON      "Spectrum",IDC_SPECTRUM,202,89,44,12
+    CONTROL         "Loop",IDC_PLAYLOOPED,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,207,149,31,13
+    PUSHBUTTON      "Load URL",IDC_LOADURL,202,24,44,12
+    LTEXT           "Static",IDC_INFOWINDOW,258,15,180,80
+    PUSHBUTTON      "Load CD",IDC_LOADCD,202,39,44,12
+    CONTROL         "Channels",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_SUNKEN | WS_GROUP,392,126,48,18
+    LTEXT           "CPU Usage",IDC_STATIC,392,147,48,18,SS_SUNKEN
+    GROUPBOX        "Control",IDC_STATIC,202,126,44,39
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_INTERFACE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 440
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 165
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Australia) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DSENUMBOX DIALOG DISCARDABLE  0, 0, 212, 321
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Options"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_DSENUM_COMBO3,4,15,204,78,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DSENUM_COMBO,4,42,204,78,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DSENUM_COMBO2,4,73,204,96,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "8khz",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,10,107,31,
+                    10
+    CONTROL         "11khz",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,46,107,35,
+                    10
+    CONTROL         "22khz",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,86,107,35,
+                    10
+    CONTROL         "44khz",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON,126,107,
+                    35,10
+    CONTROL         "48khz",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,166,107,
+                    35,10
+    EDITTEXT        IDC_CONFIG_BUFFERSIZE,11,143,52,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_CONFIG_INITIALPERCENT,11,162,52,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_CONFIG_REBUFFERPERCENT,11,181,52,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_CONFIG_PROXY,10,213,189,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_CONFIG_CD,10,253,54,43,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "Digital Playback",IDC_CONFIG_CDDA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,74,250,67,10
+    CONTROL         "Jitter Correction",IDC_CONFIG_JITTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,74,262,65,10
+    CONTROL         "Force ASPI",IDC_CONFIG_FORCEASPI,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,74,274,52,10
+    PUSHBUTTON      "Device info...",IDC_CONFIG_CDINFO,148,268,54,14
+    PUSHBUTTON      "About...",IDC_ABOUT,5,301,50,14
+    DEFPUSHBUTTON   "OK",IDOK,97,301,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,156,301,50,14
+    LTEXT           "Choose a sound device",IDC_STATIC,4,34,116,8
+    GROUPBOX        "Select Output Rate",IDC_STATIC,4,94,203,30
+    LTEXT           "Choose a mixing driver",IDC_STATIC,4,62,116,8
+    LTEXT           "Choose an output driver",IDC_STATIC,4,7,116,8
+    GROUPBOX        "Internet Streaming Settings",IDC_STATIC,4,130,203,105
+    LTEXT           "Buffer size (Default: 64000)",IDC_STATIC,72,147,133,8
+    LTEXT           "Initial buffer percent (Default: 95)",IDC_STATIC,72,165,
+                    133,8
+    LTEXT           "Rebuffer percent (Default: 95)",IDC_STATIC,72,184,133,8
+    LTEXT           "HTTP Proxy (host:port or user:password@host:port) :",
+                    IDC_STATIC,10,201,189,8
+    GROUPBOX        "CD Settings",IDC_STATIC,4,240,204,48
+END
+
+IDD_STREAMINFODLG DIALOG DISCARDABLE  0, 0, 180, 89
+STYLE WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Name",IDC_STREAMINFO_NAME,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,5,4,170,8
+    CONTROL         "Pos",IDC_STREAMINFO_POSITION,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,5,16,170,8
+    CONTROL         "Time",IDC_STREAMINFO_TIME,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,5,28,170,8
+    PUSHBUTTON      "Details...",IDC_NETSTREAMINFO_DETAILS,4,66,50,14
+END
+
+IDD_LOADURLDLG DIALOG DISCARDABLE  0, 0, 278, 90
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Load URL"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,221,69,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,161,69,50,14
+    COMBOBOX        IDC_URLCOMBO,7,29,264,127,CBS_DROPDOWN | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Enter the URL of an Icecast2, SHOUTcast or HTTP stream or file here:\nFor example: http://www.fmod.org/file.mp3",
+                    IDC_STATIC,7,7,264,18
+    LTEXT           "Supported formats:\nIcecast2\tOgg Vorbis, MP3\nHTTP\t\tOgg Vorbis, MP3\nSHOUTcast\tMP3",
+                    IDC_STATIC,7,49,114,34
+END
+
+IDD_STREAMDETAILSDLG DIALOGEX 0, 0, 214, 217
+STYLE DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Stream Details"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_STREAMDETAILSEDIT,4,2,209,213,ES_MULTILINE | 
+                    ES_AUTOHSCROLL | ES_READONLY,WS_EX_STATICEDGE
+END
+
+IDD_MODINFODLG DIALOG DISCARDABLE  0, 0, 180, 89
+STYLE WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Order",IDC_MODINFO_ORDER,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,44,170,8
+    CONTROL         "Name",IDC_MODINFO_NAME,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,4,170,8
+    CONTROL         "Type",IDC_MODINFO_TYPE,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,14,170,8
+    CONTROL         "BPM",IDC_MODINFO_BPM,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,34,170,8
+    CONTROL         "Speed",IDC_MODINFO_SPEED,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,24,170,8
+    CONTROL         "Pattern",IDC_MODINFO_PATTERN,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,54,170,8
+    CONTROL         "Row",IDC_MODINFO_ROW,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,6,64,170,8
+END
+
+IDD_NETSTREAMINFODLG DIALOG DISCARDABLE  0, 0, 180, 89
+STYLE WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Status",IDC_NETSTREAMINFO_STATUS,"Static",
+                    SS_LEFTNOWORDWRAP | SS_NOPREFIX | WS_GROUP,5,48,170,8
+    CONTROL         "Stream",IDC_NETSTREAMINFO_STREAM,"Static",
+                    SS_LEFTNOWORDWRAP | SS_NOPREFIX | WS_GROUP,5,4,170,8
+    CONTROL         "Track",IDC_NETSTREAMINFO_TRACK,"Static",
+                    SS_LEFTNOWORDWRAP | SS_NOPREFIX | WS_GROUP,5,15,170,8
+    CONTROL         "Format",IDC_NETSTREAMINFO_FORMAT,"Static",
+                    SS_LEFTNOWORDWRAP | SS_NOPREFIX | WS_GROUP,5,37,170,8
+    CONTROL         "Proto",IDC_NETSTREAMINFO_PROTOCOL,"Static",
+                    SS_LEFTNOWORDWRAP | SS_NOPREFIX | WS_GROUP,5,26,170,8
+    PUSHBUTTON      "Details...",IDC_NETSTREAMINFO_DETAILS,4,66,50,14
+END
+
+IDD_CDINFODLG DIALOG DISCARDABLE  0, 0, 180, 89
+STYLE WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Name",IDC_CDINFO_NAME,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,5,4,170,8
+    CONTROL         "Time",IDC_CDINFO_TIME,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_NOPREFIX | WS_GROUP,5,16,170,8
+END
+
+IDD_DIALOGWAIT DIALOG DISCARDABLE  0, 0, 104, 29
+STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Please wait.. Scanning...",IDC_STATIC,16,11,73,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_DSENUMBOX, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 315
+    END
+
+    IDD_STREAMINFODLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 173
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 82
+    END
+
+    IDD_LOADURLDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 271
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+
+    IDD_STREAMDETAILSDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 207
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 210
+    END
+
+    IDD_MODINFODLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 173
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 82
+    END
+
+    IDD_NETSTREAMINFODLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 173
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 82
+    END
+
+    IDD_CDINFODLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 173
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 82
+    END
+
+    IDD_DIALOGWAIT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 93
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 22
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON    DISCARDABLE     "fmod.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_DSENUMBOX DLGINIT
+BEGIN
+    IDC_DSENUM_COMBO3, 0x403, 1, 0
+"\000" 
+    0
+END
+
+#endif    // English (Australia) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

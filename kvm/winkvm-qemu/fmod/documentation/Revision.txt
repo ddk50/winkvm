@@ -1,0 +1,1436 @@
+
+======================================================================================
+REVISION HISTORY : FireMOD : Copyright (c) Firelight Technologies, Pty, Ltd, 1994-2005
+                                 http://www.fmod.org
+======================================================================================
+	      + Added feature or noticable improvement
+	      - Bug fix or something removed
+	      * Changed or Information
+======================================================================================
+ 
+15/12/05 3.75
+------------
+
++ PSP    - Added PSP support! Contact sales@fmod.org for evaluation versions!
++ XBOX   - Added FSOUND_INIT_XBOX_REMOVEHEADROOM for 2D sounds to disable the xbox 
+           directsound 6db attenuation on all voices (to avoid clipping).
+
+- ALL    - Fixed rare timing crash, mainly on HyperThreaded or Multi-Processor 
+           machines, when calling FSOUND_Stream_SetPosition or FSOUND_Stream_Play.
+- ALL    - Sounds not starting paused properly issue fixed.
+- ALL    - Stability increase calling stream related commands from a sync callback.
+- ALL    - IMA ADPCM compressed multichannel FSB files with channel count = 2
+           played as static fixed.
+- ALL    - Removed any references to ctype.h so linux has an easier time linking 
+           on old glibc versions.
+- ALL    - .IT format - Pitch envelope under 'amiga frequencies' issue fixed.
+- ALL    - .IT format - Pan envelope not panning left issue fixed.
+- ALL    - .IT format - some songs with extremely high pitch notes were being
+           clamped by fmod's internal setfrequency function, so that has been
+           fixed.
+- ALL    - Fixed stream not opening with FSOUND_NONBLOCKING if 
+           FSOUND_OUTPUT_NOSOUND_NONREALTIME was the output mode.
+- ALL    - Fixed rare stream crash if FSOUND_NONBLOCKING was used and ran out 
+           of memory.
+- ALL    - Fixed ogg vorbis seeking causing odd audible playback for a few ms.
+- ALL    - Removed stall on FSOUND_Stream_SetSubStream or 
+           FSOUND_Stream_SetSubStreamSentence if other streams were playing 
+           simultaneously.
+- ALL    - Fixed FSOUND_SetMute not taking FSOUND_SetVolumeAbsolute into account
+           when unmuting.
+- ALL    - Fixed recording returning an error if fmod was closed then reinitialized
+- ALL    - Fixed rare failures in FSOUND_Sample_Load if a stream was openened
+           beforehand.
+- LINUX  - More OSS and ALSA compatibility fixes, should handle most cards without
+           a problem now.
+- LINUX  - Fixed lock on cd device after FSOUND_Close was called so tray wouldnt 
+           eject.
+- LINUX  - ALSA output now cooperates with other applications better.
+- WIN32/
+  WIN64/
+  WINCE  - Fixed thread leak if recording was started and stopped.
+- WINCE  - Fixed last few milliseconds of mp3 files not playing.
+- WINCE  - Fixed new streams not being able to be started if memory card or 
+           removable media was removed during playback.
+- WINCE  - Fixed memory leak.
+- PS2    - Mute wasn't muting hardware voices properly.
+- PS2    - Free up streams in FSOUND_Close to avoid hang.
+- PS2    - Fixed memory leak when using FSOUND_NONBLOCKING and sample list feature
+           in FMUSIC_LoadSongEx.
+- PS2    - Removed rare chance of buzzing noise if FSOUND_SetSpeakerMode was set
+           and FSOUND_Init had 0 software channels specified.
+- PS2    - Fixed FSOUND_STEREOPAN coming out in right speaker with mono sounds.
+- PS2    - Unblocked FSOUND_Stream_SetEndCallback from possibly causing a stall.
+- MAC    - Fixed critical section issues on OS9.
+- XBOX   - Fixed loop point clicking on PCM based hardware sounds.
+- FSBANK - Fixed command line version not returning correct error code to dos.
+           Also stopped messagebox popping up when -h was specified.
+
+* WIN32  - CDDA streams now return -3 from FSOUND_Stream_GetOpenState when cd is 
+           ejected.
+* PS2    - FSOUND_IsDiskBusy now accepts a parameter to determine if a stream is
+           in the middle of a close (because stream close can cause blocking in 
+           other functions if they are called while a stream is closing)
+
+11/11/04 3.741 (Mac only)
+-------------------------
+
+- MAC	 - Fixed problems with playing Ogg Vorbis files.
+- MAC    - Fixed threading issues which was causing problems in mac classic.
+- MAC    - Added "Classic" target to all examples.
+
+18/10/04 3.74
+-------------
+
++ GC     - Added FSOUND_GC_PrepareForReset (see fmodgc.h) to prepare for software reset.
+           This kills streams so FSOUND_Close can be called safely even with the tray 
+           door open.
++ GC     - Added FSOUND_GetFreeHWRam to find out how much ARAM is free.
++ GC     - Memory footprint lowered.
++ XBOX   - FSOUND_Stream_OpenFromHandle added to allow dashboard tracks to be played
+           after using XOpenSoundtrackSong.
+
+- ALL    - FSOUND_Stream_Play is now faster.
+- ALL    - Fixed FSOUND_SIGNED / FSOUND_UNSIGNED being ignored when FSOUND_LOADRAW in 
+           FSOUND_Sample_Load/Ex.
+- ALL    - Stream fix when a stream opened with FSOUND_NONBLOCKING runs out of memory.
+- ALL    - Memory leak fixed in certain error situations trying to open a stream.
+- ALL    - Remove rare stream crash.
+- ALL    - Corruption when using compressed streams and stream loop points in rare cases 
+           fixed.
+- ALL    - FSOUND_SetVolumeAbsolute not working on software mixed 3D voices or PS2/GC
+           hardware 3D voices.
+- ALL    - Fixed S3M arpeggio.
+- ALL    - Fixed an issue where on some platforms (xbox/gc/dsound) hardware voices would 
+           enter an inconsistent state if channel that had played and ended was paused.
+- WIN32  - ASIO Crash fix.
+- LINUX  - Fixed hang on OSS output if another device was using the same device.
+- LINUX  - Fixed crash when using ALSA by upgrading to the latest ALSA library.
+           (It was an ALSA crash not fmod!)
+- MAC    - Fixed crash on OS9 support.
+- XBOX   - FSOUND_IsPlaying / FSOUND_GetNumChannelsPlaying fixed when FSOUND_SetPaused 
+           was used.
+- XBOX   - Sounds going quiet if FSOUND_Reverb_SetChannelProperties was called on 2d
+           channels fix.  Now reverb channel properties are ignored if it is a 2d voice,
+           as the properties related to a 3d environment anyway.
+- PS2    - Fixed crash on streams with loop points in VAG format.
+- PS2    - Fixed stream priorities being 0 instead of 256 due to a sifcmd optimization
+           which lead to the undesirable effect of streams being stealable by the 
+           channel priority system.  
+- GC     - 3D sound rolloff algorithm updated to be consistant with other platforms.
+- GC     - Fixed unpaused sounds playing through all of ARAM in some cases.
+- GC     - Fixed audible glitch upon startup in certain cases.
+- FSBANK - Fixed program stealing window focus when in hidden mode.
+
+* ALL    - FMUSIC_SetSample now allows hardware samples specified for music files.  This
+           means you can do things like use hardware VAG samples on PS2 in mod files.
+* ALL    - Renamed stream2 to userstream.
+* PS2    - Exposed FSOUND_SetDiskBusy on IOP interface for IOP programmers.
+* GC     - Reduced memory fragmentation.
+
+01/06/04 3.73
+-------------
+
++ ALL    - FSOUND_CD_TrayOpen added.  Now close or open is specified manually.
++ WIN32  - Added CD TOC retrieval as an FMOD tag.  CDDB diskid generation added 
+           to CDDA example.
++ WIN32  - Extended ASF/WMA tag support added.
+
+- ALL    - FSOUND_Stream_GetTime and stream syncpoint fixes.
+- WIN32  - CDDA pausing between tracks fix.
+- FSBANK - Command line calls and list file parsing fix.
+- GC     - Memory alignment crash fix
+- PS2    - FSOUND_Init/Close restart fix if FSOUND_INIT_PS2_USEVOLUMERAMPING was specified.
+- ALL    - FSOUND_CD_Eject removed in favour of FSOUND_CD_TrayOpen.
+
+* FSBANK - If FSOUND_HW3D is specified on a stereo sample an error is displayed.
+
+
+23/04/04 3.72
+-------------
+
++ WIN64  - AMD64 version of fmod available!  fmod64.dll.  
+           Runs in Windows XP 64 / Windows Server 2003.
++ ALL    - FSOUND_Sample_SetDefaultsEx / FSOUND_Sample_GetDefaultsEx added.  
+           Now includes random variation settings for frequency, volume and pan!
++ ALL    - FSOUND_3D_SetMinMaxDistance / FSOUND_3D_GetMinMaxDistance added for per channel
+           min/max distance control.
++ ALL    - 'fsb' example added.  Shows loading of an FSB file as a non blocking sample bank,
+           then plays back the contents using the new random variation 
++ WIN32  - Faster DirectSound support, due to many driver calls eliminated.  This was 
+           probably the cause of worse performance in FSOUND_HW3D mode than using the
+           FMOD software mixer.  The software mixing mode probably still wins, but it 
+           is better than it used to be.
++ WIN32  - WMA, ASF and WMV now run through FMOD DSP engine / streamer!  You can now load
+           WMA files as samples, do DSP effects and spectrum analysis on these files.
++ WIN32  - ASIO output channels made enumerable and selectable through FSOUND_SetDriver.
++ PS2    - Optimizations on EE<->IOP communication with more EE side caching
++ PS2    - Added FSOUND_IOP_Alloc/Free.
++ PS2    - Added FSOUND_SPU2_Alloc/Free.
++ PS2    - Added FSOUND_SetADSR and FSOUND_SetADSRKeyoff
++ PS2    - Added FSOUND_SetSifCommandInfo, and a similar IOP mechanism for users wanting 
+           to make FMOD cooperate with their own EE<->IOP sif command handlers.
++ PS2    - Stream2 example now shows VAG/ADPCM Hardware playback as well as PCM playback 
+           and has an improved interface.
++ PS2    - 'streamwithdata' example added.  This shows using FSOUND_SetDiskBusy, and also
+           loads game data at the same time without affecting the framerate.
++ PS2    - ShellMpeg example added!  This example makes the Sony Shell mpeg movie player
+           example use FMOD via PCM or ADPCM using a custom FMOD stream.
++ PS2    - Added FMUSIC_SetRowCallback, FMUSIC_SetOrderCallback, FMUSIC_SetZxxCallback and
+           FMUSIC_SetInstCallback support.
++ PS2    - Added fmodps2iop.h to expose FMOD file and memory routines to IOP programmers.
++ XBOX   - Reverb on 2d voices is now possible by calling FSOUND_Reverb_SetChannelProperties.
++ XBOX   - FSOUND_Output_XBox_GetEffectImageDesc added in fmodxbox.h
++ CE     - FSOUND_File_HasFatalErrorOccurred and FSOUND_HasPowerOnOccurred added in fmodce.h.
+
++ FSBANK - Now available as a programmers library!  Make your own FSB files without 
+           fsbank.exe!  See fsbank.lib, fsbank.h and fsbank.chm.
++ FSBANK - FSBank now allows list files to specify sample defaults and randomization parameters per sound.
+
+- ALL    - FSOUND_Sample_SetMaxPlaybacks fixed when using hardware samples.
+- ALL    - Voice stealing fix with FSOUND_FREE.
+- ALL    - FSOUND_IsPlaying / endcallbacks on streams not reacting in time when 
+           FSOUND_INIT_STREAM_FROM_MAIN_THREAD bugfix.
+- ALL    - mod/s3m/xm fix with pattern loop.
+- ALL    - mod/s3m/xm/it.  Non looping songs now play the very last row instead of cutting it off.
+- ALL    - .it files now respect the FMUSIC_SetLooping command!
+- ALL    - FMUSIC_SetOrder now cleans up/resets old channels so skipping to a new part of the song
+           doesn't cause weird playback issues.
+- ALL    - FMUSIC_GetRealChannel fix for non playing music channels.
+- ALL    - Loop points on natively compressed sounds (xadpcm,gcadpcm,vag) working again.
+- ALL    - ADPCM compressed FSB support fixed.
+- WIN32  - Analogue and Digital CDROM support fixes.
+- WIN32  - FSOUND_HW3D support now drops back to directsound software buffers instead of fmod
+           software mixed buffers to remove the issue of latency and possible skipping on 
+           some soundcards due to bad drivers.  It avoids the need to have to play with the 
+           mixer buffersize (FSOUND_SetBufferSize).  32 'hardware' voices are now reported
+           if the card actually has no voices.
+- GC     - Bugfixes.  Stereo sound fixes, crash fixes, pause/unpause fixes and more.
+- PS2    - IRX files symbol stripped, now around 130k smaller for each file.
+- PS2    - FSOUND_GetPaused fixed with streams that are started paused.
+- PS2    - FSOUND_SetDiskBusy now does not block other FMOD commands if executed from another 
+           thread asynchronously. (ie if the game has a threaded filesystem).
+- PS2    - Memory saving.  200k on the EE.
+- LINUX  - Ensoniq 1371 latency fix.  
+- LINUX  - FSOUND_Init stalls/timeouts removed from various dodgy soundcards.
+- LINUX  - OSS Recording bugs fixed.
+- CE     - Streams now stop gracefully instead of hanging the thread if a poweron occurs and the file handle 
+           to the stream on a CF card or external medium is lost.
+- FSBANK - Many bugfixes.
+
+* ALL    - FSOUND_GetNumHardwareChannels renamed to FSOUND_GetNumHWChannels to give more
+           information including 2d and 3d channels seperately.
+* ALL    - FSB files now allow mixture of mono and stereo sounds in the one bank.
+           FSOUND_Stream_SetSubStreamSentence will fail if it encounters a sentence with mixed 
+           formats but functions like FSOUND_Stream_SetSubStream will work.
+* ALL    - FSOUND_INIT_ENABLEOUTPUTFX renamed to FSOUND_INIT_ENABLESYSTEMCHANNELFX.
+
+14/11/03 3.71
+-------------
++ WIN32  - CDDA support.  Now you can perform cd ripping, spectrum analysis or DSP effects
+           on CD audio.  See FSOUND_Stream_Open and FSOUND_Stream_SetSubStream.
++ PS2    - New FSOUND_SPEAKERMODE_PROLOGIC2_INTERIOR speakermode added as an alternative
+           to FSOUND_SPEAKERMODE_PROLOGIC2.  This method cuts number of sound playbacks to 
+           24 at once instead of 48, but supports interior panning.  Probably not needed in 
+           most games.
+
+- ALL    - FSOUND_Close and stream thread safety fixes for extra stability especially when
+           using end callbacks.
+- ALL    - Buffered file system fix to avoid strangely playing streams.
+- ALL    - Using FSOUND_Stream_SetTime in conjunction with FSOUND_FORCEMONO fix.
+- ALL    - (except CE and PS2) - Chirping noise fix when not using FSOUND_MPEGACCURATE when 
+           seeking in an mp3.
+- ALL    - Possible OXM format memory leaks removed.
+- WIN32  - WMA tag support fix.
+- WIN32  - MP3 static fixed, when playing 2 mp3s at once or loading an mp3 sample while 
+           streaming an mp3 simultaneously, on hyperthreaded cpus.
+- LINUX  - FSOUND_Close hang fixed.
+- PS2    - Sync callback support added
+- PS2    - IOP memory leak in the kernel if FSOUND_Init and FSOUND_Close was called
+- PS2    - Corruption noise removed in streams if the stream buffersize wasnt big enough and
+           a stream tried to restart after buffer underrun.
+- PS2    - Prologic 2 support fixes in the original PL2 mode.
+- CE     - Small glitch noise removed when stopping and starting an mp3 stream.
+- MAC    - linker issues resolved with mach-o build on certain versions of OSX.
+- MAC/GC - endian issue fixed with noisy samples in .IT files.
+
+* ALL    - specifying FSOUND_8BITS in loading a sample will now force the sample depth 
+           down to 8bits to save memory.  OXM files now also downgrade decoded oggs back
+           to 8bit when loading if the original XM had them stored as 8bit.
+
+4/9/03 3.70
+-------------
+
++ ALL    - Shoutcast / Icecast / HTTP streaming support added! (mp3/ogg vorbis only).
++ ALL    - Tag support, I3DV1, I3DV2, Ogg Tags, ASF/WMA tags now readable through api.
++ PS2    - Prologic 2 support now allows use of all 48 hardware channels, instead of 24.
++ PS2    - Delay and Feedback parameters on spu2 hardware reverb now supported through 
+           EchoTime and EchoDepth parameters respectively.
++ WIN32  - FMOD Media Player updated with some new features.  Lowpass cpu usage bug fixed.
++ ALL    - NetStream example added to make it simpler to understand buffering logic etc.
++ ALL    - Saving the recorded result to a wav file added.  Shows how to Lock/Unlock a
+           sample.
++ ALL    - FSOUND_Stream_*Sync* API changed around a bit / renamed.  Now user points are 
+           stored as a pointer instead of an index, and the 256 limit is removed.
++ WINCE  - FSOUND_DSP_GetSpectrum now works!  Integer FFT implemented for non FPU devices.
+
+- ALL    - WAV/AIFF only.  If a file had loop points embedded, then the mode (ie FSOUND_2D) 
+           was being ignored, fixed.
+- ALL    - Memory leak fixed if any FSOUND_Stream_*Sync* functions were called with 
+           FSOUND_NONBLOCKING and the stream wasnt ready yet.  They now fail if not ready.
+- WIN32  - WMA and FSOUND_NONBLOCKING now works.
+- XBOX   - 360kb or so of memory saved!  Also DSSTDFX.BIN is no longer needed.
+- PS2    - Ejected or corrupted CDs now recover smoothly on stream playback without making a noise.
+- PS2    - FSOUND_Reverb_SetChannelProperties fix which was causing sound to dissapear.
+- PS2    - Return values for most channel commands fixed, they were returning the wrong value.
+- PS2    - Streams being truncated wth different stream length/buffersize combinations fixed.
+- PS2    - FSOUND_GetPaused fixed.
+- PS2    - Many other bugfixes.
+- MAC    - Recording bugfix dependent on OSX version.
+- WINCE  - fixed mp3 loading as sample bug, for files with corruption in them.
+
+* ALL    - FMUSIC_LoadSongEx now takes an offset parameter for pak/wad/data file loading.
+* ALL    - FSOUND_Stream_OpenFile is now called FSOUND_Stream_Open and also takes an 
+           offset parameter for pak/wad/data file loading.
+
+9/6/03 3.63
+-------------
++ ALL    - FSBank updated.  Now all platforms support compressed FSB formats.
+           Command line supported added.  Source files can now be specified via a text
+           file, allowing ordering of sounds within fsb files.
++ ALL    - FSB format now supports sample banks to hold any sound format that fmod can
+           load with FSOUND_Sample_Load, so for example you could have 1 fsb with 
+           multiple mp3, ogg and wav files stored within it.
++ ALL    - FSOUND_Stream_OpenFile with FSOUND_MPEGACCURATE is now 25% faster!
++ ALL    - FSOUND_Stream_SetLoopCount added.
++ ALL    - FSOUND_NONBLOCKING support added to FMUSIC_LoadSongEx! Now sample banks can
+           be loaded in the background.  Use new FMUSIC_GetOpenState to poll status.
++ PS2    - Dolby Prologic 2 support added! Use FSOUND_SetSpeakerMode and
+           FSOUND_SPEAKERMODE_PROLOGIC2.  Note that this mode uses 2 hardware voices 
+           for every fmod channel, so the number of channels is effectively halved 
+           from 48 to 24 when using this speaker mode.
++ PS2    - FSOUND_Update now 30-40% faster!
++ PS2    - File routines now split into fmodfile.irx so users can quickly compile or 
+           hook into their own IOP file routines.
++ ALL    - FSOUND_INIT_STREAM_FROM_MAIN_THREAD added.  This causes FSOUND_Update to 
+           drive the streamer thread.  This is mainly because OS8/Macintosh doesnt 
+           like streaming inside an MPTask, which is being worked on.  This will work
+           around it.
+
+- WIN32  - DirectX 8/9 bug fixed which could cause a crash with FX or recording.
+- ALL    - FSOUND_Stream_SetTime is now sample accurate with mp3.  (it previously 
+           seeked and rounded the position to the nearest mpeg block).
+- ALL    - MP3 'chirp' noises when seeking (using FSOUND_Stream_SetTime or 
+           FSOUND_Stream_SetPosition) reduced or removed completely.
+- PS2    - FSOUND_IsPlaying bug fixes, Prologic 2 support!  Hardware click removal!
+- PS2    - Greater volume accuracy which removes 'wobbly' sound when using small 
+           mindistances in 3D sound.
+- MAC    - conflict with cocoa libraries and the symbol _realloc removed.
+- ALL    - Strange doppler effect when sounds went outside maxdistance fixed.
+- ALL    - FSOUND_Stream_SynchPoint fixes.
+- PS2    - FSB 16byte memleak fixed.
+- ALL    - AIFF loop point support fixed.
+- WINCE  - Loading MP3 as sample crash fix.
+- WINCE  - FSOUND_GetLengthMs fixed with MP3 files.
+- FSBANK - Mixing 8 & 16bit sounds dissalowed.  A stream is created in a particular 
+           format (based on the first sample in an FSB), and if the first sound was
+           8 bit but the rest were 16bit, the result would be noisy 16bit sounds.
+
+* ALL    - win32/mac mainly.  FSOUND_Update now yields, causes operating task switch 
+           for smoother multitasking.  You should call this function once a frame.
+* MAC    - fmod_cfm.shlb now only exports the relevant fmod symbols and not the MSL stuff.
+
+28/02/03 3.62
+-------------
++ GC    - GameCube support added!
++ ALL   - Added DirectX 9 support.  You can now change frequency with 
+          FSOUND_ENABLEFX enabled sounds.
++ ALL   - Cross platform IMA ADPCM wav file support!  Now you can use ADPCM 
+          compression without windows codecs, and on any platform.
++ ALL   - Recording support added to Mac and Linux ports!
++ ALL   - FSOUND_Stream_SetMode and FSOUND_Stream_GetMode added to allow control 
+          during playback, such as looping.
++ ALL   - FSOUND_Stream_SetSubStreamSentence added!  This allows for seamless 
+          stitching/sentencing of streams. VERY useful for things like commentary 
+          where you want parametized audio.  FSB format only.
++ ALL   - FSOUND_CD_SetTrackTime added.
++ PS2   - Now TRC compliant for sony submissions.
++ PS2   - Added multi-channel interleaved stream support! (FSB format only).  If 
+          stereo is 2 interleave channels (L/R), this format allows up to 16 
+          interleaved channels at once that play simultaneously.  This eliminates 
+          seeking and improves CD bandwidth, and also allows interactive music with
+          tracks that stay in perfect sync.
++ PS2   - FSOUND_Reverb_SetChannelAttributes supported, using Room parameter to make
+          channel wet/dry.
++ PS2   - Stereo and even 'multichannel' (see above) sample support in hardware.  
+          (FSB format only).
++ WIN32 - New example 'multiple' shows how to load fmod dynamically, and also play 
+          sounds out of 2 soundcards at the same time!
++ WINCE - New complete set of examples!  3d, simple, simplest etc are all included.
++ LINUX - Better compatibility for old cards.  ALSA mode now allows device 
+          enumeration.  Electic Fence tested.
++ WIN32 - 24 and 32 bit PCM wav files supported!
+
+- ALL   - FSOUND_SetSubStream fixed when in FSOUND_NONBLOCKING mode and mulitiple 
+          calls are issued at once.
+- ALL   - FSOUND_Stream_SetEndCallback more accurate.
+- PS2   - 'Corrupted' stream fix when usage of hardware channels were maxed out.
+- PS2   - FSOUND_Stream_PlayEx was accidently blocking, fixed.
+- PS2   - Multiple Listeners fix.
+- PS2   - FSOUND_SetSFXMasterVolume fix for FSB banks.
+- ALL   - Stream timing, mod timing, and stream endcallbacks are now more accurate.
+- MAC   - OS8/9 support working again.
+
+* ALL   - .FSB support is now cross platform.  PS2, GameCube and XBox allow compressed 
+          FSB data.
+* WIN32 - Made fmod.h and examples more cygwin friendly.
+* ALL   - FMUSIC_LoadSongMemory is now changed to FMUSIC_LoadSongEx.  This function 
+          handles loading from memory and more.
+* ALL   - Frequency/Volume/Pan/3d position cached to reduce WIN32 driver call overhead?
+* LINUX - fmoddyn.h updated and useable for linux.
+
+18/12/02 3.61
+-------------
++ ALL   - Added FMUSIC_SetUserData and FMUSIC_GetUserData
++ ALL   - Added FSOUND_3D_Listener_SetCurrent for multiple listener support!
++ ALL   - Optimized Ogg Vorbis.  Ogg decoding is now 2x faster!  
+          Decoding is nearly 2x quicker than mp3!
++ WIN32 - A3D support re-added as an output mode only, for compatibility.
++ PS2   - Added FSOUND_Stream_SetSubStream/FSOUND_Stream_GetNumSubStreams, for FMOD 
+          .FSB bank files are supported on PS2 Only.  Cross platform support is coming.
++ WINCE - Added Ogg Vorbis support via fixed point Tremor API.
++ ALL   - Added support for Neil Graham's .XM to .OXM converter.  This tool converts 
+          XM samples into ogg files, making them dramatically smaller.
++ WIN32 - Added dynamic loading header fmoddyn.h.  This allows you to create multiple 
+          instances of fmod = multiple soundcard output.
++ ALL   - Added FSOUND_Stream_SetLoopPoints.
++ ALL   - Added FSOUND_Stream_GetOpenState for determining the state of a non blocking stream open.
++ ALL   - Added FSOUND_Stream_AddSynchPoint, FSOUND_Stream_DeleteSynchPoint, 
+                FSOUND_Stream_GetNumSynchPoints for sync point manipulation.  
+          Previously they were only available in .WAV or .AIFF files.
++ ALL   - Added FSOUND_OUTPUT_NOSOUND_NONREALTIME.  Calling FSOUND_Update drives the 
+          software engine as fast as you like.
+
+- LINUX - Latency fixes.
+- LINUX - OSS output now allows /dev/dsp* enumeration.          
+- PS2   - Numerous fixed and speedups.
+- XBOX  - Fixed WMA looping.
+- WINCE - Added more power off/on support for some iPAQ models that didn't work before.
+- WIN32 - Improved ASIO support!  More drivers work now that didn't work before.
+- WIN32 - CD playback bugfixes.
+- WIN32 - MIDI 'caching' bug fixed.
+- WIN32 - FSOUND_ALL support now works with WMA channels.
+- WIN32 - Pan clicks removed from FSOUND_MIXER_QUALITY_FPU
+- WINCE - FSOUND_Stream_GetTime / SetTime / GetLengthMs more accurate for mp3.
+- ALL   - Lots of memory optimizations.  FMOD now uses less memory than ever.
+
+* FSOUND_3D_Listener_SetDopplerFactor renamed to FSOUND_3D_SetDopplerFactor.
+* FSOUND_3D_Listener_SetDistanceFactor renamed to FSOUND_3D_SetDistanceFactor.
+* FSOUND_3D_Listener_SetRolloffFactor renamed to FSOUND_3D_SetRolloffFactor.
+* FSOUND_3D_Update renamed to FSOUND_Update
+
+16/08/02 3.6 (WIN32/CE/Linux/Mac/PS2/Xbox Release)
+-------------
+
++ PS2   - PlayStation 2 support added!
++ XBOX  - XBox support added!
++ MAC   - Macintosh support added!
++ LINUX - Major rewrite + support for ALSA 0.9!  Vortex2 support now working 100%.
++ ALL   - Added FSOUND_Sample_SetMaxPlaybacks.
++ ALL   - 'Constant power pan' added to software engine for better sounding pans.
++ ALL   - FSOUND_NONBLOCKING flag added for opening streams. (streams will open in background)
++ ALL   - AIFF Support added with full loop point and sync marker support.
++ ALL   - Ogg Vorbis support upgraded to 1.0 final codebase!
++ ALL   - FMUSIC_SetLooping added.  Music loops by default, so call to stop it looping.
++ ALL   - FSOUND_GetCurrentLevels added which returns a seperate left and right VU level.
++ WIN32 - FSOUND_FX_Disable added, so that FSOUND_FX_Enable doesnt have to be called each time.
++ WIN32 - MP2 support optimized, significantly faster.
++ WIN32 &
+  WINCE - Wave-In recording support added.  Now recording works in NT and PocketPC!
++ WINCE - BIDI Looping and negative frequencies now supported.
++ WINCE - Smartphone, CE 2.11 and BE-300 support added.
+
+- ALL   - Better MP3 format detection.
+- ALL   - WAV sync markers now sorted if they are stored in the wav file out of order.
+- ALL   - 3d sound and setvolume bug fixed.
+- ALL   - XM apreggio was upside down on linear frequency tunes bug fixed.
+- ALL   - FSOUND_SetFrequency.  negative followed by positive frequency now works properly.
+- ALL   - FSOUND_GetCurrentVU removed in favour of FSOUND_GetCurrentLevels.
+- WIN32 - Midi fixes. FMUSIC_IsFinished fixed, FMUSIC_StopSong fixed, FMUSIC_LoadSongMemory fixed.
+- WIN32 - A3D/Geometry support removed.  Geometry may re-appear via FMOD instead of A3D support.
+- WIN32 - Fixed DX8 FX (FSOUND_FX_xxx) support.
+- WIN32 - Fixed CD Playback functions.
+- WINCE - Better support for Casio E115G device.  Use 200ms buffer for these devices.
+- WINCE - Seeking through SetTime/SetPosition bugfix especially with FSOUND_MPEGACCURATE.
+- LINUX - Removed CD access at FSOUND_Init.
+
+* ALL   - maxdistance behaviour unified on all platforms.
+* ALL   - FSOUND_SPEAKERMODE_5POINT1 is now separated to FSOUND_SPEAKERMODE_DOLBYDIGITAL and
+          FSOUND_SPEAKERMODE_DTS.
+* ALL   - Changed FSOUND_INIT_ACCURATEGETCURRENTVU to FSOUND_INIT_ACCURATEVULEVELS.
+* WIN32 - Stopping or playing a sound now does not reset the FX list.  You have to manually 
+          do this with FSOUND_FX_Disable.  This reduces cpu usage if wanting to start and stop
+          the sound repeatedly.
+
+11/03/02 3.51 (CE Only release)
+-------------
++ WINCE - FSOUND_GetCurrentVU support added
++ WINCE - Optimizations - All remaining emulated floats removed - now pure fixed point!
+
+- ALL   - Memory usage reduced on MOD/S3M/XM/IT playback by up to 200-300kb per instance.
+- ALL   - Other small fixes.
+- WINCE - FSOUND_Init failing on some PocketPC devices fixed.
+
+* ALL   - FSOUND_FORCEMONO enabled by default when a stream or sample is attempted to be 
+          opened with FSOUND_HW3D, so the user doesnt have to specify it manually.
+
+14/02/02 3.5
+-------------
++ FMOD CE Only. Mono mixers added! (FSOUND_MIXER_MONO and FSOUND_MIXER_QUALITY_MONO).  
+  30% faster than stereo!
++ EAX3 support added!  Advanced reverb api now also supporting occlusion and obstruction.
++ FMOD CE Only. Automatic power off/on recovery!  FMOD audio will resume as soon as the power
+  is turned back on the Pocket PC device with no programmer intervention!
++ Ogg Vorbis version update to 1.0 RC3.
++ New tutorials in the documentation!  The basics, DSP tutorial, DX8 FX tutorial and spectrum 
+  analysis.  Documentation index revamped and updated.
++ FSOUND_SetMemorySystem added.  Allows the user to fexibly control memory allocated by FMOD.
++ Multiple CDROM support added.  Pass 0 for default, or 'D','E' etc to select the cd drive.
++ FSOUND_Stream_SetBufferSize added.  Useful for streaming from CD when the default size isnt 
+  big enough, and causes audio skips because the cd is being held up.
++ FSOUND_SetFrequency supports negative frequencies.  Play sounds backwards!
++ FMOD media player allows seeking in mods and streams by clicking on progress bar
++ Linux version brought up to date.  Thanks to SUSE distro guys for helping out.
++ FSOUND_GetCurrentVU latency adjusted (via FSOUND_Init flag), and now emulates a software 
+  mixer giving perfect VU feedback.
+
+- Sound skips with streams removed by bigger default stream buffersize. (also on CE)
+- Divide by 0 in linux version removed.
+- Bug fixed where an item appeared on the windows taskbar for FMOD's cdrom handling code.
+- Time accuracy bug fixed which affected gettime functions and sync callbacks.
+- Fixed distortion on mp3 playback under FMOD CE.
+- FSOUND_SetMute using FSOUND_ALL bugfix.
+- DirectShow assert removed when an error occured loading wma.
+- EAX1 support removed (superceeded by EAX2/EAX3).
+
+* FSOUND_FX api now allows multiple instances of the same effect per channel.
+* Ability to 3d position stereo soures removed in software mode. Streams and samples now default
+  to FSOUND_STEREOPAN so they are louder.  Use FSOUND_FORCEMONO on streams/samples to make them 
+  3d.
+* Intel performance primitives for ARM were tested but removed due to insignificant speed increase.
+
+13/09/01 3.4
+------------
++ DX8 fx support
++ Windows CE / PocketPC support added for handhelds! (such as compaq ipaq/casio/jornada etc).
+  CE support is considered in beta.  See the forum at http://www.fmod.org for beta feedback.
++ Ogg Vorbis decoder upgraded to Version 1.0.  1.0 is a large quality improvement!
++ FSOUND_SetCurrentPosition added.
++ FSOUND_GetOutputHandle added to return dsound / waveout / a3d pointer.
++ FSOUND_SetSpeakerMode added.  Get true dolby digital/DTS surround output through supported hardware!
++ FSOUND_DSP_GetFFTUnit and FSOUND_DSP_GetSpectrum added.  It is now possible to get a spectrum 
+  analysis of FMOD's mixer output in realtime.  Great for graphics, beat detection and note detection.
++ FSOUND_PlaySoundEx added.  Has 'paused' flag that allows the user to optinally start the sound
+  paused, set any attribute, and then unpause it later to start it playing.  Also can takes
+  a DSP unit handle, which means channels can now attached or grouped to specific DSP units.
++ FSOUND_DSP_GetBufferLengthTotal for help with DSP buffersize calculations.
++ FSOUND_FORCEMONO flag added for samples/streams.  Force stereo sounds to play as mono.
++ FSOUND_ENABLEFX flag added for samples/streams.  Enables a sample/stream to use DX8 FX.
++ FSOUND_2DHW flag added for samples/streams.  Allows 2d hardware acceleration.
++ "file://" support added for streams.
++ new sample in /samples/dsp added.  This shows how to use the new DSP feature of 
+  FSOUND_PlaySoundEx to have wet/dry effects, and also the FSOUND_FX_xxx API on hardware voices.
+
+- FSOUND_PlaySound3DAttrib removed due to FSOUND_PlaySoundEx.
+- FSOUND_Stream_Play3DAttrib removed due to FSOUND_Stream_PlayEx.
+- FSOUND_Stream_SetPaused & FSOUND_Stream_GetPaused removed.  Use FSOUND_SetPaused, FSOUND_GetPaused instead.
+- FSOUND_Stream_SetSynchCallback fix for long files.
+- FSOUND_UNMANAGED flag fixed when calling FSOUND_Close.
+- Removed small audible glitches or 'chirps' when seeking in an mp3 stream.
+- Delay when opening a stream removed.
+- Streams now reset's its buffers when FSOUND_Stream_SetTime or FSOUND_Stream_SetPosition is 
+  called.  This makes it more cpu intensive to seek, but results in no delays when seeking.
+- Small accuracy bugfix in IT replay for looping envelopes.
+- fix in delay note + volume envelope for XM.
+- A3D Support fixed and working ok again.
+- WMA/ASF/etc Support improved.
+
+* FMUSIC_SetInstCallback behaviour changed to support more than one instrument at a time.
+
+28/04/01 3.33 
+-------------
++ Linux Version update.
++ FSOUND_ALL support added to FSOUND_Reverb_SetMix.
+
+- EAX2 bugfix with FSOUND_Reverb_GetEnvironmentAdvanced
+- Click noise removed from WAV streams if FSOUND_Stream_SetTime was used before Play.
+- S3M bugfix for samples with middlec of 0.
+- Low quality mixers have been removed.  The symbols are there for backwards compatibility
+  but choosing one will autodetect a quality mixer instead.
+- Small bugfix in FPU quality mixer to do with volume ramping.
+  
+* Licensees now get an extensive compile time configuration header to include or exclude as many 
+  fmod features as they like!  a stripped FMOD.DLL can be as small as 20k now.
+
+27/03/01 3.32
+-------------
++ FSOUND_SetVolume, FSOUND_SetPan & FSOUND_IsPlaying support for WMA/ASF/Internet 
+  streams/etc added.  Multiple wma's open at once bug fixed.
++ Excellent quality resonant lowpass code added to fmod.exe example.  Source available.
++ FSOUND_INIT_GLOBALFOCUS added for directsound output, to allow sound to be heard
+  even though the window is out of focus.
++ OGG VORBIS - Official beta 4 release included.  Previous ver was pre-release beta 4.
+
+- Recording interface re-enabled.
+- MP2 fix - sound coming out one channel for stereo sounds now work properly.
+- 3D sound glitch with FSOUND_PlaySound3DAttrib fixed.
+- FSOUND_Stream_GetLengthMs returning incorrect results loading multiple mp3's fix.
+- exception when loading many wav files fixed.
+- MIDI updates - FMUSIC_GetTime works again and support for FMUSIC_IsFinished added
+- Possible DX8 related problems removed.
+- Better handling of machines with NO soundcard.
+
+* improved multitasking / buffering = lower cpu usage, more stability for sound output, 
+  especially on weird configs and low spec machines.
+* FMOD will now play the audio track out of AVI files - ie DIVX etc :)
+
+18/02/01 3.31
+-------------
++ WAV Loop point support added!  FMOD will now interpret loop points set in soundforge etc.
++ OGG VORBIS - Beta 4 used with FMOD.  Fixes problems and has speed benefits.
++ FMUSIC_SetInstCallback added.  Get callbacks on mod type instrument numbers.
++ FSOUND_Stream_SetSynchCallback added.  Visually drop markers in your wav editing package and 
+  FMOD will callback in time to the points as the sound plays!  Great for lipsynching/gfx 
+  demos etc.  WAV/RIFF mp3 only.
++ DX8 support added.
++ NT detection added.  This will mean WINMM is automatically enabled if FSOUND_Output isnt 
+  called for better performance.  All other WIN32 OS'es will use DSOUND.
++ Static library project added for commercial licensees.
+
+- Extra MP3 error checking, avoids crash on bad mp3 files. (why are there so many?)
+- Crash fix on certain combinations of machines with sblive cards.
+- WMA / Internet stream support error code fix.
+- WAV loader now handles files with 2 data chunks :)
+- FSOUND_DSP_ClearMixBuffer now works properly.
+- Fixed wobbling row/order/time when you pause a mod.
+- small crack noise at the end of looping 8bit wav files fixed.
+- FSOUND_Stream_GetTime improved especially with looping streams.
+- Zxx sync bug with mod files fixed where more than 1 Zxx was placed on a row.
+- XM multiretrig + volume column volume bug fix.
+
+- LINUX - Oss now opens the socket in nonblocking mode. That should take care of the
+  lockups some ppl got when another app was using the sound. 
+- LINUX - Esd now checks (via a select()) if it can send data, blocks if it can't. The
+  newest Elightment Sound Daemon choked on that one, and it's the Right Thing(tm) to do. 
+
+
+* A bug has been found in the win2k sblive drivers to do with volume levels on 3d sounds.. 
+  We suggest you get the newest version.
+
+17/12/00 3.3
+------------
++ Linux support added!  Big thanks to Magnus Naeslund on this for such a big effort!
++ .MIDI/.RMI support added.  (use FMUSIC_LoadSong)
++ .OGG (Ogg Vorbis) support added.  (FSOUND_Stream_OpenFile/FSOUND_Sample_Load). 
++ .MP2 (mpeg layer 2) support added.  (FSOUND_Stream_OpenFile/FSOUND_Sample_Load). 
++ .WMA Support added. (FSOUND_Stream_OpenFile).
++ .ASF audio Support added.  (FSOUND_Stream_OpenFile).
++ Internet streaming support added!  Pass a URL to FSOUND_Stream_OpenFile!!!
++ Volume Ramping ('click removal') added to MMX mixers.  All quality mixers now ramp by default.
++ MP3 playback optimized.
++ Delphi and visual basic interface updated.
++ Documentation update.
+
++ API changes and new features!!! -
++ FSOUND_Stream_GetLengthMs added.  Returns length of stream in milliseconds.
++ FSOUND_Stream_SetTime added.  Allows setting the position of a stream in ms. (even VBR mp3s!)
++ FSOUND_Stream_OpenFile added.  This combines all the old 'FSOUND_Stream_Open*' commands into 1.
++ FSOUND_Stream_SetEndCallback added.  Get a callback when the stream has finished!
++ FSOUND_Stream_GetSample added.  Get the internal FSOUND_SAMPLE definition for a stream.
++ FSOUND_Stream_CreateDSP added.  Add a DSP effect chain per stream if you want!  
++ FSOUND_Stream_Play3DAttrib added.
++ FSOUND_CD_SetVolume and FSOUND_CD_GetVolume added.
++ FSOUND_CD_GetTrackTime added.  Returns current track time.
++ FSOUND_CD_GetTrackLength added.  Returns track length in milliseconds.
++ FSOUND_Sample_Load replaces all previous FSOUND_Sample_Load* functions.
++ FSOUND_Sample_GetName added.
++ FSOUND_PlaySound3DAttrib added.  Replaces FSOUND_3D_PlaySound and FSOUND_PlaySoundAttrib.
++ FSOUND_SetLoopMode added for those who want per channel loop control not per sample.
++ FMUSIC_SetReverb added (for MIDI only currently)
+
++ FSOUND_LOADMEMORY flag added which allows sample loading, and STREAMING from a memory pointer.
++ FSOUND_MPEGACCURATE flag added for FSOUND_Stream_SetTime and MP2/MP3.  You can use this to get accurate time length,
+  and set the exact specified time in an MP3 even if it has a Variable BitRate!! (VBR)
++ FSOUND_ALL added to channel and sample flags.  This allows 1 function call (to FSOUND_SetVolume 
+  for example) and it will affect ALL channels!  The possibilities are cool, such pitchbending all 
+  sounds playing with FSOUND_SetFrequency(FSOUND_ALL, freqval); etc.
+
+
+- Some mod based fixes including better support for corrupted files :} 
+- Click bug removed on single-shot (non looping) samples for software engine.
+- Bug in mmx 8bit sample mixers fixed.
+- Streaming files stutter bug upon start removed / lessened.
+- MP3 frame filter added to remove corruption/glitches in bad mp3's.
+- ADPCM wav file corruption introduced in 3.22 removed.
+- FSOUND_Sample_SetLoopPoints bad parameter handling fixed.
+- FSOUND_StopAllChannels removed in favour of FSOUND_ALL flag. fmod.dll is still backwards compatible.
+- FSOUND_Sample_LoadWav removed in favour of FSOUND_Sample_Load. fmod.dll is still backwards compatible.
+- FSOUND_Sample_LoadMpeg removed in favour of FSOUND_Sample_Load. fmod.dll is still backwards compatible.
+- FSOUND_Sample_LoadRaw removed in favour of FSOUND_Sample_Load. fmod.dll is still backwards compatible.
+- FSOUND_Sample_LoadWavMemory removed in favour of FSOUND_Sample_Load. fmod.dll is still backwards compatible.
+- FSOUND_Sample_LoadMpegMemory removed in favour of FSOUND_Sample_Load. fmod.dll is still backwards compatible.
+- FSOUND_Stream_Open removed in favour of FSOUND_Stream_OpenFile. fmod.dll is still backwards compatible.
+- FSOUND_Stream_OpenWav removed in favour of FSOUND_Stream_OpenFile. fmod.dll is still backwards compatible.
+- FSOUND_Stream_OpenMpeg removed in favour of FSOUND_Stream_OpenFile. fmod.dll is still backwards compatible.
+- FSOUND_3D_PlaySound removed in favour of FSOUND_PlaySound3DAttrib. fmod.dll is still backwards compatible.
+- FSOUND_PlaySoundAttrib removed in favour of FSOUND_PlaySound3DAttrib.  fmod.dll is still backwards compatible.
+- FSOUND_MIXER_QUALITY_FPU_VOLUMERAMP removed, all quality mixers are volume ramping now.
+- FMOD_ERR_INVALID_MIXER error removed in favour of already existing FMOD_ERR_INVALID_PARAM flag.
+- FSOUND_GetCurrentVU improved, and bugfixed for stereo samples.
+- Other minor bugfixes.
+
+* Streamer callbacks created with FSOUND_Stream_Create must now return TRUE, or FALSE to terminate the stream.
+* FSOUND_MixBuffers renamed to FSOUND_DSP_MixBuffers
+* _cdecl calling convention specified for callbacks in case default calling convention is changed (thanks Aristarkh Zagorodnikov)
+* changed LCC-WIN32 compiler definition in fmod.h to __LCC__ (not LCCWIN32) so it works better now :)
+
+05/11/00 3.21
+-------------
+* Intermediate update before FMOD 3.3 is released.
+
++ New, easier to navigate documentation layout.  Recording interface added to documentation :)
+
+- End of non looping MP3 on rare combination of filelength crash fixed.
+- More efficient streaming engine, mp3 and other format playback is even faster than before.
+- Master Volume and FSOUND_SetVolumeAbsolute bug fixed.
+
+04/05/00 3.2 DX3 Patch
+-----------------------
++ Improved playback stability with harddisk interruptions occuring in the background.
+- DirectX versions *less than* DX7 compatibility problem fixed (most noticable under NT).  This was thanks to bug in dsound API (thanks microsoft!)
+
+
+01/05/00 3.2
+------------
+* FSOUND_NORMAL re-defined to (FSOUND_LOOP_OFF | FSOUND_8BITS | FSOUND_MONO), as in some
+  cases it was being mistaken for a bitfield and or'ed in with other flags when it infact wasnt. (it was 0!)
+* FSOUND_EAX interface renamed to FSOUND_Reverb interface.  (to fit a3d reverb, software reverb etc not just EAX)
+
++ DX7 support added.  This adds more hardware voices than previously possible before.
++ EAX 2.0 support added.  This means advanced reverb functionality and manual occlusion control.
++ A3D 3.0 support added (FMOD comes with a3dapi.dll now).  This adds A3D reverb and advanced reverb support.
++ RECORDING support added.  See FSOUND_Record_StartSample, FSOUND_Record_StartWAV etc.
++ FSOUND_MIXER_QUALITY_FPU_VOLUMERAMP mixer added.  This removes clicks on sudden volume changes for added quality.
++ MMX quality mixer speed increased AGAIN to crazy speeds!  Check out the new comparison charts.
++ 'userdata' parameter added to FSOUND_Stream_Create.
++ FMOD Standalone player/example (fmod.exe). Added 48khz support, MP3,WAV & A3D 3 support!
+  Reverb added (NR button removed) and lowpass filter declicked.  See FMOD.C for the code for all this!
++ New music callbacks! FMUSIC_SetRowCallback, FMUSIC_SetOrderCallback.  LATENCY ADJUSTED, so when it calls back on a particular row, it is the row you HEAR.
++ FSOUND_Stream_GetTime smoother and LATENCY ADJUSTED, so when the time displays a value, that is the time into the stream that you HEAR.
++ FMUSIC_GetPatternLength added.  (for time calculation purposes)
++ FSOUND_SetMinHardwareChannels and FSOUND_SetMaxHardwareChannels added.  Great for controlling 3d Hardware resources.
++ FSOUND_REVERB_IGNOREPARAM added, so you can change specific elements of environmental reverb and ignore others.
++ Delphi interface added!  
++ Added fmod_errors.h which contains FMOD_ErrorString.  Use this in conjunction with FMOD_GetError to get a string description of the error.
+
+- PCM .WAV files accidentally did an ACM codec check even if it was PCM.  Some machines didn't
+  have this PCM ACM codec, and so loadwav or openwav failed - ACM check now skipped for PCM files.
+- FSOUND_GetCurrentVU fixed!
+- 3D - Software engine bugfixed rolloff and distancefactor to make it sound more like DS3D.
+- WAV/MP3 - streamer fixes and improvements.  
+- XM/IT - portamento with multi sample instruments fixed.
+- API - FSOUND_Sample_Get somehow dissapeared from the DLL.. back again.
+- API - MU-Law functions removed.
+- Many other miscellaneous fixes.
+
+08/01/00 3.11
+-------------
++ RIFF based MP3 files and MP3's with ID3 tags at the start now supported.
+
+- LoadSongMemory fixed and works again
+- Pentium Pro selecting wrong mixer upon autodetect now fixed.
+- XM and IT bugfixes.
+
+24/12/99 3.1
+-------------
+
+* FMUSIC_OptimizeChannels put back into fmod.h.  Im not sure why it dissapeared in the first place :)
+* 'stream.exe sample' changed from WAV to a MP3 command line streamer because more people wanted that.
+* LoadMemory functions now take a length (length of the buffer).  You may have to change your code 
+  to support this (it is not backward compatible with 3.0.  I didnt want to add more functions to the 
+  API for such a minor change.
+
++ Variable bitrate MP3's now supported!
++ FSOUND_SetHWND added for those who want to specify their own HWND for dsound focus purposes.
++ FSOUND_Stream_GetTime added, for smooth, non lagged, accurate synchronization with stream 
+  playback.
+  Use this for synchronizing MP3's to your graphics!
++ Added stability to sound output of software engine, for when harddisk accesses occur.
+
+- 8 bit raw wav streaming bug fixed where output was noisy.
+- Streamer start/stop logic bug fixed/improved. (it used to hang on exit if you did several start/stops in a row)
+- Small XM bugfix on delay note.
+- Fixed startup crash bug.  This was caused by BAD DRIVERS.  Creative ES1370 sound card drivers
+  have a bug, and they have the cheek to set the certified bit in the caps.  It also reports 
+  256 hardware 3d channels which is obviously a lie.  Thanks to Marcus Aarts, Anders Nilsson and 
+  Shane Stevens for helping me find this one.
+- Documentation fixes.
+
+
+12/12/99 3.0
+-------------
+
+* New timing system, no more update rate, no more mixahead! a lot more stable on shit cards 
+  like awe64, and at the same time, very low latency.
+* FSOUND_SetPanSeperation only affects sfx now, not music.  
+* If mixer is not selected, it defaults to a quality mixer now, not a low quality one like before.
+* FSOUND_Geometry_AddPolygon now supplies normal as well AND opening factor. (it takes NULL also)
+* FSOUND_3D_Listener_GetAttributes now consistant across all output types. (waveout missed out before)
+* FSOUND_SetPaused now works on FSOUND_HW3D buffers.
+* FSOUND_SetMute now works on FSOUND_HW3D buffers.
+* FSOUND_MixChannel renamed to FSOUND_MixBuffers (it has nothing to do with channels really)
+* FSOUND_Listener_SetAttributes does not update 3d info now, FSOUND_3D_Update does.
+
++ Added FSOUND_File_SetCallbacks.  Use this to make FMOD use your own file operations.
++ Compressed WAV support added
++ MP3 Support added
++ EAX Support added
++ A3D Support added (with full geometry and list support)
++ MMX quality mixer sped up 2-3 times on ppro+ machines! (p6/p2/p3)
++ FSOUND_Driver_GetCaps added.. Now query the capabilities of drivers before calling FSOUND_Init.
++ FSOUND_Stream_Create added - an easier way to stream data.
++ FMUSIC_SetPanSeperation added, for per song pan seperation control.
++ FSOUND_3D_Update added.  This is now the global 3d update/flush function, NOT FSOUND_Listener_SetAttributes.
++ FSOUND_Geometry_Material functions implemented
++ Documentation added for geometry stuff, also other documentation updated (playsound, 3d stuff)
++ Software 3D Engine updated!  Software sounds used to audibly update on 
+  FSOUND_3D_Emitter_SetAttributes only, and not when the listener was updated.  
+  Now they are updated on neither, they are audibly updated now in FSOUND_3D_Update.  
+  This means you can now move the listener without updating the sources and all the sources will 
+  update automatically!  This behaves the same as DS3D now.
++ FSOUND_GEOMETRY_OPENING & FSOUND_GEOMETRY_OPENING_REFERENCE implemented!  create doorways.
++ Geometry list functions added.  A faster way of processing geometry.
+	FSOUND_Geometry_AddList(FSOUND_GEOMLIST *geomlist);
+	FSOUND_Geometry_List_Create(signed char boundingvolume);
+	FSOUND_Geometry_List_Free(FSOUND_GEOMLIST *geomlist);
+	FSOUND_Geometry_List_Begin(FSOUND_GEOMLIST *geomlist);
+	FSOUND_Geometry_List_End(FSOUND_GEOMLIST *geomlist);
+	FSOUND_Geometry_List_Add(FSOUND_GEOMLIST *geomlist);
++ Added FSOUND_SetBufferSize
++ Added FSOUND_DSP_GetBufferLength
+
+- FSOUND_Sample_Lock / FSOUND_Sample_Unlock documented properly (oops! :)
+- Soak test bug caused wave out to crash after 3 hours of operation.. fixed.
+- Fixed bug in FSOUND_Sample_Create 
+- Some module playback improvements from fmod 2.25.
+- IT mod format bug fix. (NNA caused sample vibrato to lose integrity)
+- Error code is now set to FMOD_ERR_NONE on all function calls, so you dont parse an error 
+  that was set 10 function calls ago for example.
+- NoSound output mode improved.
+- Removed FSOUND_SetMixAhead 
+- Removed FSOUND_SetUpdateRate
+
+18/10/99 2.25
+-------------
+* Version number now included in DLL. (right click on DLL for info)
++ IT - mods composed with IT versions older than 2.0 reenabled.  I dont have many
+  of these songs and it seemed to work straight away and the songs i did have.
+  They sounded ok, but if there are any problems with old IT mods then mention 
+  them to me and I might try to fix them. (theyre not high on my priority list)
+- FMUSIC_SetZxxCallback did not have the correct documentation and just took a 
+  void * as the callback.  The actual format of the callback is 
+  callback(FMUSIC_MODULE *mod, unsigned char param).  FMUSIC_SetZxxCallback now
+  forces this.
+- IT - Impulse tracker 2.15 compressed samples reenabled :)
+- IT - FMOD was interpreting IT's stereo flag for samples, which was erroneously 
+  set by older versions of IT, causing some samples to play twice as fast as they 
+  should.  Stereo check removed (IT never supported stereo samples)
+- MOD S3M XM IT - Sample offset bug fixed.
+- XM IT - minor bugs fixed.
+- Closedown stability increased.
+
+31/08/99 2.24
+-------------
+* This is the last FMOD 2.* update unless there are some small niggling bugs.  I
+  need to finish 3.0.
+* NOSOUND - FSOUND_OUTPUT_NULL now behaves as if everything is active, therefore
+  you will get all music callbacks and timers, vu meters, dsp functions and everything
+  else working correctly etc as if it was playing, but you dont hear anything.
+* FMOD ported to N64.
+* API - this version is now declared stable.  It has been run over with memory leak
+  tools and numerous memory problems have been found and fixed.
+* DSP - Note that the 'length' part of the callback now fluctuates more to increase 
+  output stability, and its maximum size can equal up to the updaterate + mixahead
+  in milliseconds.
+* TOOLS - convert.exe removed.  use soundforge or some such program if you want to 
+  convert a wav to a a raw signed datastream.
+  
++ API - New reference count channel index!  The index PlaySound returns now has a 
+  reference count in the top 16bits.  This so you can call playsound, store the 
+  return value, then if that channel gets stolen by the priority system, and you 
+  blindy try and keep updating it as if it was from your original playsound, the 
+  new sound wont be affected!! 
++ API - FSOUND_Stream_OpenWav added.  Now you can stream wav files with ease.  This
+  version still only supports PCM wav, but FMOD 3.0 should change this situation.
++ API - FSOUND_SetSFXMasterVolume & FSOUND_GetSFXMasterVolume added.
++ API - FSOUND_SetVolumeAbsolute added.  This volume overrides master volume.  Great
+  if you need to lower the volume of your game effects and make one stand out.
++ MUSIC - FMUSIC_OptimizeChannels added!  This function kicks arse if you are trying
+  to lower channel usage.  You give it a 'channels mixed' value, and a 'mod volume'
+  value, and it wont play sounds in a song that have a lower volume than 'mod volume',
+  if 'channels mixed' is being exceeded as stated in FSOUND_GetChannelsPlaying.
+  One example is a game that reduced its maxchannels from 24 to 16 because of this
+  with no audible difference.  (the song had a lot of 'echos' that didnt need to be
+  audible when things got noisy, so FMOD threw them away.)
++ MUSIC - FMUSIC_GetSample and FMUSIC_SetSample added!  This allows you to get control
+  of samples within a mod!  Great if you need to compress samples yourself and then
+  decompress them back into the mod during your game.  This was in 2.23 but i forgot
+  to mention it here :)
++ STREAM - file streaming example added to the sample directory.  Command line driven
+  and takes a .wav file.
+
+- 3D - Software doppler effect rewritten, now physically accurate :).. 
+  FSOUND_3D_Listener_SetDopplerFactor() now means something different to the previous
+  versions.  Check the documentation for more on this.
+- DRIVER - fixed problem with some peoples machines that have more than 16 
+  'soundcards' that i thought would be the maximum.  (It is actually just a 
+  hardware card enumerating a whole waveout device for each hardware channel.)
+- INTERFACE - command line parameters fixed, and some people not seeing the interface
+  appear should now be happy.
+- IT - channel allocation bug fixed.
+
+17/08/99 2.23
+--------------
++ API - FSOUND_UNMANAGED flag added for sample loading/management
++ API - Added FSOUND_DSP_ClearMixBuffer.  Use this before doing a biiiiiig harddisk access so you 
+  dont get looping noise/stuttering, (because the harddisk/windows basically bus masters and shuts 
+  down all threads,  causing the mixer to stop as well, but the soundcard keeps playing the buffer).
+- API - FSOUND_Sample_LoadWav & FSOUND_Sample_LoadWavMemory now return proper error code.
+- MIXER - clicks removed from bidi looping sample in quality mixer.
+- IT - fixed 2.15 compressed samples now work (oops forgot to call the right decompressor)
+- IT - Memory footprint drastically reduced for pattern data (now leaves pattern data compressed and
+  unpacks on the fly)
+- XM - Digitracker saved XM's now work correctly (dont crash, and illegal stuff filtered out)
+- XM - envelope bug fixed.
+- 3D - divide by 0 bug fixed (when listener and emitter are at the same location)
+* API - Sample based functions like FSOUND_Sample_LoadWav etc take an index now, so you can specify
+        an absolute sample manager index, FSOUND_FREE or FSOUND_UNMANAGED
+
+18/06/99 2.22 rev 1
+------------------
+- IT - really obscure crash bug fixed.
+
+18/06/99 2.22
+------------------
+- MOD - accidently broke mod support, fixed
+- S3M - fixed bug with bpm's smaller than 20h
+- Idle optimization back in
+
+14/06/99 2.21
+------------------
+* Fix included from 2.2rev1 (registry bug in fmod standalone player)
+* VC5 compatible import library included. vc6 only slipped into the last release.
++ IT 'envelope carry' support added.
++ MIXER - big increase in sound stability when harddisk is being accessed!!
++ LCC-WIN32 import library added.
+- IT - crash bugfix. (envelopes with loop end before loop start)
+- IT - volume bug (not hearing some samples at all) fixed in IT 'sample' mode.
+- MOD S3M XM IT - fixed pattern delay bug
+- DLL - size of DLL reduced by 12k!
+
+08/05/99 2.2 rev 1
+------------------
+- INTERFACE - fixed stupid registry bug which cause bad drivers to be initialized
+  at start up.  It caused possible crashing, 000 channels mixed to be displayed
+  and no sound.
+
+16/05/99 2.2
+------------
+* FMOD is now a non beta release!  
+* MIXER - Changing driver on the fly with FSOUND_Driver_Close and 
+  FSOUND_Driver_Init does not stop music playback any more. Everything 
+  continues playing as it had been.
+* API - Please read the new documentation on FSOUND_SetUpdateRate and 
+  FSOUND_SetMixAhead!!!!  This should remove confusion about what they do
+  and the issues of cpu usage, response time/latency and sound stability!
++ MIXER - FPU 32bit interpolating high quality mixer added!
++ API - FSOUND_Sample_SetLoopMode added
++ MOD - M!K! mod format supported.
++ INTERFACE - FMOD now saves sound settings in registry.
+- API - Safety checking put into FSOUND_SetOutput, FSOUND_SetDriver,
+  FSOUND_SetMixer, FSOUND_SetUpdateRate and FSOUND_SetMixAhead.  These 
+  functions will fail and return an error code if FMOD is active and playing 
+  sounds.  You need to close FMOD down to call these functions, then 
+  reinitialize it.  FSOUND_Driver_Close and FSOUND_Driver_Init will fail also 
+  if FSOUND has not been initialized with FSOUND_Init.
+- MIXER - Fixed rare crash bug when background disk access caused timer 
+  fluctuations.
+- MIXER - Fixed rare sound output instability caused by closing and opening 
+  fsound's driver code very quickly in succession.
+- MIXER - Fixed crash bug on bidi samples playing backwards, at volume 0, 
+  on the standard blendmode mixer only. (FPU Mixer also)
+- MIXER - Fixed horrible fuzzy quality bug with MU-Law compressed samples!
+- MIXER - Fixed standard blend mode mixer, which wasnt doing vol0 optimization 
+  on -muted- channels.
+- IT - fixed crash bug with mod that reference IT instruments beyond the
+  number of instruments.
+- API - All 'interpolation functions' removed, if you want interpolation select
+  the FPU interpolating mixer and every sound played will use full 32bit 
+  interpolation.  (choosing which channels you want interpolated would end
+  up being a pain. Most people just want everything interpolated or not)
+- CD - various CD player bugs fixed (random play, pause logic etc)
+- API - FSOUND_GetCurrentVU now reports correct values for MuLaw compressed 
+  samples.
+
+09/05/99 2.19b
+--------------
+* API release, this includes changes/fixes from 2.18 Update 1 (cdrom fixes)
+* Documentation updated
+* FMOD is now approaching a non beta state! (no bug reports are coming in)
+  Beta status will most likely be removed in a few weeks (maybe version 2.20)
+* API - FSOUND_SetLatency has been renamed to FSOUND_SetUpdateRate, sorry for
+  the name change but it is really the incorrect name for what this function does. 
++ INTERFACE - Settings now saved in registry.  New minimal CD Player panel!
++ CPU usage reduced during idle time. FMOD shuts itself down when nothing is happening.
++ API - FSOUND_Sample_Alloc now allows specification of default priority as well.
++ API - FSOUND_Sample_SetDefaults lets you set a sample's default freq,vol,pan & priority.
++ API - FSOUND_GetCurrentVU added, by request. (useful for vu bars/beat detection?)
++ API - FMUSIC_GetTime added, by request.  Useful for exact music synchronization EVERY time.
++ API - FSOUND_GetCurrentSample added, allows you to get the currently playing sample for
+  a particular channel, useful for comparisons.. ie to see if a particular sample is still 
+  playing on a particular channel.
+- API - FSOUND_SetAttributes removed.  It was added before due to a request but I
+  feel it is just API bloat and can be achieved through a macro.
+
+28/04/99 2.18b Update 1 (player only)
+------------------------------------
+* FMOD - player only being updated here, not the API.  API releases usually
+  come on the weekend. (they take more time to prepare)
++ CD - Added continuous, looped and random buttons for playback method.
+- CD - All bugs fixed in CD player, all created by BUGS in WIN32 API 
+  functions.   (mmsystem & mci commands- some work ok on NT, fail on 95).
+- Removed startup dialog box.  Defaults to primary device and dsound.  Hit config
+  to change. (maybe use registry later)
+
+25/04/99 2.18b
+--------------
+* API - FSOUND_GetNumChannels renamed to FSOUND_GetMaxChannels
++ CD - New CD commands and support.  FSOUND's CD system is a NON POLLING non
+  intrusive system (unlike windows cd player), for smooth background performance.
+  Tracks can now be looped, stopped and continued.
++ INTERFACE - new filters!  Preverb filter(!) and Noise reduction.
++ INTERFACE - CD Player added.
+
+17/04/99 2.17b
+--------------
+* API - FSOUNDVC.LIB now VC5.0 compatible.
+- XM - Fixed crash on sample offset.
+- API - FMUSIC_SetPaused fixed.
+- MIXER - Fixed MULAW mixer.  Remember MULAW only works when a song has 16bit
+  samples (it converts them to mulaw), otherwise it isn't any different.  It 
+  only works for the blend mode mixer as well.  The MMX mixers are fast enough
+  not to need mulaw.
+
+11/04/99 2.16b
+--------------
++ API - DSP Engine implemented and added!  New functions:
+  FSOUND_DSP_Create,FSOUND_DSP_Free,FSOUND_DSP_SetPriority,
+  FSOUND_DSP_GetPriority,FSOUND_DSP_SetActive,
+  FSOUND_DSP_GetActive,FSOUND_DSP_GetClearUnit,
+  FSOUND_DSP_GetSFXUnit,FSOUND_DSP_GetMusicUnit
+  FSOUND_DSP_GetClipAndCopyUnit.
+  See FSOUND_DSP_Create for documentation on this new feature.
++ API - Added FSOUND_MixChannel - now you have direct access to
+  FSOUND's optimized mixers!
+- MOD, S3M, XM, IT - Fixed loader bug introduced in 2.15! (to do
+  with load from memory system.)
+- XM - Found and fixed a sample offset bug introduced a few 
+  versions ago, with 16bit samples.
+- API - Echo engine and functions removed - DSP engine is now to
+  be used.
+- API - Fixed bug in FMUSIC_SetOrder.
+- API - Fixed bug in FSOUND_GetMixer, it was returning 
+  FSOUND_MIXER_AUTODETECT if that was used in FSOUND_SetMixer, 
+  instead of the actual mixer it was using.
+- INTERFACE - loader bug fixed.
+
+28/03/99 2.15b
+--------------
++ API - Watcom now supported.  Watcom users link in the
+  FSOUNDW.LIB import library.
++ API - Added FMUSIC_LoadSongMemory, now load mod/s3m/xm/it 
+  files from memory handles / resources.
++ API - Added FSOUND_LoadWavMemory, now load wav files from
+  memory handles / resources.
+- API - Fixed bug in FSOUND_Sample_Alloc which allocated samples
+  with length = 0, and hence no sound came out when played.
+- SAMPLE - fixed bugs in fmod sample code.
+
+21/03/99 2.14b
+--------------
+* FSOUND / FMUSIC is now a DLL.  The reason is to use a dll is 
+  to make it easier to link on different compilers, and it really 
+  is for aesthetic reasons only to have it as a .lib.     (ie 1 exe 
+  releases) and im not interested.
+* Examples cleaned up, they dont specify unused .libs any more.
+- WAVEOUT - bugfixed, works on NT now, and now actually uses 
+  setmixahead settings.  You will have to use large mixaheads
+  (80-100 and higher on my tests) for WaveOut, or the sound will 
+  break up.  There is nothing you can do about this.
+- DSOUND - works on NT now (DX3).  This is the same as waveout
+  (dsound3 for nt is a waveout wrapper).  You will have to use 
+  large mixahead values (80-100ms and higher on my tests), or it 
+  may break up.
++ API - FSOUND_SetAttributes added
++ API - FSOUND_PlaySoundAttrib added
+
+14/03/99 2.13b
+--------------
+* Programmers API finally released! see
+  http://www.zip.com.au/~fl for more details!
++ MIXER Stereo sample mixers added.  Old way of spawning 2 new
+  channels is gone.. Under MMX a stereo channel is actually
+  faster than mono!
++ S3M, XM, IT - Zxx callback now supported.  Programmers can set 
+  a callback function for whenever the Z effect is issued from a 
+  song, for synchronizing effects etc.  .MOD is not supported.
++ STREAMERS - Streamer API Added for playing very large files.
+  Currently only supports raw, but mulaw, adpcm and mp3 streamers
+  are coming.
++ MOD, S3M, XM, IT - Master volume added to API.
+  This is a true scalar instead of just modifying the song's 
+  global volume like before (ie the song might have adjusted the 
+  global volume after you set it)
++ INTERFACE - Master volume slider added.
+- MIXER - Fixed extremely rare crash bug.
+- MIXER - volumes were ever so slightly out, ie a channel
+  panned full right still had about 0.4% (not much) of the sound
+  playing in the left channel instead of 0% as it should have.
+- MISC - many small fixes.
+
+04/02/99 2.12b
+--------------
+- Fixed linear freq problem introduced due to linear freq
+  optimization, I just removed it now for accuracy sake.
+* a little bit more stable?
+
+02/02/99 2.11b
+--------------
+- Fixed BPM problem on all formats.  Now loop songs should play ok.
+- Fixed sample offset on all formats (oops sorry sample offset was
+  disabled on mod/s3m/xm since 2.06 accidentaly!  noone seemed to
+  notice hahaha)
+
+31/01/99 2.10b
+--------------
+- Minor Direct Sound bugs fixed.
+
+30/01/99 2.09b
+--------------
+- IT bug fixed with instrument numbers and no note.  (most
+  formats dont retrigger the note in this case, but IT does if
+  the sample has finished playing, and not before.)
+- S3M Bug found in loader. (popped up only due to impulse
+  tracker saved s3ms).
+- IT fixed porta wihout any previous note.. porta on on a
+  channel that has no channel playing will trigger a new note.
+- DRIVER direct sound should work more reliably on NT using
+  directX.
+- INTERFACE fixed song list box bug.  Delete happily now without
+  problems.
+- INTERFACE config box now remembers what you last set when you
+  hit config, and wont change any settings if you hit 'cancel'
+  (it used to select nosound before)
+- DRIVER code now detects incompatible cpu's and exits with an
+  error instead of crashing?
+- XM/IT replay sped up.  Linear frequencies processed a lot
+  faster now.
+
+26/01/99 2.08b
+--------------
++ DRIVERS added capability to switch drivers on the fly.  Use
+  the 'Config' Button on the interface to change output
+  devices, soundcards, mixing rates or mixing routines.
++ MIXER added Mu-Law support!  This is only for NON-MMX mixing,
+  and improves the speed of 16bit sample mixing dramatically, with
+  only a small loss in sample quality. (simulates 12bit accuracy)
+- MIXER fixed ugly bug (crashes/noise) with 8bit BIDI looping 
+  samples on standard blend mode mixer.
+
+24/01/99 2.07b
+--------------
++ IT added volume byte portamentos
++ IT added S6x - Pattern delay by ticks
++ IT added volume byte vibrato
++ IT added sample vibrato
+- IT fixed effect S73, S74, S75, S76, S77, S78.  These commands 
+  are meant to alter the behaviour of an instrument, except i was 
+  permanently modifying the instrument instead of just altering it
+  for the note currently being played!! oops.. 
+- IT / XM - turn off envelopes that have less than 2 points.
+  (apparently sometimes files can have this)
+- IT fixed Hxy Kxy Uxy (vibrato/finevibrato).. if Hxy is followed
+  by U00 then it continues to be a normal vibrato, even if it says
+  fine vibrato.. same for Uxy followed by H00.. it continues with
+  a fine vibrato even if it says normal vibrato..  The y part of
+  the command needs to have something in it to change vibrato
+  types. (dumb impulse tracker bug)
+- IT fixed volume slide bug in Kxy Lxy
+- IT foreground / background channel logic is more accuate now with
+  NNA's and effect commands.
+- MOD, S3M, XM, IT - now checks internal signatures for file verification
+  as some people were trying to load mod's etc that were renamed to s3m!
+  yeah yeah thanks a lot otto ;)
+- IT fixed S00 - any Sxy command gets remembered and replayed if it
+  is followed with S00.. (crono - not just SDx and SCx like you said)
+- DSOUND fixed init/shutdown code to be cleaner.
+
+
+20/01/99 2.06b
+--------------
+- XM fixed BPM issue.. seems FT2's timer is a bit faster than it
+  really should be.. (roughly 2bpm) mega-sample-loop songs sound
+  ok now.
+- IT another pattern loader crash bug fixed (should be the last)
+- IT fixed Gxx bug (portamento).. IT forgets it porta target 
+  after it reaches it. (TheHornet again)
+- IT fixed Oxy (sample Offset) bug
+
+18/01/99 2.05b
+--------------
+* MIXER Using large latency again just for fmod.exe with dsound,
+  to improve stability (im working on it)
+- IT Fixed signed/unsigned sample detection in loader
+- IT Disabled pitch envelopes for IT's using IIR filters so they 
+  wont sound awful.
+- XM Fixed crash bug in loader.
+
+17/01/99 2.04b
+--------------
+* Mixer buffer management totally rewritten, might be a *tiny*
+  bit slower (becuase of caching), but it is a lot more flexible
+  and stable.  Built in preparation of the DSP plugin API.
+* Halved size of both MMX mixer routines (to do with surround)
+* API ready to use.  Now at beta test stage
+* Thanks to TheHornet for his doc on it 'nuances' that were too
+  subtle to find through normal testing. (bugs found with (***))
+* New more consistant mixer thread management.
++ Volume 0 optimizations!  Average mods will now use about 30%
+  less cpu time (depends on the song)
++ Standard blend mode mixer sped up for 8bit samples
++ Windows Multimedia WaveOut support added.  At the moment it
+  works well but the latency is too long for game sfx.  It is
+  more stable than the direct sound driver (less garbling / 
+  breakups)
++ .WAV sample support added.
++ Stereo sample support added.
++ IT added linear frequencies.
++ IT added panbrello
++ IT added support for 'compatible Gxx' in IT's options
+- MIXER Fixed volume 0 optimization hang bug.
+- IT fixed effected E/F/G to use the same memory.
+- IT fixed SDx delay note bug (SD0 == SD1)               (***)
+- IT fixed SCx note cut bug (SC0 == SC1)                 (***)
+- IT fixed Qxy retrig (now retrigs across multiple notes like 
+  IT.. other formats ignore retrig if it is higher than the
+  speed of the song)
+- IT fixed Gxx / Lxy (portamento). was 2x too slow.
+- IT fixed Vibrato for 'old effects'.. with old effects it is
+  2x deeper and does not get updated on tick 0.
+- MIXER OOPS! i had '#define ROLLED' left uncommented in my P6
+  MMX mixer since version 2.0 or so!! it wasnt using unrolled
+  loops. Now it is roughly 1.6 times faster! (from 5% to 3% cpu
+  usage on a p2-266 for mixing 32channels at once)
+
+14/11/98 2.03b
+--------------
++ Added stability to mixer, removed 150ms crap from 2.02
+
+07/11/98 2.02b
+--------------
+* ALL players use a new dynamic channel allocation system
+- consider MOD, S3M & XM under beta again. (MAY have 
+  broken something!)
+* MIXER in an attempt for added stability, for this standalone
+  player, a different approach is used.. it has a huge
+  latency (150ms) and takes a bit more cpu time, but shouldnt
+  break up as much .. for the game library the old method
+  still stands. (150ms is way too long to wait for a sound
+  effect to trigger.. so fmod uses 50ms latency for games etc)
++ IT Added NNA's
++ IT Added DCT/DCA's.
++ MIXER Added echo post effect.. hardcoded 50ms echo for now.
++ IT Added Pan Envelope
++ IT Added all volume column effects except for porta commands &
+  vibrato
++ INTERFACE Added drag and drop.  Drag tunes from explorer into
+  the player to load
++ INTERFACE also command line fileloading (ie associate the exe
+  in explorer with mod,s3m,xm,it then just doubleclick files
+  to load them)
++ IT Added most other effects
+- ALL Fixed some crashing for songs that specify sample id's that 
+  dont exist.
+- XM & IT Fixed Envelope bug - loops were playing 1 tick too long :)
+- S3M fixed arpeggio bug causing 0 frequencies (divide by 0)
+- IT fixed pattern break and pattern jump .. both params are
+  hex unlike all other formats.
+- IT fixed arpeggio depth
+- IT enabled end of song marker.. it was crashing on this b4
+- INTERFACE Fixed memory leak.. it would slowly leak memory in
+  realtime until windows ran out of resources and crashed! :)
+- IT fixed porta bugs.. oops i was portamento'ing 2x too fast
+- IT fixed instrument bug.  it was updating all nna channel's
+  envelopes etc, using only the most recent nna's instrument
+  definition, instead of the instrument that should have been
+  associated with each individual nna channel.
+- IT fixed set pan (Xxx) bug
+- IT fixed invalid pattern bug with patterns defined that are 
+  larger than the number of patterns specified in the file.
+- IT fixed vibrato (Hxy) bug
+- IT fixed big NNA bug.. i was performing NNA's based on the
+  new instrument's nna flags instead of the one it was
+  cutting off!
+- IT fixed the past nna s7x effects.. now the number of channels
+  mixed on the interface matches exactly that of impulse
+  trackers!
+
+20/10/98 2.01b
+--------------
++ IT Added preliminary volume envelope support (no sustain loops)
++ IT Added channel volume slide
++ IT Added noteoff & notecut (not the effect, the note type)
+
+19/10/98 2.00b
+--------------
+* First private release Version, includes MOD, S3M and XM and IT
+  support.  New software mixers, win32 only.  Removed 669,FAR &
+  MTM support, old interface is gone, new win32 interface..
+  jeezus has it been 3 years? im getting too old for this shit:)
+* IT Support is REALLY basic.. roughly 30% done.
+- XM Fixed bug with envelope loopend.
+
+
+
+/|\
+ |
+ |
+ |
+ |
+
+
+
+30/11/95 1.06 
+-------------
+* Released with FMODDOC 2, including full source code
++ Totally new fast scrolling interface, some keys have changed.
++ 32channel .MOD support added. (ie dope.mod type, etc)
++ 9 octaves supported now (C-0,B-8), including 7 octaves .MOD
++ No more 64kb sample limit (4gig sample on a GUS? :)
++ MTM support added
++ 669 support added - what an awful format!
++ extended 669 support added - just as bad :)
++ 16 bit support added (err for mtm? ahh well xm will come)
++ Clipping samples at loopend points to save GUS memory
++ S3M support added
+- Bugfix where all music came out in left channel on SOME cards
+  (none I have heard:).  Thanks to Brad Thomas for the fix.
+- 2 GUS bugs fixed (reported wrong dram size & dram corruption)
+* now checks if the samples are too big for the card.
+- Voices now play almost simultaneously instead of 1 after the
+  other like before
++ Added Technicality-Index (tm) meter!  Truly a cool feature.
++ Knocked 52% of DRAM upload time! YES it is *2* times faster!!
+  (eg when.s3m even loads *3* seconds faster than cmod does)
+* - FIXED at last.  FMOD will now NOT crash (fingers crossed :)
+- removed clicking from looping samples
+- Vibrato fixed properly this time and is 100%.
+* Calculated new volume table.  Not so noisy. Less distortion.
++ WildCard Support added!
++ S3M Stereo Control effect SAx added
++ Solo Channel feature added and many other muting features
+- Fixed S3M retrig bug
++ Vibrato/Tremolo WaveControl finished properly
++ Keyboard LED flashing added!  Lights flash to channels 1-3.
+- tempo bug fixed, timing system changed so BPM can drop to 24
++ FAR support added
+* Sample loader redone and >64kb bug fixed, also pattern storage
+  method changed.
+* Panning changed, now values from 0 to 255 to suit FT2.
+- Pattern Loop bug fixed, I didnt know pattern loop stored
+  seperate values for each channel.
+- pattern jump + pattern break bug fixed now all those weird
+  backwards tunes work RIGHT.
++ Added S3M's Fast Volume Slide bug, err feature :)
+++ NOW PMODE!  Load any sized tune you like now and still have
+  heaps of memory left
++ NEW tracker screen.  Watch pattern data like a tracker
+- Keyboard LED flashing removed, caused crashes on some 
+  peoples computers.. sigh it was rather cool.
++ NEW technical info screen.  Watch a lot of meaningless info
+  appear on the screen.  Good for developers to check against.
+- .MOD bug fixed, now those extremely high and low octaves
+  supported PROPERLY.. (unlike some cMOD players;)
+- sample offset bug fixed.
++ Dynamic interface installed, now any screen can be called up
+  from any other screen, instead of just from the main screen
+  like before.
+* Error handling changed for a lot better stability.
++ File Selector included for all those losers who wanted it :)
++ Added effect Ixy - Tremor - perfect I think unlike other
+  players.. compared against Scream Tracker 3
+- Fixed >64kb sample loading bug - was causing crashes
+- Fixed MTM loader bug after about 6 hours of tearing out hair
+* File Selector now accessable while song is still playing,
+  press escape to return to the main interface.
+- sample uploader recoded, fixed.  16 bit samples now load 
+  a lot better (this is actually from 1.07 which isnt released
+  yet and probably wont be for a while ;)
+- a zillion little other bugs fixed.
+
+13/6/95  1.05 
+-------------
+- GUS looping clicks removed.
+- Mute bug fixed.  Wouldnt unmute unused channles.
+
+10/6/95  1.04 
+-------------
+- fixed another crash bug
++ Added cool new pan cycling effect!  Hit 'c' to try it.
+
+7/6/95  1.03 
+-------------
+- Fixed interface bug (was printing ^g's in sample names)
++ Added effect 8xy (Panning) 
+- Fixed crash bug maybe..  I think I did, people complained of
+  the interface crashing.. I've never seen it crash but I found
+  I was mixing 'new' and 'malloc'.. fixed.
++ Added effect 7xy (Tremolo) - woopee ;)
++ Added mute channels
++ Added panning keys '(' and ')' to set default panning.
+
+30/5/95  1.02 
+-------------
+* major internal storage changes!  
++ More memory in dos shell! around 30kb on average sized tunes.
+* A lot faster.
+- Pattern break fixed.  Tested on backward.mod by FireLight
+- Now mixes at 44.1khz like it should instead of 30khz..oops :}
++ Added effect EEx (Pattern Delay).
++ Added effect E6x (Pattern Loop).
+- Retrig fixed now 100% protracker.
+
+5/4/95  1.01 
+-------------
+- fixed crash bug / increased speed by not calculating unused
+  channels. (I don't think i released this version though)
+
+6/3/95  1.00 
+-------------
+* FIRST PUBLIC RELEASE (In FireStorm 2 Music Disk)
+- Vibrato bug fixed, now works I think :).
+* Interface Completely changed looks much nicer now
++ speed of interface increased greatly
+
+==============================================================================
+
