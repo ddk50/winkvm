@@ -1,5 +1,8 @@
-version 0.9.0:
 
+* Warning! This QEMU will not use for WinKVM *
+* This QEMU would be removed soon *
+	
+version 0.9.0:
   - Support for relative paths in backing files for disk images
   - Async file I/O API
   - New qcow2 disk image format

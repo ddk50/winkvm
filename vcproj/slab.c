@@ -1,75 +1,120 @@
 
-#include "init.h"
+#include "slab.h"
+#include "kernel.h"
+
+#define MEM_TAG   'HmmV'
+#define PAGE_MASK (~(PAGE_SIZE-1))
+
+#define PAGE_NOT_USED ((unsigned long)-1)
+
+#define PAGE_PDE(x)         ((x) >> 22)
+#define PAGE_PTE(x)         (((x) >> 12) & 0x3ff)
+#define PAGE_NUM(pde, pte)  (((pde) << 22) | ((pte) << 12))
+
+struct page_root {
+	struct page page[1024];
+};
+
+static struct page_root *page_slot_root[1024];
+static FAST_MUTEX page_emulater_mutex;
+const int page_slot_num = sizeof(page_slot_root) / sizeof(struct page_root*);
+
+static struct page_root *get_page_rootslot(hva_t pageaddr);
+static struct page *get_page_slot(hva_t pageaddr);
+
+void init_slab_emulater(void)
+{
+	int i;
+
+	for (i = 0 ; i < page_slot_num ; i++) {
+		page_slot_root[i] = NULL;
+	}
+
+	ExInitializeFastMutex(&page_emulater_mutex);
+}
+
+void release_slab_emulater(void)
+{
+	int i, j;
+	struct page *pd;
+	
+	for (i = 0 ; i < page_slot_num ; i++) {
+		if (page_slot_root[i]) {
+			for (j = 0 ; j < 1024 ; j++) {
+				pd = page_slot_root[j]->page;
+				if (pd[j].__nt_mem)
+					ExFreePoolWithTag(pd[j].__nt_mem, MEM_TAG);
+			}
+			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
+		}
+		page_slot_root[i] = NULL;
+	}
+}
 
 void _cdecl kfree(void *objp)
 {
 	if (objp == NULL) {
 		return;
 	} else {
-		ExFreePoolWithTag(objp, 'HmmV');
+		ExFreePoolWithTag(objp, MEM_TAG);
 	}
 }
 
 //_cdecl‚ð‚Â‚¯‚Ä’¼‚Á‚½‚©‚È???
-void* _cdecl kmalloc(int size, int type)
+void* _cdecl kmalloc(size_t size, int flags)
 {
 	void *ret = NULL;
-	switch (type) {
+	switch (flags) {
 		default:
-			ret = ExAllocatePoolWithTag(NonPagedPool, size, 'HmmV');
+			ret = ExAllocatePoolWithTag(PagedPool, size, MEM_TAG);
 			break;
 	}
+	ASSERT(!ret);
 	return ret;
 }
 
-void* _cdecl wkstab_kmalloc(int size, int type)
+void* _cdecl kzalloc(size_t size, int flags)
 {
-	void *ret = NULL;
-	switch (type) {
-		default:
-			ret = ExAllocatePoolWithTag(NonPagedPool, size, 'HmmV');
-			break;
+	void *ret = kmalloc(size, flags);
+
+	if (ret) {
+		RtlZeroMemory(ret, size);
+		return ret;
 	}
-	return ret;
+
+	return NULL;
+}
+
+void* _cdecl vmalloc(unsigned long size)
+{
+	return ExAllocatePoolWithTag(PagedPool, size, MEM_TAG);
+} 
+
+void _cdecl vfree(void *addr)
+{
+	ExFreePoolWithTag(addr, MEM_TAG);
+}
+
+unsigned long _cdecl copy_to_user(void *to, const void *from, unsigned long n)
+{
+	ASSERT(0);
+	return 0;
 }
 
 int _cdecl copy_from_user(void *to, const void *from, int n)
 {
+	ASSERT(0);
 	return 1;
-}
-
-void _cdecl mutex_unlock(struct mutex *lock)
-{
-
-}
-
-void _cdecl mutex_lock(struct mutex *lock)
-{
-
 }
 
 void _cdecl dump_stack(void)
 {
-
-}
-
-struct mm_struct {
-	int test;
-};
-
-typedef struct {
-	unsigned int break_lock;
-	unsigned int magic, owner_cpu;
-} spinlock_t;
-
-void _cdecl do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
-{
-
+	ASSERT(0);
 }
 
 void* _cdecl kmap_atomic(struct page *page, enum km_type type)
 {
-	return NULL;
+	return page->__nt_mem;
 }
 
 void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
@@ -77,153 +122,160 @@ void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
 	return;
 }
 
-int _cdecl winkvmstab_get_nr_cpus(void)
-{
-	return 1;
-}
-
-unsigned long _cdecl copy_to_user(void *to, const void *from , unsigned long n)
-{
-	return 0;
-}
-
-/* ƒhƒ‰ƒCƒo‘¤‚Åfastcallˆµ‚¢‚É‚È‚Á‚Ä‚é‚Ì‚Å */
-unsigned long _cdecl winkvm_alloc_pages(unsigned long addr, unsigned int order)
-{
-	return 0x0;
-}
-
-struct page* _cdecl winkvm_alloc_page(int flag)
-{
-	return NULL;
-}
-
-
-void _cdecl __winkvm_get_free_pages(unsigned long addr)
-{
-}
-
-void _cdecl winkvm_free_page(unsigned long addr)
-{
-	return;
-}
-
-void _cdecl winkvm_free_pages(unsigned long addr, unsigned int order)
-{
-	return;
-}
-
-void _cdecl vfree(void *ptr)
-{
-	return;
-}
-
-void* _cdecl vmalloc(unsigned long size)
-{
-	return NULL;
-}
-
-int _cdecl winkvmstab_first_cpu(void)
-{
-	return 0;
-}
-
-int _cdecl winkvmstab_next_cpu(int cpu)
-{
-	return 1;
-}
-
-void _cdecl down_read(struct rw_semaphore *sem)
-{
-	return;
-}
-
-void _cdecl down_write(struct rw_semaphore *sem)
-{
-	return;
-}
-
 void* _cdecl page_address(struct page *page)
 {
-	return NULL;
+	ASSERT(page->__wpfn != PAGE_NOT_USED);
+	return page->__nt_mem;
 }
 
-void _cdecl up_write(struct rw_semaphore *sem)
-{
+void _cdecl get_page(struct page *page)
+{   
+	ASSERT(page->__wpfn != PAGE_NOT_USED);
 	return;
 }
 
-void _cdecl up_read(struct rw_semaphore *sem)
+/* alloc_pages */
+struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 {
-	return;
+	unsigned actual_size = order * PAGE_SIZE;
+	void *__nt_mem = NULL;
+	struct page *page = NULL;
+	struct page *head_page = NULL;
+	hva_t addr;
+
+	ASSERT(order > 0);
+
+	/* Does it really need? */
+	ExAcquireFastMutex(&page_emulater_mutex);
+
+	__nt_mem = (void*)ExAllocatePoolWithTag(NonPagedPool, actual_size, MEM_TAG);
+	if (!__nt_mem) {
+		ASSERT(0);
+		head_page = NULL;
+		goto release;
+	}
+
+	ASSERT(((unsigned long)__nt_mem & PAGE_MASK) == (unsigned long)__nt_mem);
+
+	head_page = get_page_slot((hva_t)__nt_mem);
+
+	addr = (hva_t)__nt_mem;
+	for (; addr < addr + actual_size ; addr += PAGE_SIZE) {
+		page = get_page_slot(addr);
+		ASSERT(page);
+		RtlZeroMemory(page, sizeof(struct page));
+
+		page->__nt_mem = (void*)addr;
+		page->__wpfn   = addr >> PAGE_SHIFT;
+
+		ASSERT((addr & PAGE_MASK) == addr);
+	}
+
+release:
+	/* Does it really need? */
+	ExReleaseFastMutex(&page_emulater_mutex);
+
+	return head_page;
 }
 
-void _cdecl enable_irq(unsigned int irq)
+struct page* _cdecl alloc_page(unsigned int flags)
 {
-
+	return alloc_pages(flags, 1);
 }
 
-void _cdecl free_irq(unsigned int irq, void *dev_id)
+struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask, 
+	                                 unsigned int order)
 {
-
+	return alloc_pages(gfp_mask, order);
 }
 
-/* spin_lock() function is expanded the folloing code */
-void _cdecl _spin_lock(spinlock_t *lock)
-{
-
+void _cdecl __free_pages(struct page *page, unsigned int order)
+{	
+//	struct page_root *pd = get_page_rootslot
+	ASSERT(page->__wpfn != PAGE_NOT_USED);
 }
 
-int _cdecl down_read_trylock(struct rw_semaphore *sem)
+void _cdecl __free_page(struct page *page)
 {
-	return 1;
+	hva_t addr;
+	ASSERT(page->__wpfn != PAGE_NOT_USED);
+	addr = page->__wpfn << PAGE_SHIFT;
+	free_pages(addr, 1);
 }
 
-void _cdecl schedule(void)
+void _cdecl free_page(hva_t addr)
 {
-	return;
+	free_pages(addr, 1);
 }
 
-typedef struct {
-	int __test;
-} irq_handler_t;
-
-int _cdecl request_irq(unsigned int irq, irq_handler_t handler,
-					   unsigned long irqflags, const char *devname, void *dev_id)
+void _cdecl free_pages(hva_t addr, unsigned long order)
 {
-	return 1;
+	unsigned actual_size = order * PAGE_SIZE;
+	struct page *page = NULL;
+	hva_t r;
+
+	ExAcquireFastMutex(&page_emulater_mutex);	
+
+	for (r = addr ; r < addr + actual_size ; r += PAGE_SIZE) {
+		page = get_page_slot(r);
+
+		ASSERT(page);
+		ASSERT(page->__wpfn != PAGE_NOT_USED);
+
+		ExFreePoolWithTag(page->__nt_mem, MEM_TAG);
+		RtlZeroMemory(page, sizeof(struct page));
+	}
+
+	ExReleaseFastMutex(&page_emulater_mutex);
 }
 
-struct file {
-	int __file;
-};
-
-unsigned long _cdecl winkvm_do_mmap(struct file *file, unsigned long addr, 
-									unsigned long len, unsigned long prot,
-									unsigned long flag, unsigned long offset)
+static struct page_root *get_page_rootslot(hva_t pageaddr)
 {
-	return 0;
+	return page_slot_root[PAGE_PDE(pageaddr)];
 }
 
-/* fake symbols */
-int _cdecl cond_resched(void)
+static struct page *get_page_slot(hva_t pageaddr)
 {
-	return 1;
+	struct page_root *pgr;
+	struct page *page;
+	unsigned long addr = (unsigned long)pageaddr;
+	int i;
+
+	ExAcquireFastMutex(&page_emulater_mutex);
+
+	pgr = page_slot_root[PAGE_PDE(addr)];
+
+	if (!pgr) {
+		pgr = (struct page_root*)ExAllocatePoolWithTag(PagedPool, sizeof(struct page_root), MEM_TAG);
+		RtlZeroMemory(pgr, sizeof(struct page_root));
+		page_slot_root[PAGE_PDE(addr)] = pgr;
+
+		for (i = 0 ; i < 1024 ; i++) {
+			pgr->page[i].__wpfn = PAGE_NOT_USED;
+		}
+	}
+
+	page = &pgr->page[PAGE_PTE(addr)];
+	if (!page)
+		ASSERT(0);
+
+	ExReleaseFastMutex(&page_emulater_mutex);
+
+	return page;
 }
 
-/* fake symbols */
-int _cdecl kvm_smp_call_function_single(int cpu, void (*func)(void *info),
-										void *info, int wait)
+struct page* _cdecl pfn_to_page(hfn_t pfn)
 {
-	return 1;
+	return get_page_slot(pfn << PAGE_SHIFT);
 }
 
-int _cdecl winkvm_init(void *opaque, unsigned int vcpu_size)
+hfn_t _cdecl page_to_pfn(struct page *page)
 {
-	return 1;
+	return ((hfn_t)page->__nt_mem) >> PAGE_SHIFT;
 }
 
-void _cdecl winkvm_exit(void)
+int _cdecl get_order(unsigned long size)
 {
-
+	return size / PAGE_SIZE;
 }
+

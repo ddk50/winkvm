@@ -43,8 +43,8 @@
 				UseUnicodeResponseFiles="false"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(ProjectDir)&quot;"
-				PreprocessorDefinitions="DBG, DEBUG, _DEBUG"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)\include&quot;;&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(ProjectDir)&quot;"
+				PreprocessorDefinitions="DBG;DEBUG;_DEBUG;__WINKVM__"
 				StringPooling="true"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
@@ -78,7 +78,7 @@
 				AdditionalOptions="/safeseh:no"
 				AdditionalDependencies="ntoskrnl.lib int64.lib hal.lib $(NOINHERIT)"
 				ShowProgress="0"
-				OutputFile="$(ProjectDir)\bin\$(ProjectName).sys"
+				OutputFile="$(ProjectDir)bin\$(ProjectName).sys"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(BASEDIR2K3)\lib\wxp\i386"
 				GenerateManifest="false"
@@ -241,6 +241,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\test.c"
+				>
+			</File>
+			<File
 				RelativePath=".\undefined.c"
 				>
 			</File>
@@ -271,13 +275,29 @@
 				>
 			</File>
 			<File
-				RelativePath=".\type.h"
+				RelativePath=".\test.h"
 				>
 			</File>
 			<File
 				RelativePath=".\x86.h"
 				>
 			</File>
+			<Filter
+				Name="linux"
+				>
+				<File
+					RelativePath=".\include\linux\winkvm.h"
+					>
+				</File>
+				<File
+					RelativePath=".\include\linux\winkvmgfp.h"
+					>
+				</File>
+				<File
+					RelativePath=".\include\linux\winkvmint.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -285,7 +305,27 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
-				RelativePath="Z:\examples\simple\simple.obj"
+				RelativePath=".\kvmobjs\kvm_main.obj"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmobjs\mmu.obj"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmobjs\svm.obj"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmobjs\vmx-debug.obj"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmobjs\vmx.obj"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmobjs\x86_emulate.obj"
 				>
 			</File>
 		</Filter>

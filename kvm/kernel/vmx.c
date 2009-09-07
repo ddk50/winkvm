@@ -1007,8 +1007,9 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	int i;
 	int ret = 0;
 	int nr_good_msrs;
-//	extern asmlinkage void kvm_vmx_return(void);
+	
 	extern void kvm_vmx_return(void);	
+	//	extern void _kvm_vmx_return(void);	
 
 	if (!init_rmode_tss(vcpu->kvm)) {
 		ret = -ENOMEM;
@@ -1128,7 +1129,7 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	vmcs_writel(HOST_IDTR_BASE, dt.base);   /* 22.2.4 */
 
 
-	vmcs_writel(HOST_RIP, (unsigned long)kvm_vmx_return); /* 22.2.5 */
+	vmcs_writel(HOST_RIP, (unsigned long)kvm_vmx_return); /* 22.2.5 */	
 
 	rdmsr(MSR_IA32_SYSENTER_CS, host_sysenter_cs, junk);
 	vmcs_write32(HOST_IA32_SYSENTER_CS, host_sysenter_cs);
@@ -1834,10 +1835,10 @@ again:
 		/* Enter guest mode */
 		"jne launched \n\t"
 		ASM_VMX_VMLAUNCH "\n\t"
-		"jmp kvm_vmx_return \n\t"
+		"jmp _kvm_vmx_return \n\t"
 		"launched: " ASM_VMX_VMRESUME "\n\t"
-		".globl kvm_vmx_return \n\t"
-		"kvm_vmx_return: "
+		".globl _kvm_vmx_return \n\t"
+		"_kvm_vmx_return: "		
 		/* Save guest registers, load host registers, keep flags */
 #ifdef CONFIG_X86_64
 		"xchg %3,     (%%rsp) \n\t"
@@ -2111,15 +2112,38 @@ static struct kvm_arch_ops vmx_arch_ops = {
 	.patch_hypercall = vmx_patch_hypercall,
 };
 
+#ifndef __WINKVM__
 static int __init vmx_init(void)
 {
 	return kvm_init_arch(&vmx_arch_ops, THIS_MODULE);
 }
+#else
 
+void test_size(int pvoid_size,
+			   int LIST_ENTRY_size);
+void test_call(char *from_func, int a, int b, int c);
+void test_nullcheck(void *null_val1);
+
+int vmx_init(void)
+{
+	test_call(__FUNCTION__, 10, 20, 30);
+	test_size(sizeof(void*), sizeof(LIST_ENTRY));	
+	test_nullcheck(NULL);	
+	return kvm_init_arch(&vmx_arch_ops, THIS_MODULE);	
+}
+#endif /* __WINKVM__ */
+
+#ifndef __WINKVM__
 static void __exit vmx_exit(void)
 {
 	kvm_exit_arch();
 }
+#else
+void vmx_exit(void)  
+{
+	kvm_exit_arch();	
+}
+#endif /* __WINKVM__ */
 
 module_init(vmx_init)
 module_exit(vmx_exit)

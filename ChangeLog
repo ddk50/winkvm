@@ -1,3 +1,9 @@
+2009-09-02  Kazushi Takahashi  <kazushi@rvm.jp>
+
+	* Add the Windows version qemu.	
+	* The code of kvm began to run.
+	* Ready for building original qemu for windows.	
+
 2009-07-13  Kazushi Takahashi  <kazushi@rvm.jp>
 
 	* WinKVMレポジトリを作成

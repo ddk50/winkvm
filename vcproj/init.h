@@ -2,7 +2,7 @@
 #ifndef _INIT_H_
 #define _INIT_H_
 
-#include "type.h"
+#include <linux/winkvmint.h>
 
 #if !defined(AFX_STDAFX_H__DRIVER_TEMPLATE)
 #define AFX_STDAFX_H__DRIVER_TEMPLATE

@@ -26,6 +26,8 @@
 #define __init
 #define __exit
 
+#define asmlinkage __attribute__((regparm(0)))
+
 #define module_init(x)
 #define module_exit(x)
 
@@ -35,7 +37,7 @@
 
 #define EXPORT_SYMBOL_GPL(x)
 #define KVMTRACE_1D(a, b, c, d)
-#define NR_CPUS (winkvmstab_get_nr_cpus())
+#define NR_CPUS (get_nr_cpus())
 
 /* remove this!! */
 #ifndef _EFER_SVME
@@ -49,24 +51,24 @@
 
 extern int printk(const char *s, ...);
 
-extern int winkvmstab_first_cpu(void);
-extern int winkvmstab_get_nr_cpus(void);
-extern int winkvmstab_next_cpu(int cpu);
+extern int first_cpu(void);
+extern int get_nr_cpus(void);
+extern int next_cpu(int cpu);
 
 #define for_each_online_cpu(cpu) \	
-	for ((cpu) = winkvmstab_first_cpu(); \
-		 (cpu) < winkvmstab_get_nr_cpus(); \
-		 (cpu) = winkvmstab_next_cpu((cpu)))		
+	for ((cpu) = first_cpu(); \
+		 (cpu) < get_nr_cpus(); \
+		 (cpu) = next_cpu((cpu)))	  
 
 #define for_each_possible_cpu(cpu) \
-    for ((cpu) = winkvmstab_first_cpu(); \
-		 (cpu) < winkvmstab_get_nr_cpus(); \		 
-		 (cpu) = winkvmstab_next_cpu((cpu)))	
+    for ((cpu) = first_cpu(); \
+		 (cpu) < get_nr_cpus(); \		 
+		 (cpu) = next_cpu((cpu)))	  
 
 #define for_each_present_cpu(cpu) \	
-	  for ((cpu) = winkvmstab_first_cpu(); \
-		   (cpu) < winkvmstab_get_nr_cpus(); \
-		   (cpu) = winkvmstab_next_cpu((cpu)))
+	  for ((cpu) = first_cpu(); \
+		   (cpu) < get_nr_cpus(); \
+		   (cpu) = next_cpu((cpu)))		
 
 #define on_each_cpu(func,info,retry,wait)		\
 		({										\
@@ -106,7 +108,7 @@ extern void get_page(struct page *page);
 #define __WINKVM_CPUNUMS__ 4
 
 /*
- * Error return values for the *_nopage functions
+ * Error return values for the *_nopage functions 
  */
 #define NOPAGE_SIGBUS	(NULL)
 #define NOPAGE_OOM	((struct page *) (-1))

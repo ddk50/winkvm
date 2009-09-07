@@ -18,23 +18,28 @@ all:: sync
 sync:
 ##	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
 	rsync "$(LINUX)"/include/linux/kvm.h \
-	       "$(LINUX)"/include/linux/kvm_para.h \
-			include/linux
+          "$(LINUX)"/include/linux/kvm_para.h \
+	      include/linux
 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
-		  "$(LINUX)"/include/asm/msr-index.h \
-		  "$(LINUX)"/include/asm/processor-flags.h \
-		  "$(LINUX)"/include/asm/segment_32.h \
-		  "$(LINUX)"/include/asm/errno.h \
-		  "$(LINUX)"/include/asm/winkvm86.h \
-		    ../../windows-linux-compat/asm
+          "$(LINUX)"/include/asm/msr-index.h \
+          "$(LINUX)"/include/asm/processor-flags.h \
+          "$(LINUX)"/include/asm/segment_32.h \
+          "$(LINUX)"/include/asm/errno.h \
+          "$(LINUX)"/include/asm/winkvm86.h \
+           ../../windows-linux-compat/asm
 	rsync "$(LINUX)"/include/asm-generic/errno.h \
-			../../windows-linux-compat/asm-generic
+           ../../windows-linux-compat/asm-generic
+	rsync "$(LINUX)"/include/linux/winwdm.h \
+          "$(LINUX)"/include/linux/winkvmint.h \
+          "$(LINUX)"/include/linux/winkvmlist.h \
+          "$(LINUX)"/include/linux/winkvmstab.h \
+          "$(LINUX)"/include/linux/winkvmtypes.h \
+          "$(LINUX)"/include/linux/winkvmgfp.h \
+          ../../windows-linux-compat/linux
 	rsync "$(LINUX)"/include/linux/winkvmint.h \
-		  "$(LINUX)"/include/linux/winkvmlist.h  \
-		  "$(LINUX)"/include/linux/winkvmstab.h  \
-		  "$(LINUX)"/include/linux/winkvmtypes.h \
 		  "$(LINUX)"/include/linux/winkvmgfp.h \
-		    ../../windows-linux-compat/linux
+		  "$(LINUX)"/include/linux/winkvm.h \
+          ../../vcproj/include/linux
 # 	sed -i 's/f_path\./f_/' kvm_main.c
 # 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
 # 	mv kvm_main.c kvm_main.c.orig
@@ -46,6 +51,10 @@ sync:
 # 	     /\}/ && hacking_get_sb { print "\n#endif"; hacking_get_sb = 0 } \
 # 	     ' kvm_main.c.orig > kvm_main.c
 # 	rm kvm_main.c.orig
+
+cpobjs:
+	for nm in *.o; do `mv $$nm $${nm%.o}.obj`; done
+	mv *.obj ../../vcproj/kvmobjs/
 
 install:
 	mkdir -p $(DESTDIR)/$(INSTALLDIR)

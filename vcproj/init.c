@@ -1,37 +1,32 @@
 
+#include <linux/winkvmint.h>
+#include <linux/winkvmgfp.h>
+
+#include "slab.h"
+#include "smp.h"
 #include "init.h"
 #include "kernel.h"
 #include "test/include/kvm.h"
 
 PDRIVER_OBJECT DriverObject;
 
-NTSTATUS 
-DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
-			IN PUNICODE_STRING RegistryPath);
+NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
+					 IN PUNICODE_STRING RegistryPath);
 
-NTSTATUS 
-__winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
-				   IN PIRP Irp);
+NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
+							IN PIRP Irp);
 
-NTSTATUS 
-__winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
-					IN PIRP Irp);
+NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
+							 IN PIRP Irp);
 
-NTSTATUS 
-__winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
-				   IN PIRP Irp);
+NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
+							IN PIRP Irp);
 
-void
-__winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
+void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
 
 /* start linux device driver */
-extern int _cdecl simple_open(struct inode *inode, struct file *filp);
-extern int _cdecl simple_release(struct inode *inode, struct file *filp);
-extern struct page* _cdecl simple_vma_nopage(struct vm_area_struct *vma,
-											 unsigned long address,
-											 int *type);
-
-extern struct file_operations simple_remap_ops;
+extern int _cdecl vmx_init(void);
+extern void _cdecl vmx_exit(void);
 /* end linux device driver */
 
 /* driver entry */
@@ -43,23 +38,15 @@ NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	UNICODE_STRING NtNameString;
 	UNICODE_STRING Win32NameString;
 
-	/* tmp */
-	struct inode test_inode;
-	struct file test_file;
-
-	int type;
-	struct vm_area_struct test_vma;
-
 	RtlInitUnicodeString(&NtNameString, NT_DEVICE_NAME);
 
-	status = IoCreateDevice(
-		DriverObject, 
-		0,
-		&NtNameString,
-		FILE_DEVICE_UNKNOWN,
-		0,
-		FALSE,
-		&deviceObject);
+	status = IoCreateDevice(DriverObject, 
+		                    0,
+							&NtNameString,
+							FILE_DEVICE_UNKNOWN,
+							0,
+							FALSE,
+							&deviceObject);
 
 	if (NT_SUCCESS(status)) {
 		DriverObject->MajorFunction[IRP_MJ_CREATE] = __winkvmstab_create;
@@ -73,19 +60,10 @@ NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 		if (!NT_SUCCESS(status)) {
 			IoDeleteDevice(DriverObject->DeviceObject);
 		} else {
+			init_smp_emulater();
+
 			printk(KERN_ALERT "All initialized!\n");
-			printk(KERN_ALERT "test\n");
-
-			type = 0x12345678;
-
-//			simple_remap_ops.open(&test_inode, &test_file);
-
-			test_vma.vm_start = 0x22222222;			
-			test_vma.vm_end = 0x33333333;
-			test_vma.vm_flags = 0x44444444;
-			test_vma.vm_pgoff = 0x55555555;
-
-			simple_vma_nopage(&test_vma, 0xffffffff, &type);
+			vmx_init();
 		}
 	} else {
 		printk(KERN_ALERT "Couldn't create the driver\n");
@@ -106,6 +84,11 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	if (deviceObject != NULL) {
 		IoDeleteDevice(DriverObject->DeviceObject);
 	}
+
+	vmx_exit();
+
+	release_smp_emulater();
+	release_slab_emulater();
 
     return;
 }

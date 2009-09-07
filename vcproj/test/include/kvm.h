@@ -2,7 +2,7 @@
 #ifndef _KVM_H_
 #define _KVM_H_
 
-#include "type.h"
+#include <linux/winkvmint.h>
 
 #define KVM_API_VERSION 12
 

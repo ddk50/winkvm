@@ -17,7 +17,7 @@ struct desc_ptr {
 
 struct Xgt_desc_struct {
 	unsigned short size;
-	unsigned long address __attribute__((packed));
+	unsigned long address __attribute__((packed));  
 	unsigned short pad;
 } __attribute__ ((packed));
 
@@ -28,30 +28,22 @@ struct desc_struct {
 	unsigned limit : 4, avl : 1, l : 1, d : 1, g : 1, base2 : 8;
 } __attribute__((packed));
 
-static inline void *memcpy(void * to, const void * from, size_t n)
-{
-	int d0, d1, d2;
-	__asm__ __volatile__(
-		"rep ; movsl\n\t"
-		"movl %4,%%ecx\n\t"
-		"andl $3,%%ecx\n\t"
-		"jz 1f\n\t"
-		"rep ; movsb\n\t"
-		"1:"
-		: "=&c" (d0), "=&D" (d1), "=&S" (d2)
-		: "0" (n/4), "g" (n), "1" ((long) to), "2" ((long) from)
-		: "memory");
-	return (to);
-}
+/* extern void* __fastcall RtlCopyMemory(void *Destination, const void *Source, size_t Length); */
+/* extern void* __fastcall RtlFillMemory(void *Destination, size_t Length, unsigned char Fill); */
 
-static inline void* memset(void* s, int c, unsigned n)
-{
-	int i;
-	char *ss = (char*)s;
+/* static inline void *memcpy(void *to, const void *from, size_t n) */
+/* { */
+/* 	return RtlCopyMemory(to, from, n);	 */
+/* } */
 
-	for (i=0;i<n;i++) ss[i] = c;
-	return s;
-}
+/* static inline void* memset(void* s, int c, unsigned n) */
+/* { */
+/* 	return RtlFillMemory(s, n, (unsigned char)c);	 */
+/* } */
+
+extern void *memcpy(void *to, const void *from, size_t n);
+extern void* memset(void* s, int c, unsigned n);
+extern int strcmp(const char *str1, const char *str2);
 
 static inline void native_cpuid(unsigned int *eax, unsigned int *ebx,
 								unsigned int *ecx, unsigned int *edx)
@@ -123,22 +115,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
 	return edx;
 }
 
-static inline int strcmp(const char *str1, const char *str2)
-{
-	const unsigned char *s1 = (const unsigned char *)str1;
-	const unsigned char *s2 = (const unsigned char *)str2;
-	int delta = 0;
-
-	while (*s1 || *s2) {
-		delta = *s2 - *s1;
-		if (delta)
-			return delta;
-		s1++;
-		s2++;
-	}
-	return 0;
-}
-
 /**
  * __ffs - find first bit in word.
  * @word: The word to search
@@ -150,7 +126,7 @@ static inline unsigned long __ffs(unsigned long word)
 	__asm__("bsfl %1,%0"
 		:"=r" (word)
 		:"rm" (word));
-	return word;
+	return word;	
 }
 
 /**

@@ -6,25 +6,6 @@
 #include "init.h"
 #endif
 
-/*  
- * Address types:
- *
- *  gva - guest virtual address 
- *  gpa - guest physical address
- *  gfn - guest frame number
- *  hva - host virtual address
- *  hpa - host physical address
- *  hfn - host frame number
- */
-
-typedef unsigned long  gva_t;
-typedef u64            gpa_t;
-typedef unsigned long  gfn_t;
-
-typedef unsigned long  hva_t;
-typedef u64            hpa_t;
-typedef unsigned long  hfn_t;
-
 #pragma pack(1)
 
 struct page {
@@ -34,7 +15,8 @@ struct page {
 	};	
 	unsigned long index;
 	void *__nt_mem;
-	hfn_t __wpfn;	
+	/* hfn_t __wpfn; */
+	unsigned long __wpfn;	
 };
 
 struct inode {	

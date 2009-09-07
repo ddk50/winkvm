@@ -14,24 +14,6 @@
 int _cdecl printk(const char *s, ...);
 void _cdecl get_page(struct page *page);
 
-#pragma pack(push,1)
-
-struct inode {
-	int test;
-};
-
-struct file {
-	int fd;
-	int f_flags;
-};
-
-struct page {
-    void *private;
-    unsigned long index;
-    unsigned long mapping;
-    int test;
-};
-
 struct file_operations {
     struct module *owner;
 /*  loff_t (*llseek) (struct file *, loff_t, int); */
@@ -77,6 +59,25 @@ struct vm_area_struct {
     int vm_flags;
     void *vm_ops;
 };
+
+/*
+ * Address types:
+ *
+ *  gva - guest virtual address
+ *  gpa - guest physical address
+ *  gfn - guest frame number
+ *  hva - host virtual address
+ *  hpa - host physical address
+ *  hfn - host frame number
+ */
+
+typedef unsigned long  gva_t;
+typedef u64            gpa_t;
+typedef unsigned long  gfn_t;
+
+typedef unsigned long  hva_t;
+typedef u64            hpa_t;
+typedef unsigned long  hfn_t;
 
 //#pragma pack(pop)
 

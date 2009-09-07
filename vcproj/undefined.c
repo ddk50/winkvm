@@ -1,4 +1,5 @@
 
+/*
 void *pv_cpu_ops;
 void *__per_cpu_offset;
 void *pv_irq_ops;
@@ -98,3 +99,4 @@ void *kvm_read_guest_page;
 void *__next_cpu;
 void *__first_cpu;
 void *profile_hits;
+*/

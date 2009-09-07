@@ -1,3 +1,8 @@
+version 0.10.5-a
+  - This qemu is specific version for WinKVM. (Kazushi Takahashi)	
+  - Already applied the patch for Windows. (Kazushi Takahashi)	
+  - Add applied patch. (Kazushi Takahashi)	
+
 version 0.10.5:
   - kvm: trim unsupported cpu features from cpuid (Avi Kivity)
   - kvm: provide a better error message for -smp > 1 (Mark McLoughlin)

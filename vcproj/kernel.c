@@ -5,7 +5,12 @@
 #include "init.h"
 #include "kernel.h"
 
+#include <linux/winkvm.h>
+
 #define MAX_PRINT_BUFFER 1024
+
+#define  PAU64(x)      \
+	((__u64)((x)->u.HighPart) << 32) | ((x)->u.LowPart)
 
 int _cdecl printk(const char *s, ...)
 {
@@ -21,51 +26,37 @@ int _cdecl printk(const char *s, ...)
 	return 1;
 }
 
-void _cdecl test_call(int a, int b, int c)
+hpa_t get_phys(PHYSICAL_ADDRESS *addr)
 {
-	printk("---%d, %d, %d---\n", a, b, c);
-	printk("---%d, %d, %d---\n", 1, 2, 3);
-
-	return;
-}
-
-void _cdecl get_page(struct page *page)
-{
-	return;
+	return (__u32)(PAU64(addr));
 }
 
 void* _cdecl __va(unsigned long addr)
-{
-	return NULL;
+{	
+	return (void*)addr;
 }
 
-unsigned long _cdecl __pa(unsigned long virt)
+unsigned long _cdecl __pa(hva_t virt)
 {
-	return 0;
-}
-
-void* _cdecl virt_to_page(void *phys)
-{
-	return NULL;
+	PHYSICAL_ADDRESS paddr;
+	paddr = MmGetPhysicalAddress((PVOID)virt);
+	return PAU64(&paddr);
 }
 
 int _cdecl pfn_valid(unsigned long pfn)
 {
+	ASSERT(0);
 	return 1;
 }
 
-struct page* _cdecl pfn_to_page(unsigned long pfn)
+void _cdecl fput(struct file *file)
 {
-	return NULL;
+	ASSERT(0);
 }
 
-unsigned long _cdecl page_to_pfn(struct page *page)
+int _cdecl cpu_to_node(int cpu)
 {
+	ASSERT(0);
 	return 0;
 }
 
-int _cdecl remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
-						   unsigned long pfn, unsigned long size, pgprot_t prot)
-{
-	return 0;
-}

@@ -716,7 +716,7 @@ hpa_t safe_gpa_to_hpa(struct kvm_vcpu *vcpu, gpa_t gpa)
 {
 	hpa_t hpa = gpa_to_hpa(vcpu, gpa);
 
-	return is_error_hpa(hpa) ? bad_page_address | (gpa & ~PAGE_MASK): hpa;
+	return is_error_hpa(hpa) ? bad_page_address | (gpa & ~PAGE_MASK) : hpa;	
 }
 
 hpa_t gpa_to_hpa(struct kvm_vcpu *vcpu, gpa_t gpa)

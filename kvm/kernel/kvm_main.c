@@ -2082,7 +2082,7 @@ out:
 }
 
 static long kvm_vcpu_ioctl(struct file *filp,
-			   unsigned int ioctl, unsigned long arg)
+						   unsigned int ioctl, unsigned long arg)
 {
 #ifndef __WINKVM__  
 	struct kvm_vcpu *vcpu = filp->private_data;
@@ -2289,7 +2289,7 @@ static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
 }
 
 static struct vm_operations_struct kvm_vm_vm_ops = {	
-	.nopage = kvm_vm_nopage,
+	.nopage = kvm_vm_nopage,	
 };
 
 static int kvm_vm_mmap(struct file *file, struct vm_area_struct *vma)
@@ -2319,7 +2319,7 @@ static int kvm_dev_ioctl_create_vm(void)
 		goto out1;
 	}
 
-	kvm = kvm_create_vm();
+	kvm = kvm_create_vm();	
 	if (IS_ERR(kvm)) {
 		r = PTR_ERR(kvm);
 		goto out2;
@@ -2552,7 +2552,7 @@ static struct sys_device kvm_sysdev = {
 	.cls = &kvm_sysdev_class,
 };
 
-/* hpa_t bad_page_address; */
+hpa_t bad_page_address;
 
 /* #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16) */
 
@@ -2583,7 +2583,7 @@ int kvm_init_arch(struct kvm_arch_ops *ops, struct module *module)
 
 	if (!ops->cpu_has_kvm_support()) {
 		printk(KERN_ERR "kvm: no hardware support\n");
-		return -EOPNOTSUPP;
+		return -EOPNOTSUPP;		
 	}
 	if (ops->disabled_by_bios()) {
 		printk(KERN_ERR "kvm: disabled by bios\n");
@@ -2633,8 +2633,38 @@ out_free_1:
 out:
 	kvm_arch_ops = NULL;
 	return r;
-#else
-	return 0;	
+	
+#else /* for winkvm */
+	int r;
+
+	printk(KERN_ERR "starting kvm_init_arch\n");
+	
+	if (kvm_arch_ops) {
+		printk(KERN_ERR "winkvm: already loaded the other module\n");		
+		return -EEXIST;
+	}
+
+	if (!ops->cpu_has_kvm_support()) {
+		printk(KERN_ERR "winkvm: no hardware support\n");		
+		return -EOPNOTSUPP;
+	}
+	
+	if (ops->disabled_by_bios()) {
+		printk(KERN_ERR "kvm: disabled by bios\n");
+		return -EOPNOTSUPP;
+	}
+
+	kvm_arch_ops = ops;
+
+	printk(KERN_ERR "start kvm arch ops\n");	
+	r = kvm_arch_ops->hardware_setup();
+	if (r < 0) {
+		printk("Could not enable HVM hardware setup\n");		
+		goto out;		
+	}
+	
+out:		
+	return r;	
 #endif /* __WINKVM__ */
 }
 
@@ -2652,6 +2682,7 @@ void kvm_exit_arch(void)
 #endif /* __WINKVM__ */	
 }
 
+extern void test_call(char *from_func, int a, int b, int c);
 static __init int kvm_init(void)
 {
 #ifndef __WINKVM__
@@ -2688,10 +2719,12 @@ out2:
 out3:
 	return r;
 #else
+	test_call(__FUNCTION__, 10, 20, 30);	
+	kvm_init_msr_list();	
+	
 	return 0;	
 #endif	
 }
-
 static __exit void kvm_exit(void)
 {
 #ifndef __WINKVM__

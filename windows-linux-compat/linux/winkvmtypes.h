@@ -9,6 +9,8 @@
 /* for IA32 only */
 #include <linux/winkvmint.h>
 #include <linux/winkvmlist.h>
+#include <linux/winwdm.h>
+#include <linux/winkvm.h>
 
 #define KERN_EMERG      "<0>"   /* system is unusable                   */
 #define KERN_ALERT      "<1>"   /* action must be taken immediately     */
@@ -20,17 +22,17 @@
 #define KERN_DEBUG      "<7>"   /* debug-level messages                 */
 
 /* PAGE_SHIFT determines the page size */
+#ifndef _MSC_VER
 #define PAGE_SHIFT      12
 #define PAGE_SIZE       (1UL << PAGE_SHIFT)
 #define PAGE_MASK       (~(PAGE_SIZE-1))
+#endif
 
 #ifdef CONFIG_X86_32
 # define BITS_PER_LONG 32
 #else
 # define BITS_PER_LONG 64
 #endif
-
-typedef int bool;
 
 #define DIV_ROUND_UP(n,d)       (((n) + (d) - 1) / (d))
 #define BIT(nr)                 (1UL << (nr))
@@ -58,43 +60,14 @@ typedef int bool;
 
 #define ARRAY_SIZE(arr) \
 	(sizeof(arr) / sizeof((arr)[0]) + __must_be_array_w(arr))
-
 #define __user
-
-enum km_type {
-	KM_BOUNCE_READ = 0,	
-	KM_SKB_SUNRPC_DATA,
-	KM_SKB_DATA_SOFTIRQ,
-	KM_USER0,
-	KM_USER1,
-	KM_BIO_SRC_IRQ,
-	KM_BIO_DST_IRQ,
-	KM_PTE0,
-	KM_PTE1,
-	KM_IRQ0,
-	KM_IRQ1,
-	KM_SOFTIRQ0,
-	KM_SOFTIRQ1,
-	KM_TYPE_NR  
-};
-
-struct page {
-	union {
-		unsigned long private;
-		void *__mapping;
-	};	
-	void *virtual;	
-	unsigned long index;
-	unsigned long mapping;	
-	int test;	
-};
 
 struct i387_fxsave_struct {
 	unsigned short  cwd;
 	unsigned short  swd;
 	unsigned short  twd;
 	unsigned short  fop;
-	long    fip;
+	long    fip;	
 	long    fcs;
 	long    foo;
 	long    fos;
@@ -107,23 +80,9 @@ struct i387_fxsave_struct {
 
 typedef struct { unsigned long long pgprot; } pgprot_t;
 
-typedef struct {
-	unsigned int magic;  
-} spinlock_t;
-
-struct file {
-	void *private_data;
-	int fd;
-	int r_flags;	
-};
-
-struct mutex {	
-	int test;	
-};
-
 struct __wait_queue_head {	
 	spinlock_t lock;	
-	struct list_head task_list;
+	struct list_head task_list;	
 };
 
 typedef struct __wait_queue_head wait_queue_head_t;
@@ -146,12 +105,8 @@ struct hrtimer {
 };
 
 typedef struct {
-	int test;
-} atomic_t;
-
-struct inode {
 	int test;	
-};
+} atomic_t;
 
 struct vm_area_struct {
 	unsigned long vm_pgoff;
@@ -174,13 +129,13 @@ struct file_operations {
 	/*  ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t); */
 	/*  int (*readdir) (struct file *, void *, filldir_t); */
 	/*  unsigned int (*poll) (struct file *, struct poll_table_struct *); */
-	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+	int (*ioctl) (struct inode*, struct file *, unsigned int, unsigned long);
 	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
 	long (*compat_ioctl) (struct file *, unsigned int, unsigned long);	
-	int (*mmap) (struct file *, struct vm_area_struct *);
-	int (*open) (struct inode *, struct file *);
+	int (*mmap) (struct file*, struct vm_area_struct *);
+	int (*open) (struct inode*, struct file *);
 	/*  int (*flush) (struct file *, fl_owner_t id); */
-	int (*release) (struct inode *, struct file *);	
+	int (*release) (struct inode*, struct file *);	
 	/*  int (*fsync) (struct file *, struct dentry *, int datasync); */
 	/*  int (*aio_fsync) (struct kiocb *, int datasync); */
 	/*  int (*fasync) (int, struct file *, int); */

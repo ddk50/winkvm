@@ -57,4 +57,6 @@ typedef unsigned long long int  uint64_t;
 
 typedef unsigned int            size_t;
 
+typedef int bool;
+
 #endif /* _WINKVMINT_H_ */

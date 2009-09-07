@@ -169,7 +169,6 @@ struct kvm_mmu {
 	hpa_t root_hpa;
 	int root_level;
 	int shadow_root_level;
-
 	u64 *pae_root;
 };
 
