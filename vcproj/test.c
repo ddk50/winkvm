@@ -1,0 +1,56 @@
+
+#include "init.h"
+#include "kernel.h"
+#include "cpu.h"
+
+#include <linux/vmx.h>
+
+/* test */
+void do_check(void)
+{
+}
+
+void _cdecl test_size(int pvoid_size,
+					  int LIST_ENTRY_size)
+{
+	printk(" === test %s ===\n", __FUNCTION__);
+	ASSERTMSG("different void pointer size\n", sizeof(void*) == pvoid_size);
+	ASSERTMSG("different LIST_ENTRY size\n", sizeof(LIST_ENTRY) == LIST_ENTRY_size);
+}
+
+void _cdecl test_call(char *from_func, int a, int b, int c)
+{
+	printk(" === test %s ===\n", __FUNCTION__);
+	printk("call from %s\n", from_func);
+	printk("test pattern\n");
+	printk("---%d, %d, %d---\n", a, b, c);
+	printk("---%d, %d, %d---\n", a * 100, b * -200, c * 300);
+
+	return;
+}
+
+void _cdecl test_nullcheck(void *null_val1)
+{
+	printk(" === test %s ===\n", __FUNCTION__);
+	ASSERTMSG("different null pointer val\n", NULL == null_val1);
+}
+
+int _cdecl check_ensure_vmx(void)
+{
+	int  valid = 1;
+	__u32 value_cr4 = __readcr4();
+	__u32 value_cr0 = __readcr0();
+
+	/* 19.7 */
+	ASSERTMSG("Disable VMEX bit in CR4\n", value_cr4 & CR4_VMXE_MASK);
+	valid &= (value_cr4 & CR4_VMXE_MASK) ? 1 : 0;
+
+	ASSERTMSG("Disable PE bit in CR0\n", value_cr0 & CR0_PE_MASK);
+	ASSERTMSG("Disable NE bit in CR0\n", value_cr0 & CR0_NE_MASK);
+	ASSERTMSG("Disable PG bit in CR0\n", value_cr0 & CR0_PG_MASK);
+	value_cr0 &= CR0_PE_MASK | CR0_NE_MASK | CR0_PG_MASK;
+	valid &= (value_cr0 == 
+		(CR0_PE_MASK | CR0_NE_MASK | CR0_PG_MASK)) ? 1 : 0;
+
+	return valid;
+}
