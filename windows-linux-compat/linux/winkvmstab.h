@@ -102,7 +102,7 @@ extern int copy_from_user(void *to, const void *from, int n);
 extern void get_page(struct page *page);
 
 /* temporary */
-#define __WINKVM_CPUNUMS__ 4
+#define __WINKVM_CPUNUMS__ 1
 
 /*
  * Error return values for the *_nopage functions 
@@ -214,7 +214,7 @@ extern void *kzalloc(size_t size, int flags);
 extern void kfree(void *obj);
 
 extern void *page_address(struct page *page);
-extern unsigned long __pa(void *vaddr);
+extern u64 __pa(void *vaddr);
 extern void *__va(unsigned long paddr);
 
 /* X86 only */

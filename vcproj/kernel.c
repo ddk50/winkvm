@@ -27,7 +27,7 @@ int _cdecl printk(const char *s, ...)
 
 hpa_t get_phys(PHYSICAL_ADDRESS *addr)
 {
-	return (unsigned long)(PAU64(addr));
+	return PAU64(addr);
 }
 
 void* _cdecl __va(unsigned long addr)
@@ -35,7 +35,7 @@ void* _cdecl __va(unsigned long addr)
 	return (void*)addr;
 }
 
-unsigned long _cdecl __pa(hva_t virt)
+u64 _cdecl __pa(hva_t virt)
 {
 	PHYSICAL_ADDRESS paddr;
 	paddr = MmGetPhysicalAddress((PVOID)virt);

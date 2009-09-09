@@ -19,9 +19,9 @@ void _cdecl spin_lock(spinlock_t *lock);
 void _cdecl spin_unlock(spinlock_t *lock);
 
 /* there functions are implemented as macro */
-int _cdecl on_each_cpu(void (*func)(void *info), void *info, int retry, int wait);
-int _cdecl smp_call_function(void (*func)(void *info), void *info, int retry, int wait);
-int _cdecl smp_call_function_single(int cpu, void (*func)(void *info), void *info,
+int _cdecl on_each_cpu(void (_cdecl *func)(void *info), void *info, int retry, int wait);
+int _cdecl smp_call_function(void (_cdecl *func)(void *info), void *info, int retry, int wait);
+int _cdecl smp_call_function_single(int cpu, void (_cdecl *func)(void *info), void *info,
 									int nonatomic, int wait);
 
 int _cdecl raw_smp_processor_id(void);

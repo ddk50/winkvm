@@ -255,6 +255,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\cpu.h"
+				>
+			</File>
+			<File
 				RelativePath=".\init.h"
 				>
 			</File>
@@ -285,6 +289,10 @@
 			<Filter
 				Name="linux"
 				>
+				<File
+					RelativePath=".\include\linux\vmx.h"
+					>
+				</File>
 				<File
 					RelativePath=".\include\linux\winkvm.h"
 					>

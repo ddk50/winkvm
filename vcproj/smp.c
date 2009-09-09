@@ -283,7 +283,7 @@ ULONG_PTR NTAPI smp_call_function_wrapper(IN ULONG_PTR Context)
  * You must not call this function with disabled interrupts or from a
  * hardware interrupt handler or from a bottom half handler.
  */
-int _cdecl smp_call_function(void (*func)(void *info), void *info, int nonatomic,
+int _cdecl smp_call_function(void (_cdecl *func)(void *info), void *info, int nonatomic,
 							 int wait)
 {
 	/*
@@ -301,8 +301,9 @@ int _cdecl smp_call_function(void (*func)(void *info), void *info, int nonatomic
 	}
 	*/
 
-
+	local_irq_disable();
 	func(info);
+	local_irq_enable();
 
 	return 0;
 }
@@ -320,10 +321,10 @@ int _cdecl smp_call_function(void (*func)(void *info), void *info, int nonatomic
  * If @wait is true, then returns once @func has returned; otherwise
  * it returns just before the target cpu calls @func.
  */
-int _cdecl smp_call_function_single(int cpu, void (*func)(void *info), void *info,
+int _cdecl smp_call_function_single(int cpu, void (_cdecl *func)(void *info), void *info,
 									int nonatomic, int wait)
 {	
-	return smp_call_function(func, info, nonatomic, wait);
+	return smp_call_function(func, info, nonatomic, wait);	
 }
 
 /*
@@ -333,7 +334,7 @@ int _cdecl smp_call_function_single(int cpu, void (*func)(void *info), void *inf
  * @wait:  If true, wait (atomically) until function has completed on other CPUs.
  * @retry: Unused???
  */
-int _cdecl on_each_cpu(void (*func)(void *info), void *info, int retry, int wait)
+int _cdecl on_each_cpu(void (_cdecl *func)(void *info), void *info, int retry, int wait)
 {
 	return smp_call_function(func, info, retry, wait);	
 }

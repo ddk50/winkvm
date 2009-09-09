@@ -44,8 +44,8 @@ void release_slab_emulater(void)
 		if (page_slot_root[i]) {
 			for (j = 0 ; j < 1024 ; j++) {
 				pd = page_slot_root[j]->page;
-				if (pd[j].__nt_mem)
-					KeFreePageMemory(pd[j].__nt_mem, pd[j].__nt_memsize);
+				if (pd->__nt_mem)
+					KeFreePageMemory(pd->__nt_mem, pd->__nt_memsize);
 			}
 			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
 		}

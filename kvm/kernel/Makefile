@@ -40,6 +40,8 @@ sync:
 		  "$(LINUX)"/include/linux/winkvmgfp.h \
 		  "$(LINUX)"/include/linux/winkvm.h \
           ../../vcproj/include/linux
+	rsync ./vmx.h \
+		  ../../vcproj/include/linux
 # 	sed -i 's/f_path\./f_/' kvm_main.c
 # 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
 # 	mv kvm_main.c kvm_main.c.orig

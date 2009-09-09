@@ -97,15 +97,15 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING Win32NameString;
 
+	printk("call vmx_exit()\n");
+	vmx_exit();
+
 	RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
 	IoDeleteSymbolicLink(&Win32NameString);
 
 	if (deviceObject != NULL) {
 		IoDeleteDevice(DriverObject->DeviceObject);
 	}
-
-	printk("call vmx_exit()\n");
-	vmx_exit();
 
 	release_smp_emulater();
 	release_slab_emulater();

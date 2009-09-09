@@ -530,11 +530,15 @@ static __init int vmx_disabled_by_bios(void)
 	return (msr & 5) == 1; /* locked but not enabled */
 }
 
+#ifdef __WINKVM__
+extern int check_ensure_vmx(void);
+#endif
+
 static void hardware_enable(void *garbage)
 {
 	int cpu = raw_smp_processor_id();
 	u64 phys_addr = __pa(per_cpu(vmxarea, cpu));
-	u64 old;
+	u64 old;	
 	
 	printk(KERN_ALERT "%s:0\n", __FUNCTION__);
 	
@@ -551,6 +555,8 @@ static void hardware_enable(void *garbage)
 	write_cr4(read_cr4() | CR4_VMXE); /* FIXME: not cpu hotplug safe */
 
 	printk(KERN_ALERT "%s:3 phys_addr: 0x%x\n", __FUNCTION__, phys_addr);	
+
+	check_ensure_vmx();	
 	
 	asm volatile (ASM_VMX_VMXON_RAX : : "a"(&phys_addr), "m"(phys_addr)
 		      : "memory", "cc");
@@ -573,7 +579,7 @@ static __init void setup_vmcs_descriptor(void)
 	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
 	vmcs_descriptor.size = vmx_msr_high & 0x1fff;
 	vmcs_descriptor.order = get_order(vmcs_descriptor.size);
-	vmcs_descriptor.revision_id = vmx_msr_low;
+	vmcs_descriptor.revision_id = vmx_msr_low;	
 }
 
 static struct vmcs *alloc_vmcs_cpu(int cpu)
@@ -594,7 +600,12 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 	vmcs = page_address(pages);
 	memset(vmcs, 0, vmcs_descriptor.size);
 	vmcs->revision_id = vmcs_descriptor.revision_id; /* vmcs revision id */
-	printk(KERN_ALERT "%s end\n", __FUNCTION__);	
+	printk(KERN_ALERT "%s end\n", __FUNCTION__);
+
+	printk(KERN_ALERT "vmcs pointer: 0x%x\n", (unsigned long)vmcs);	
+	printk(KERN_ALERT "vmcs revision_id: %d\n", vmcs->revision_id);	
+	printk(KERN_ALERT "vmcs abort: %d\n", vmcs->abort);	
+	
 	return vmcs;
 }
 

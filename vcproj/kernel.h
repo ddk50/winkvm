@@ -83,14 +83,6 @@ typedef unsigned long  hfn_t;
 
 //#pragma pack(pop)
 
-void* _cdecl __va(unsigned long addr);
-unsigned long _cdecl __pa(unsigned long virt);
-void* _cdecl virt_to_page(void *phys);
-int _cdecl pfn_valid(unsigned long pfn);
-
-struct page* _cdecl pfn_to_page(unsigned long pfn);
-unsigned long _cdecl page_to_pfn(struct page *page);
-
 ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors);
 
 #define MEM_TAG 'HmmV'
