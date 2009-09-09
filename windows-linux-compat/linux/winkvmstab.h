@@ -55,29 +55,21 @@ extern int first_cpu(void);
 extern int get_nr_cpus(void);
 extern int next_cpu(int cpu);
 
-#define for_each_online_cpu(cpu) \	
-	for ((cpu) = first_cpu(); \
-		 (cpu) < get_nr_cpus(); \
-		 (cpu) = next_cpu((cpu)))	  
+#define for_each_online_cpu(cpu)				\
+	for ((cpu) = first_cpu();					\
+		 (cpu) < get_nr_cpus();					\
+		 (cpu) = next_cpu((cpu)))
 
-#define for_each_possible_cpu(cpu) \
-    for ((cpu) = first_cpu(); \
-		 (cpu) < get_nr_cpus(); \		 
-		 (cpu) = next_cpu((cpu)))	  
+#define for_each_possible_cpu(cpu)				\
+    for ((cpu) = first_cpu();					\
+		 (cpu) < get_nr_cpus();					\
+		 (cpu) = next_cpu((cpu)))
 
-#define for_each_present_cpu(cpu) \	
-	  for ((cpu) = first_cpu(); \
-		   (cpu) < get_nr_cpus(); \
-		   (cpu) = next_cpu((cpu)))		
+#define for_each_present_cpu(cpu) \
+	for ((cpu) = first_cpu();	  \
+		 (cpu) < get_nr_cpus();	  \
+		 (cpu) = next_cpu((cpu)))
 
-#define on_each_cpu(func,info,retry,wait)		\
-		({										\
-		  local_irq_disable();					\
-		  func(info);							\
-		  local_irq_enable();					\
-		  0;									\
-		})	  
-	
 extern int raw_smp_processor_id(void);
 extern int get_cpu(void);
 extern int put_cpu(void);
@@ -88,8 +80,13 @@ extern void spin_unlock(spinlock_t *lock);
 
 extern int cpu_to_node(int cpu);
 
+extern int smp_call_function(void (*func)(void *info), void *info, int nonatomic,
+							 int wait);
+
 extern int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
 									int nonatomic, int wait);
+
+extern int on_each_cpu(void (*func)(void *info), void *info, int retry, int wait);
 
 #define dump_stack()
 #define per_cpu(x, y) (g_##x##_[(y)])

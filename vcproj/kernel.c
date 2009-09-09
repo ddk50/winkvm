@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "init.h"
 #include "kernel.h"
 
 #include <linux/winkvm.h>
@@ -28,7 +27,7 @@ int _cdecl printk(const char *s, ...)
 
 hpa_t get_phys(PHYSICAL_ADDRESS *addr)
 {
-	return (__u32)(PAU64(addr));
+	return (unsigned long)(PAU64(addr));
 }
 
 void* _cdecl __va(unsigned long addr)
@@ -45,18 +44,38 @@ unsigned long _cdecl __pa(hva_t virt)
 
 int _cdecl pfn_valid(unsigned long pfn)
 {
-	ASSERT(0);
+	SAFE_ASSERT(0);
 	return 1;
 }
 
 void _cdecl fput(struct file *file)
 {
-	ASSERT(0);
+	SAFE_ASSERT(0);		
 }
 
 int _cdecl cpu_to_node(int cpu)
 {
-	ASSERT(0);
-	return 0;
+	return cpu;
 }
 
+ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors)
+{	
+#if (NTDDI_VERSION >= NTDDI_VISTA)
+	/* return KeQueryActiveProcessorCount(ActiveProcessors); */
+	return KeNumberProcessors;
+#else
+	ULONG NumberOfProcessors = 0;
+	KAFFINITY Affinity = KeQueryActiveProcessors();
+
+	if (ActiveProcessors) {
+		*ActiveProcessors = Affinity;
+	}
+
+	for (; Affinity; Affinity >>= 1){
+		if (Affinity & 1) {
+			NumberOfProcessors++;
+		}
+	}
+	return NumberOfProcessors;
+#endif
+}

@@ -2,6 +2,8 @@
 #ifndef _KERNEL_H_
 #define _KERNEL_H_
 
+#include "init.h"
+
 #define KERN_EMERG      "<0>"   /* system is unusable                   */
 #define KERN_ALERT      "<1>"   /* action must be taken immediately     */
 #define KERN_CRIT       "<2>"   /* critical conditions                  */
@@ -89,7 +91,8 @@ int _cdecl pfn_valid(unsigned long pfn);
 struct page* _cdecl pfn_to_page(unsigned long pfn);
 unsigned long _cdecl page_to_pfn(struct page *page);
 
-int _cdecl remap_pfn_range(struct vm_area_struct*, unsigned long addr,
-						   unsigned long pfn, unsigned long size, pgprot_t prot);
+ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors);
+
+#define MEM_TAG 'HmmV'
 
 #endif

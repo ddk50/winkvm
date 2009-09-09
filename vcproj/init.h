@@ -46,4 +46,11 @@
 #define module_init(x) extern int (*__first_call)(void) = x;
 #define module_exit(x) extern void (*__final_call)(void) = x;
 
+#define SAFE_ASSERT(x) \
+	do { \
+	   if (!(x)) { \
+	       printk(KERN_WARNING "assertion failed %s:%d: %s\n", __FILE__, __LINE__, #x); \
+	   } \
+	} while(0);
+
 #endif

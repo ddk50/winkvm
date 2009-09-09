@@ -15,6 +15,7 @@ struct page {
 	};	
 	unsigned long index;
 	void *__nt_mem;
+	unsigned long __nt_memsize;	
 	/* hfn_t __wpfn; */
 	unsigned long __wpfn;	
 };

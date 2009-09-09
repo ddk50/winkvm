@@ -516,12 +516,15 @@ static int set_guest_debug(struct kvm_vcpu *vcpu, struct kvm_debug_guest *dbg)
 static __init int cpu_has_kvm_support(void)
 {
 	unsigned long ecx = cpuid_ecx(1);
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
 	return test_bit(5, &ecx); /* CPUID.1:ECX.VMX[bit 5] -> VT */
 }
 
 static __init int vmx_disabled_by_bios(void)
 {
 	u64 msr;
+	
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
 
 	rdmsrl(MSR_IA32_FEATURE_CONTROL, msr);
 	return (msr & 5) == 1; /* locked but not enabled */
@@ -532,14 +535,28 @@ static void hardware_enable(void *garbage)
 	int cpu = raw_smp_processor_id();
 	u64 phys_addr = __pa(per_cpu(vmxarea, cpu));
 	u64 old;
-
+	
+	printk(KERN_ALERT "%s:0\n", __FUNCTION__);
+	
 	rdmsrl(MSR_IA32_FEATURE_CONTROL, old);
+
+	printk(KERN_ALERT "%s:1\n", __FUNCTION__);	
+	
 	if ((old & 5) != 5)
 		/* enable and lock */
 		wrmsrl(MSR_IA32_FEATURE_CONTROL, old | 5);
+	
+	printk(KERN_ALERT "%s:2\n", __FUNCTION__);
+	
 	write_cr4(read_cr4() | CR4_VMXE); /* FIXME: not cpu hotplug safe */
+
+	printk(KERN_ALERT "%s:3 phys_addr: 0x%x\n", __FUNCTION__, phys_addr);	
+	
 	asm volatile (ASM_VMX_VMXON_RAX : : "a"(&phys_addr), "m"(phys_addr)
 		      : "memory", "cc");
+
+	printk(KERN_ALERT "%s:4\n", __FUNCTION__);	
+
 }
 
 static void hardware_disable(void *garbage)
@@ -550,6 +567,8 @@ static void hardware_disable(void *garbage)
 static __init void setup_vmcs_descriptor(void)
 {
 	u32 vmx_msr_low, vmx_msr_high;
+	
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
 
 	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
 	vmcs_descriptor.size = vmx_msr_high & 0x1fff;
@@ -562,6 +581,12 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 	int node = cpu_to_node(cpu);
 	struct page *pages;
 	struct vmcs *vmcs;
+	
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
+	printk(KERN_ALERT "order: 1024 = %d\n", get_order(1024));
+	printk(KERN_ALERT "order: 4096 = %d\n", get_order(4096));
+	printk(KERN_ALERT "order: 4096 * 2 = %d\n", get_order(4096 * 2));
+	printk(KERN_ALERT "order: 4096 * 3 = %d\n", get_order(4096 * 3));	
 
 	pages = alloc_pages_node(node, GFP_KERNEL, vmcs_descriptor.order);
 	if (!pages)
@@ -569,6 +594,7 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 	vmcs = page_address(pages);
 	memset(vmcs, 0, vmcs_descriptor.size);
 	vmcs->revision_id = vmcs_descriptor.revision_id; /* vmcs revision id */
+	printk(KERN_ALERT "%s end\n", __FUNCTION__);	
 	return vmcs;
 }
 
@@ -595,23 +621,35 @@ extern struct vmcs *alloc_vmcs_cpu(int cpu);
 static __init int alloc_kvm_area(void)
 {
 	int cpu;
+	
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
+
+	printk(KERN_ALERT "first_cpu() = %d, get_nr_cpus() = %d\n",		   
+		   first_cpu(), get_nr_cpus());	
 
 	for_each_online_cpu(cpu) {
-		struct vmcs *vmcs;
+		struct vmcs *vmcs;		
+
+		printk(KERN_ALERT "call each online\n", __FUNCTION__);
 
 		vmcs = alloc_vmcs_cpu(cpu);
 		if (!vmcs) {
 			free_kvm_area();
 			return -ENOMEM;
-		}
+		}		
 
-		per_cpu(vmxarea, cpu) = vmcs;
+		per_cpu(vmxarea, cpu) = vmcs;		
+		printk(KERN_ALERT "%d\n", cpu);		
 	}
+
+	printk(KERN_ALERT "end call each online\n", __FUNCTION__);	
+	
 	return 0;
 }
 
 static __init int hardware_setup(void)
 {
+	printk(KERN_ALERT "%s\n", __FUNCTION__);
 	setup_vmcs_descriptor();
 	return alloc_kvm_area();
 }
@@ -2119,16 +2157,21 @@ static int __init vmx_init(void)
 }
 #else
 
-void test_size(int pvoid_size,
+extern void test_size(int pvoid_size,
 			   int LIST_ENTRY_size);
-void test_call(char *from_func, int a, int b, int c);
-void test_nullcheck(void *null_val1);
+extern void test_call(char *from_func, int a, int b, int c);
+extern void test_nullcheck(void *null_val1);
+extern int check_page_compatible(unsigned long page_size,
+								 unsigned long page_shift,
+								 unsigned long page_mask);
 
 int vmx_init(void)
 {
 	test_call(__FUNCTION__, 10, 20, 30);
 	test_size(sizeof(void*), sizeof(LIST_ENTRY));	
 	test_nullcheck(NULL);	
+	check_page_compatible(PAGE_SIZE, PAGE_SHIFT, PAGE_MASK);	
+	
 	return kvm_init_arch(&vmx_arch_ops, THIS_MODULE);	
 }
 #endif /* __WINKVM__ */

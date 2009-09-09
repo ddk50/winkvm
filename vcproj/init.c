@@ -37,6 +37,10 @@ NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	NTSTATUS status;
 	UNICODE_STRING NtNameString;
 	UNICODE_STRING Win32NameString;
+//	KAFFINITY aps;
+//	ULONG cpus = KeQueryActiveProcessorCountCompatible(&aps);
+
+	printk(KERN_ALERT "Start driver entry!\n");
 
 	RtlInitUnicodeString(&NtNameString, NT_DEVICE_NAME);
 
@@ -56,20 +60,35 @@ NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 		
 		RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
 		status = IoCreateSymbolicLink(&Win32NameString, &NtNameString);
-
-		if (!NT_SUCCESS(status)) {
-			IoDeleteDevice(DriverObject->DeviceObject);
-		} else {
-			init_smp_emulater();
-
-			printk(KERN_ALERT "All initialized!\n");
-			vmx_init();
-		}
-	} else {
-		printk(KERN_ALERT "Couldn't create the driver\n");
 	}
 
+
+	if (!NT_SUCCESS(status)) {
+		IoDeleteDevice(DriverObject->DeviceObject);
+		goto err;
+	}
+
+	/*
+	if (cpus > 1) {
+		printk(KERN_ALERT "cpus more than 1\n");
+		status = STATUS_INVALID_DEVICE_STATE;
+		goto err;
+	}
+	*/
+
+	init_smp_emulater();
+	init_slab_emulater();
+
+	printk(KERN_ALERT "All initialized!\n");
+	printk("call vmx_init()\n");
+
+	vmx_init();
+
     return status;
+
+err:
+	printk(KERN_ALERT "Couldn't create the driver\n");
+	return status;
 }
 
 /* winkvm release */
@@ -85,6 +104,7 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 		IoDeleteDevice(DriverObject->DeviceObject);
 	}
 
+	printk("call vmx_exit()\n");
 	vmx_exit();
 
 	release_smp_emulater();

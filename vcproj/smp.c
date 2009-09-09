@@ -3,6 +3,8 @@
 #include "kernel.h"
 #include "smp.h"
 
+ULONG_PTR NTAPI smp_call_function_wrapper(IN ULONG_PTR Context);
+
 #define MAX_MUTEX_COUNT    50
 #define MAX_SPINLOCK_COUNT 50
 
@@ -34,15 +36,20 @@ static int spinlock_emulater_initialized = 0;
 static FAST_MUTEX emulater_spinlock;
 
 /*
-int _cdecl on_each_cpu(void (*func)(void *info), void *info, int retry, int wait)
-{
-	return 1;
-}
-*/
+ * for smp_call_function;
+ * per cpu;
+ */
+struct smpf_data {
+	void (*func)(void *info);
+	void *info;
+	int mycpu_num;
+} *smpf_data_slot = NULL;
 
 void init_smp_emulater(void)
 {
 	int i;
+	KAFFINITY aps;
+	ULONG cpus = KeQueryActiveProcessorCountCompatible(&aps);
 
 	if (!mutex_emulater_initialized) {
 		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i) {
@@ -54,6 +61,14 @@ void init_smp_emulater(void)
 		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i) {
 			spinlock_slot[i].used = 0;
 		}
+	}
+
+	if (!smpf_data_slot) {
+		smpf_data_slot = ExAllocatePoolWithTag(NonPagedPool, 
+			                                   sizeof(struct smpf_data) * cpus,
+											   MEM_TAG);
+		SAFE_ASSERT(smpf_data_slot);
+		RtlZeroMemory(smpf_data_slot, sizeof(struct smpf_data) * cpus);
 	}
 
 	ExInitializeFastMutex(&emulater_mutex);
@@ -81,6 +96,9 @@ void release_smp_emulater(void)
 		}
 	}
 
+	if (smpf_data_slot)
+		ExFreePoolWithTag(smpf_data_slot, MEM_TAG);
+
 	return;
 }
 
@@ -89,7 +107,7 @@ void _cdecl mutex_init(struct mutex *lock)
 	int i;
 	FAST_MUTEX *get_mutex = NULL;
 
-	ASSERT(mutex_emulater_initialized);
+	SAFE_ASSERT(mutex_emulater_initialized);
 
 	ExAcquireFastMutex(&emulater_mutex);
 
@@ -104,7 +122,7 @@ void _cdecl mutex_init(struct mutex *lock)
 
 	ExReleaseFastMutex(&emulater_mutex);
 
-	ASSERT(get_mutex != NULL);
+	SAFE_ASSERT(get_mutex != NULL);
 
 	return;
 }
@@ -112,8 +130,8 @@ void _cdecl mutex_init(struct mutex *lock)
 void _cdecl mutex_lock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
-	ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	ASSERT(mutex_slot[lock->mutex_number].used == 1);
+	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
+	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
 
 	mutex = &mutex_slot[lock->mutex_number].mutex;
 
@@ -123,8 +141,8 @@ void _cdecl mutex_lock(struct mutex *lock)
 void _cdecl mutex_unlock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
-	ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	ASSERT(mutex_slot[lock->mutex_number].used == 1);
+	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
+	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
 
 	mutex = &mutex_slot[lock->mutex_number].mutex;
 
@@ -134,8 +152,8 @@ void _cdecl mutex_unlock(struct mutex *lock)
 int _cdecl mutex_trylock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
-	ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	ASSERT(mutex_slot[lock->mutex_number].used == 1);
+	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
+	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
 
 	mutex = &mutex_slot[lock->mutex_number].mutex;
 	if (ExTryToAcquireFastMutex(mutex))
@@ -163,7 +181,7 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 	}
 
 	ExReleaseFastMutex(&emulater_spinlock);
-	ASSERT(new_slot);
+	SAFE_ASSERT(new_slot);
 
 	KeInitializeSpinLock(&new_slot->spinlock);
 }
@@ -171,14 +189,14 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 void _cdecl spin_lock(spinlock_t *lock)
 {   
 	struct spinlock_emulater_slot *slot = &spinlock_slot[lock->spinlock_number];
-	ASSERT(!slot->used);
+	SAFE_ASSERT(!slot->used);
 	KeAcquireSpinLock(&slot->spinlock, &slot->IrqL);
 }
 
 void _cdecl spin_unlock(spinlock_t *lock)
 {
 	struct spinlock_emulater_slot *slot = &spinlock_slot[lock->spinlock_number];
-	ASSERT(!slot->used);
+	SAFE_ASSERT(!slot->used);
 	KeReleaseSpinLock(&slot->spinlock, slot->IrqL);
 }
 
@@ -187,69 +205,24 @@ void _cdecl prefetch(const void *x)
 
 }
 
-/*
-int _cdecl smp_call_function(void (*func)(void *info), void *info, int retry, int wait)
-{
-	return 1;
-}
-
-int _cdecl smp_call_function_single(int cpuid, void (*func)(void *info), void *info,
-									int retry, int wait)
-{
-	return 1;
-}
-*/
-
-int _cdecl smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-									int nonatomic, int wait)
-{
-	return 1;
-}
-
 void _cdecl smp_wmb(void)
 {
 	KeMemoryBarrier();
-	return;
 }
 
 void _cdecl smp_mb(void)
 {
 	KeMemoryBarrier();
-	return;
 }
 
 void _cdecl local_irq_enable(void)
 {
-	ASSERT(0);
-	return;
+	__asm {sti};
 }
 
 void _cdecl local_irq_disable(void)
 {
-	ASSERT(0);
-	return;
-}
-
-ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors)
-{	
-#if (NTDDI_VERSION >= NTDDI_VISTA)
-	/* return KeQueryActiveProcessorCount(ActiveProcessors); */
-	return KeNumberProcessors;
-#else
-	ULONG NumberOfProcessors = 0;
-	KAFFINITY Affinity = KeQueryActiveProcessors();
-
-	if (ActiveProcessors) {
-		*ActiveProcessors = Affinity;
-	}
-
-	for (; Affinity; Affinity >>= 1){
-		if (Affinity & 1) {
-			NumberOfProcessors++;
-		}
-	}
-	return NumberOfProcessors;
-#endif
+	__asm {cli};
 }
 
 static int current_cpu = 0;
@@ -257,34 +230,111 @@ static int current_cpu = 0;
 int _cdecl first_cpu(void)
 {
 	current_cpu = 0;
-	return 1;
+	return current_cpu;
 }
 
 int _cdecl get_nr_cpus(void)
 {
 	KAFFINITY aps;
-	return (int)(KeQueryActiveProcessorCountCompatible(&aps) - 1);
+	return (int)KeQueryActiveProcessorCountCompatible(&aps);
 }
 
 int _cdecl next_cpu(int cpu)
-{
-	return ++current_cpu;
+{	
+	return (cpu + 1);
 }
 
 int _cdecl raw_smp_processor_id(void)
 {
-	ASSERT(0);
-	return 1;
+	return (int)KeGetCurrentProcessorNumber();
 }
 
 int _cdecl get_cpu(void)
 {
-	ASSERT(0);
+	SAFE_ASSERT(0);
 	return 1;
 }
 
 int _cdecl put_cpu(void)
 {
-	ASSERT(0);
+	SAFE_ASSERT(0);
 	return 1;
 }
+
+ULONG_PTR NTAPI smp_call_function_wrapper(IN ULONG_PTR Context)
+{
+	struct smpf_data *smpf = (struct smpf_data*)Context;
+	smpf->func(smpf->info);
+	return (ULONG_PTR)&smpf->mycpu_num;
+}
+
+/**
+ * smp_call_function(): Run a function on all other CPUs.
+ * @func: The function to run. This must be fast and non-blocking.
+ * @info: An arbitrary pointer to pass to the function.
+ * @nonatomic: Unused.
+ * @wait: If true, wait (atomically) until function has completed on other CPUs.
+ *
+ * Returns 0 on success, else a negative status code.
+ *
+ * If @wait is true, then returns once @func has returned; otherwise
+ * it returns just before the target cpu calls @func.
+ *
+ * You must not call this function with disabled interrupts or from a
+ * hardware interrupt handler or from a bottom half handler.
+ */
+int _cdecl smp_call_function(void (*func)(void *info), void *info, int nonatomic,
+							 int wait)
+{
+	/*
+	int i;
+	KAFFINITY aps;
+	*/
+
+	/* SAFE_ASSERT(smpf_data_slot); */
+	/* FIX ME!! does not support SMP */	
+
+	/* Hmm... XP does not support KeIpiGenericCall... */
+	/*
+	for (i = 0 ; i < KeQueryActiveProcessorCountCompatible(&aps) ; i++) {
+		KeIpiGenericCall(smp_call_function_wrapper, (ULONG_PTR)&smpf_data_slot[i]);
+	}
+	*/
+
+
+	func(info);
+
+	return 0;
+}
+
+/**
+ * smp_call_function_single - Run a function on a specific CPU
+ * @cpu: The target CPU.  Cannot be the calling CPU.
+ * @func: The function to run. This must be fast and non-blocking.
+ * @info: An arbitrary pointer to pass to the function.
+ * @nonatomic: Unused.
+ * @wait: If true, wait until function has completed on other CPUs.
+ *
+ * Returns 0 on success, else a negative status code.
+ *
+ * If @wait is true, then returns once @func has returned; otherwise
+ * it returns just before the target cpu calls @func.
+ */
+int _cdecl smp_call_function_single(int cpu, void (*func)(void *info), void *info,
+									int nonatomic, int wait)
+{	
+	return smp_call_function(func, info, nonatomic, wait);
+}
+
+/*
+ * Call a function on all processors
+ * redirect the smp_call_function
+ * @info:  An arbitrary pointer to pass to the function.
+ * @wait:  If true, wait (atomically) until function has completed on other CPUs.
+ * @retry: Unused???
+ */
+int _cdecl on_each_cpu(void (*func)(void *info), void *info, int retry, int wait)
+{
+	return smp_call_function(func, info, retry, wait);	
+}
+

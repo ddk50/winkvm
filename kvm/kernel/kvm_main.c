@@ -2592,8 +2592,8 @@ int kvm_init_arch(struct kvm_arch_ops *ops, struct module *module)
 
 	kvm_arch_ops = ops;
 
-	r = kvm_arch_ops->hardware_setup();
-	if (r < 0)
+	r = kvm_arch_ops->hardware_setup();	
+	if (r < 0)		
 		goto out;
 
 	on_each_cpu(kvm_arch_ops->hardware_enable, NULL, 0, 1);
@@ -2656,12 +2656,16 @@ out:
 
 	kvm_arch_ops = ops;
 
-	printk(KERN_ERR "start kvm arch ops\n");	
+	printk(KERN_ERR "start kvm arch ops...\n");	
 	r = kvm_arch_ops->hardware_setup();
 	if (r < 0) {
-		printk("Could not enable HVM hardware setup\n");		
+		printk(KERN_ERR "Could not enable HVM hardware setup\n");		
 		goto out;		
 	}
+	
+	on_each_cpu(kvm_arch_ops->hardware_enable, NULL, 0, 1);	
+
+	printk(KERN_ALERT "end\n");	
 	
 out:		
 	return r;	

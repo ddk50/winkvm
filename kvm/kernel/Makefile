@@ -53,7 +53,7 @@ sync:
 # 	rm kvm_main.c.orig
 
 cpobjs:
-	for nm in *.o; do `mv $$nm $${nm%.o}.obj`; done
+	for nm in *.o; do `cp $$nm $${nm%.o}.obj`; done
 	mv *.obj ../../vcproj/kvmobjs/
 
 install:
