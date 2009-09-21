@@ -21,9 +21,6 @@ const int page_slot_num = sizeof(page_slot_root) / sizeof(struct page_root*);
 static struct page_root *get_page_rootslot(hva_t pageaddr);
 static struct page *get_page_slot(hva_t pageaddr);
 
-static void* KeGetPageMemory(SIZE_T size);
-static void KeFreePageMemory(void *ptr, SIZE_T size);
-
 void init_slab_emulater(void)
 {
 	int i;
@@ -334,12 +331,12 @@ int _cdecl get_order(unsigned long size)
     return order;
 }
 
-static void* KeGetPageMemory(SIZE_T size)
+void* KeGetPageMemory(unsigned long size)
 {
 	return MmAllocateNonCachedMemory(size);
 }
 
-static void KeFreePageMemory(void *ptr, SIZE_T size)
+void KeFreePageMemory(void *ptr, unsigned long size)
 {
 	MmFreeNonCachedMemory(ptr, size);
 }

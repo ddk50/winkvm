@@ -12,7 +12,24 @@
 #include <asm/types.h>
 #include <linux/ioctl.h>
 #else
+#ifndef _MSC_VER
 #include <linux/winkvmtypes.h>
+#else
+#define __user
+
+#define _IOW(x, val, y) \
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+
+#define _IOR(x, val, y) \
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+
+#define _IO(x, val) \
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+
+#define _IOWR(x, val, y) \
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+
+#endif
 #endif
 
 #define KVM_API_VERSION 4
@@ -52,6 +69,10 @@ enum kvm_exit_reason {
   KVM_EXIT_IRQ_WINDOW_OPEN  = 7,
   KVM_EXIT_SHUTDOWN         = 8,
 };
+
+#ifdef __WINKVM__
+#pragma pack(1)
+#endif
 
 /* for KVM_RUN */
 struct kvm_run {
@@ -100,8 +121,10 @@ struct kvm_run {
 		__u32 value;
 	  };
 	} io;
+	/*
 	struct {
 	} debug;
+	*/ /* ddk */	
 	/* KVM_EXIT_MMIO */
 	struct {
 	  __u64 phys_addr;
@@ -210,9 +233,13 @@ struct kvm_dirty_log {
   __u32 padding;
   union {
 	void __user *dirty_bitmap; /* one bit per page */
-	__u64 padding;
+	__u64 __padding;	
   };
 };
+
+#ifdef __WINKVM__
+#pragma pack()
+#endif
 
 #define KVMIO 0xAE
 
@@ -248,6 +275,14 @@ struct kvm_dirty_log {
 #define KVM_DEBUG_GUEST           _IOW(KVMIO, 9, struct kvm_debug_guest)
 #define KVM_GET_MSRS              _IOWR(KVMIO, 13, struct kvm_msrs)
 #define KVM_SET_MSRS              _IOW(KVMIO, 14, struct kvm_msrs)
+
+/*
+ * for WinKVM 
+ */
+#define WINKVM_NOPAGE          _IOW(KVMIO, 20, unsigned long)
+#define WINKVM_INIT_TESTMAP    _IO(KVMIO, 30)
+#define WINKVM_TESTMAP         _IOW(KVMIO, 31, unsigned long)
+#define WINKVM_RELEASE_TESTMAP _IO(KVMIO, 32)
 
 #endif
 

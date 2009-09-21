@@ -646,8 +646,8 @@ static void do_remove_write_access(struct kvm_vcpu *vcpu, int slot)
  *
  * Discontiguous memory is allowed, mostly for framebuffers.
  */
-static int kvm_vm_ioctl_set_memory_region(struct kvm *kvm,
-					  struct kvm_memory_region *mem)
+int kvm_vm_ioctl_set_memory_region(struct kvm *kvm,
+								   struct kvm_memory_region *mem)  
 {
 	int r;
 	gfn_t base_gfn;
@@ -2029,7 +2029,7 @@ out1:
 /*
  * Creates some virtual cpus.  Good luck creating more than one.
  */
-static int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n)
+int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n) 
 {
 	int r;
 	struct kvm_vcpu *vcpu;
@@ -2081,8 +2081,8 @@ out:
 	return r;
 }
 
-static long kvm_vcpu_ioctl(struct file *filp,
-						   unsigned int ioctl, unsigned long arg)
+long kvm_vcpu_ioctl(struct file *filp,
+					unsigned int ioctl, unsigned long arg)  
 {
 #ifndef __WINKVM__  
 	struct kvm_vcpu *vcpu = filp->private_data;
@@ -2305,7 +2305,7 @@ static struct file_operations kvm_vm_fops = {
 	.mmap           = kvm_vm_mmap,
 };
 
-static int kvm_dev_ioctl_create_vm(void)
+int kvm_dev_ioctl_create_vm(void)  
 {
 #ifndef __WINKVM__
 	int fd, r;

@@ -259,15 +259,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\init.h"
-				>
-			</File>
-			<File
 				RelativePath=".\kernel.h"
 				>
 			</File>
 			<File
-				RelativePath=".\test\include\kvm.h"
+				RelativePath=".\kvmdefined.h"
 				>
 			</File>
 			<File
@@ -289,6 +285,10 @@
 			<Filter
 				Name="linux"
 				>
+				<File
+					RelativePath=".\include\linux\kvm.h"
+					>
+				</File>
 				<File
 					RelativePath=".\include\linux\vmx.h"
 					>
@@ -312,6 +312,10 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath=".\init.h"
+				>
+			</File>
 			<File
 				RelativePath=".\kvmobjs\kvm_main.obj"
 				>

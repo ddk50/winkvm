@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="winkvmuser"
-	ProjectGUID="{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}"
+	ProjectGUID="{430E2C02-531C-4851-8F51-D3C05B3EA823}"
 	RootNamespace="winkvmuser"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
@@ -60,7 +60,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(ProjectDir)..\..\bin\$(ProjectName).exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -172,39 +171,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\stdafx.cpp"
+				RelativePath=".\user.c"
 				>
 			</File>
-			<File
-				RelativePath=".\winkvmuser.cpp"
+			<Filter
+				Name="ヘッダー ファイル"
+				Filter="h;hpp;hxx;hm;inl;inc;xsd"
+				UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 				>
-			</File>
-		</Filter>
-		<Filter
-			Name="ヘッダー ファイル"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
-				RelativePath="..\include\kvm-common.h"
-				>
-			</File>
-			<File
-				RelativePath="..\include\kvm.h"
-				>
-			</File>
-			<File
-				RelativePath=".\libkvm.h"
-				>
-			</File>
-			<File
-				RelativePath=".\stdafx.h"
-				>
-			</File>
-			<File
-				RelativePath=".\targetver.h"
-				>
-			</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="リソース ファイル"
@@ -212,10 +187,6 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
-		<File
-			RelativePath=".\ReadMe.txt"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

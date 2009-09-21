@@ -1,3 +1,19 @@
+/*
+ * init.c
+ * This file has the main routines of WinKVM
+ *
+ * Copyright (C) Kazushi Takahashi <kazushi@rvm.jp>, 2009
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 #include <linux/winkvmint.h>
 #include <linux/winkvmgfp.h>
@@ -6,7 +22,9 @@
 #include "smp.h"
 #include "init.h"
 #include "kernel.h"
-#include "test/include/kvm.h"
+#include "kvmdefined.h"
+
+#include <linux/kvm.h>
 
 PDRIVER_OBJECT DriverObject;
 
@@ -22,12 +40,14 @@ NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							IN PIRP Irp);
 
-void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
+NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
+					   IN PVOID UserSpaceAddress,
+					   IN PVOID KernelSpaceAddress);
 
-/* start linux device driver */
-extern int _cdecl vmx_init(void);
-extern void _cdecl vmx_exit(void);
-/* end linux device driver */
+void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
+static NTSTATUS CovertRetval(int ret);
+
+static void *maptest_page = NULL;
 
 /* driver entry */
 NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
@@ -148,62 +168,80 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	PIO_STACK_LOCATION irpSp;
 	PCHAR inBuf, outBuf;
 	ULONG inBufLen, outBufLen;
-	int r;
+	unsigned long vaddr;	
 
 	printk("%s\n", __FUNCTION__);
 
     irpSp = IoGetCurrentIrpStackLocation(Irp);
+
     inBufLen = irpSp->Parameters.DeviceIoControl.InputBufferLength;
-    outBufLen = irpSp->Parameters.DeviceIoControl.OutputBufferLength;
+    outBufLen = irpSp->Parameters.DeviceIoControl.OutputBufferLength; 
+
+	inBuf = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
+	outBuf = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
    
 	switch (irpSp->Parameters.DeviceIoControl.IoControlCode) {
-    case KVM_GET_API_VERSION:
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case KVM_GET_API_VERSION:
+		{
+			ntStatus = STATUS_SUCCESS;
+			break;
+		}
 
-	case KVM_CREATE_VM:
-//		r = kvm_vm_ioctl_create_vcpu(
-		printk("Called: %d\n", 
-			irpSp->Parameters.DeviceIoControl.IoControlCode);
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case KVM_CREATE_VM: 
+		{
+			int vcpu;
+			RtlCopyMemory(&vcpu, inBuf, inBufLen);
+			kvm_vm_ioctl_create_vcpu(DeviceObject->DeviceExtension, vcpu);
+			ntStatus = STATUS_SUCCESS;
+			break;			
+		}
 
-	case KVM_CREATE_VCPU:
-//		r = kvm_vm_ioctl_create_vcpu();
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case WINKVM_NOPAGE:
+		{
+			ntStatus = STATUS_SUCCESS;
+			break;
+		}
 
-	case KVM_SET_USER_MEMORY_REGION:
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case WINKVM_INIT_TESTMAP:
+		{
+			printk(KERN_ALERT "WINKVM_INIT_TESTMAP\n");
+			maptest_page = KeGetPageMemory(PAGE_SIZE); /* alloc a page */		
+			if (maptest_page == NULL) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				break;
+			}
+			printk(KERN_ALERT "TESTMAP PAGE ... 0x%08lx\n", 
+				(unsigned long)maptest_page);
+			ntStatus = STATUS_SUCCESS;
+			break;
+		}
 
-	case KVM_RUN:
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case WINKVM_TESTMAP:
+		{
+			printk(KERN_ALERT "WINKVM_TESTMAP");
+			RtlCopyMemory(&vaddr, inBuf, inBufLen);
+			printk(KERN_ALERT "Test Mapping .. 0x%08x\n", vaddr);
+			if (maptest_page == NULL) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				break;
+			}
+			ntStatus = MapPageToUser(DeviceObject, (PVOID)vaddr, maptest_page);
+			break;
+		}
 
-	case KVM_GET_REGS:
-		ntStatus = STATUS_SUCCESS;
-		break;
-
-	case KVM_SET_REGS:
-		ntStatus = STATUS_SUCCESS;
-		break;
-
-	case KVM_GET_SREGS:
-		ntStatus = STATUS_SUCCESS;
-		break;
-
-	case KVM_SET_SREGS:
-		ntStatus = STATUS_SUCCESS;
-		break;
-
-	case KVM_GET_VCPU_MMAP_SIZE:
-		ntStatus = STATUS_SUCCESS;
-		break;
+	case WINKVM_RELEASE_TESTMAP:
+		{
+			printk(KERN_ALERT "WINKVM_RELEASE_TESTMAP\n");
+			if (maptest_page != NULL) {
+				KeFreePageMemory(maptest_page, PAGE_SIZE);
+			}
+			ntStatus = STATUS_SUCCESS;
+			break;
+		}
 
 	default:
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-		printk("ERROR: unreconginzed IOCTL: %x\n", 
+		printk(KERN_ALERT "ERROR: unreconginzed IOCTL: %x\n", 
 			irpSp->Parameters.DeviceIoControl.IoControlCode);
 		break;
 	}
@@ -213,6 +251,49 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	
 	// Don't boost priority when returning since this took little time.
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+	return ntStatus;
+}
+
+NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
+					   IN PVOID UserSpaceAddress,
+					   IN PVOID KernelSpaceAddress)
+{
+	NTSTATUS ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+	PMDL mdl = NULL;
+	PVOID ret = NULL;
+
+	mdl = IoAllocateMdl(KernelSpaceAddress, PAGE_SIZE, FALSE, FALSE, NULL);
+	SAFE_ASSERT(mdl != NULL);
+	if (!mdl) {		
+		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+		printk(KERN_ALERT "Mapping failed\n");
+		goto ret;
+	}
+
+	MmInitializeMdl(mdl, KernelSpaceAddress, PAGE_SIZE);	
+	MmBuildMdlForNonPagedPool(mdl);
+	printk(KERN_ALERT "BuildMdlForNonPage\n");
+
+	ret = MmMapLockedPagesSpecifyCache(mdl, UserMode, 
+		                               MmNonCached, UserSpaceAddress, 
+									   FALSE, HighPagePriority);
+	SAFE_ASSERT(ret == UserSpaceAddress);
+	
+	printk(KERN_ALERT "Mapping done\n");
+ret:
+	return ntStatus;
+}
+
+static NTSTATUS CovertRetval(int ret)
+{
+	NTSTATUS ntStatus;
+
+	if (ret < 0) {
+		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+	} else {
+		ntStatus = STATUS_SUCCESS;
+	}
 
 	return ntStatus;
 }

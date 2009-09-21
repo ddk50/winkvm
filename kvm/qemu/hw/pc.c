@@ -586,7 +586,7 @@ static void pc_init1(int ram_size, int vga_ram_size, int boot_device,
         snprintf(buf, sizeof(buf), "%s/%s", bios_dir, LINUX_BOOT_FILENAME);
         ret = load_image(buf, bootsect);
         if (ret != sizeof(bootsect)) {
-            fprintf(stderr, "qemu: could not load linux boot sector '%s'\n",
+            fprintf(stderr, "qemu: could not load linux boot sector '%s'\n",					
                     buf);
             exit(1);
         }

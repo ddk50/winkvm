@@ -39,4 +39,7 @@ struct page* _cdecl pfn_to_page(hfn_t pfn);
 hfn_t _cdecl page_to_pfn(struct page *page);
 int _cdecl get_order(unsigned long size);
 
+void* KeGetPageMemory(unsigned long size);
+void KeFreePageMemory(void *ptr, unsigned long size);
+
 #endif

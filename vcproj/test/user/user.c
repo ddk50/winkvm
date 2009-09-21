@@ -3,7 +3,31 @@
 //
 
 #include <windows.h>
+#include <winioctl.h>
 #include <stdio.h>
+#include <tchar.h>
+
+#define PAGE_SHIFT  12
+#define PAGE_SIZE   (1UL << PAGE_SHIFT)
+#define PAGE_MASK   (~(PAGE_SIZE-1))
+
+#define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
+
+#define KVMIO 0xAE
+
+#define WINKVM_NOPAGE          CTL_CODE(KVMIO, 0x900 + 20, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+#define WINKVM_INIT_TESTMAP    CTL_CODE(KVMIO, 0x900 + 30, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+#define WINKVM_TESTMAP         CTL_CODE(KVMIO, 0x900 + 31, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+#define WINKVM_RELEASE_TESTMAP CTL_CODE(KVMIO, 0x900 + 32, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+
+void *AllocMemSpace(unsigned long npage, unsigned long pagesize);
+void FreeMemSpace(void *ptr, unsigned long npage, unsigned long pagesize);
+BOOL MapPageToPhys(HANDLE hnd, PVOID *pageaddr, unsigned long pageshift);
+HANDLE OpenWinkvm(void);
+BOOL InitTestMap(HANDLE hnd);
+void MemmapAndTest(unsigned long dwPageSize);
+
+static HANDLE g_hnd;
 
 /* This Handler shows how SEH can modify global variables
    and/or registers of the faulting routine to "fix" an error
@@ -14,6 +38,7 @@ int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord,
 			   void *DispatcherContext)
 {
 	void *fault_addr;
+	unsigned long fault_pfn;
 	int ret = EXCEPTION_EXECUTE_HANDLER;
 
 	printf("You've raised exception number #%x\n", ExceptionRecord->ExceptionCode);
@@ -31,7 +56,9 @@ int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord,
 			break;
 		case EXCEPTION_ACCESS_VIOLATION:
 			fault_addr = (void*)(ExceptionRecord->ExceptionInformation[1]);
-			printf("ACCESS VIOLATION at addr=0x%08x\n", fault_addr);
+			fault_pfn = ((unsigned long)fault_addr) >> PAGE_SHIFT;
+			printf("ACCESS VIOLATION at addr = 0x%08x (pfn: 0x%08lx)\n", fault_addr, fault_pfn);
+			MapPageToPhys(g_hnd, (PVOID)(fault_pfn << PAGE_SHIFT), PAGE_SHIFT);
 			ret = EXCEPTION_CONTINUE_SEARCH;
 			break;
 		default:
@@ -61,17 +88,146 @@ int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord,
 
 int main(int argc, char *argv[])
 {
-	int test = 0;
-	int val = 1000;
+	unsigned long dwPageSize, pageshift, pagemask;
+	SYSTEM_INFO SysInfo;
 
-	printf("Setting SEH handler\n");
-	SetSEHhandler(SEHHandler);
+	GetSystemInfo(&SysInfo);
 
-	/* cause access violation */
-//	val = val / test;
-	*memspace = 0x1000;
+	pageshift  = 12;
+	dwPageSize = SysInfo.dwPageSize;
+	pagemask   = ~(pageshift - 1);
 
-	ResetSEHhandler();
+//	MemmapAndTest(hnd, dwPageSize)
+
+	if (dwPageSize != PAGE_SIZE) {
+		printf("invalid system page size\n");
+		exit(1);
+	}
+
+	printf("Systen info:\n");
+	printf(" page size: %d\n page shift: %d\n", dwPageSize, pageshift);
+
+	printf("Open WinKVM driver\n");	
 
 	return 1;	
+}
+
+void MemmapAndTest(unsigned long dwPageSize)
+{
+	void *memspace;	
+	BYTE *ptr;
+	HANDLE hnd;
+
+	hnd = OpenWinkvm();
+	g_hnd = hnd;
+	InitTestMap(hnd);
+
+	printf("Setting SEH handler\n");
+
+	memspace = AllocMemSpace(1, dwPageSize);
+
+	SetSEHhandler(SEHHandler); {
+		printf(" write memory to ... 0x%08lx\n", (unsigned long)memspace);
+		ptr = (BYTE*)memspace;
+		RtlZeroMemory(ptr, 1 * dwPageSize);
+		printf(" write complete!!\n");
+	} ResetSEHhandler();
+
+	FreeMemSpace(memspace, 1, dwPageSize);
+}
+
+HANDLE OpenWinkvm(void)
+{
+	HANDLE hnd;
+
+	printf("Testing winkvm driver...\n");
+	printf(" Testing Create Driver\n");
+
+	hnd = CreateFile(_T(WINKVM_DEVICE_NAME), GENERIC_WRITE,
+		             FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+	if (hnd == INVALID_HANDLE_VALUE ) {
+		printf("Error: CreateFile\n");
+		exit(1);
+		return INVALID_HANDLE_VALUE;
+	} else {
+		printf("Success: CreateFile\n");
+	}
+
+	return hnd;
+}
+
+BOOL InitTestMap(HANDLE hnd)
+{
+	unsigned long writeval;
+	unsigned long retlen;
+	BOOL ret = FALSE;
+
+	printf("%s\n", __FUNCTION__);
+
+	ret = DeviceIoControl(hnd, WINKVM_INIT_TESTMAP, &writeval, 
+	                      sizeof(unsigned long), NULL, 0, &retlen, NULL);
+
+	if (ret) {
+		printf("Success: DeviceIoControl\n");
+	} else {
+		printf("Failed: DeviceIoControl\n");
+	}
+
+	return ret;
+}
+
+BOOL MapPageToPhys(HANDLE hnd, PVOID *pageaddr, unsigned long pageshift)
+{
+	unsigned long writeval;
+	unsigned long retlen;
+	BOOL ret = FALSE;
+
+	writeval = (((unsigned long)pageaddr) >> pageshift) << pageshift;
+
+	ret = DeviceIoControl(hnd, WINKVM_TESTMAP, &writeval, 
+		                  sizeof(unsigned long), NULL, 0, &retlen, NULL);
+
+	if (ret) {
+		printf("Success: DeviceIoControl\n");		
+	} else {
+		printf("Failed: DeviceIoControl\n");
+	}
+	return ret;
+}
+
+void *AllocMemSpace(unsigned long npage, unsigned long pagesize)
+{
+	BYTE *mem;
+	unsigned long memsize = npage * pagesize;
+//	BYTE *p;
+//	unsigned long pages, i;
+
+	mem = VirtualAlloc(NULL, memsize, MEM_RESERVE, PAGE_NOACCESS);
+	if (!mem) {
+		printf("Can not reserve memory space\n");
+		exit(1);
+		return NULL;
+	}
+	
+	printf(" reserved memory space ... 0x%08x\n", (unsigned long)mem);
+
+	return (void*)mem;
+
+	/*
+	pages = memsize / pagesize;	
+
+	for (p = mem, i = 0 ; i < pages ; i++, p += pagesize) {		
+		printf(" zero memory ... pfn: %d\n", i);
+		RtlZeroMemory(p, pagesize);
+	}
+
+	VirtualFree(mem, memsize, MEM_RELEASE);
+	*/
+}
+
+void FreeMemSpace(void *ptr, unsigned long npage, unsigned long pagesize)
+{
+	unsigned long memsize = npage * pagesize;
+	VirtualFree(ptr, memsize, MEM_RELEASE);
 }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winkvmuser", "winkvmuser.vcproj", "{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winkvmuser", "winkvmuser.vcproj", "{430E2C02-531C-4851-8F51-D3C05B3EA823}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +9,10 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}.Debug|Win32.Build.0 = Debug|Win32
-		{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}.Release|Win32.ActiveCfg = Release|Win32
-		{6C1CFD0F-1BB6-44C1-99FC-7FB5C4E5612E}.Release|Win32.Build.0 = Release|Win32
+		{430E2C02-531C-4851-8F51-D3C05B3EA823}.Debug|Win32.ActiveCfg = Debug|Win32
+		{430E2C02-531C-4851-8F51-D3C05B3EA823}.Debug|Win32.Build.0 = Debug|Win32
+		{430E2C02-531C-4851-8F51-D3C05B3EA823}.Release|Win32.ActiveCfg = Release|Win32
+		{430E2C02-531C-4851-8F51-D3C05B3EA823}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
