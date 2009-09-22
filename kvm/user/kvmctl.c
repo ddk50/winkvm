@@ -298,7 +298,7 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 	int prot = PROT_READ;
 	struct kvm_memory_region memory = {
 		.slot = slot,
-		.memory_size = len,
+		.memory_size = len,		
 		.guest_phys_addr = phys_start,
 		.flags = log ? KVM_MEM_LOG_DIRTY_PAGES : 0,
 	};

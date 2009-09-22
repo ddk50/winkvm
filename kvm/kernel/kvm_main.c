@@ -164,9 +164,6 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_mode = FMODE_READ | FMODE_WRITE;
 	file->f_version = 0;
 #else	
-	file->private_data = private_data;
-	return file;
-	
 	return NULL;	
 #endif /* __WINKVM__ */
 }
@@ -208,7 +205,7 @@ static inline int valid_vcpu(int n)
 }
 
 int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
-		   void *dest)
+				   void *dest)	
 {
 	unsigned char *host_buf = dest;
 	unsigned long req_size = size;
@@ -221,7 +218,7 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 
 		paddr = gva_to_hpa(vcpu, addr);
 
-		if (is_error_hpa(paddr))
+		if (is_error_hpa(paddr))			
 			break;
 
 		guest_buf = (hva_t)kmap_atomic(
@@ -2306,7 +2303,7 @@ static struct file_operations kvm_vm_fops = {
 	.mmap           = kvm_vm_mmap,
 };
 
-int kvm_dev_ioctl_create_vm(void)  
+int kvm_dev_ioctl_create_vm(void)	
 {
 #ifndef __WINKVM__
 	int fd, r;
@@ -2319,14 +2316,12 @@ int kvm_dev_ioctl_create_vm(void)
 		r = PTR_ERR(inode);
 		goto out1;
 	}
-#endif 
 
 	kvm = kvm_create_vm();	
 	if (IS_ERR(kvm)) {
 		r = PTR_ERR(kvm);
 		goto out2;
-	}
-	
+	}	
 	
 	file = kvmfs_file(inode, kvm);
 	if (IS_ERR(file)) {
@@ -2351,15 +2346,21 @@ out2:
 	iput(inode);
 out1:
 	return r;
-#else
+#else	
 	struct kvm *kvm;
-	int r = 0;	
+	int r = 0;
+	
+	FUNCTION_ENTER();	
+	
 	kvm = kvm_create_vm();
 	if (IS_ERR(kvm)) {
 		r = PTR_ERR(kvm);
 		kvm_destroy_vm(kvm);		
 		return r;		
-	}
+	}	
+
+	FUNCTION_EXIT();	
+	
 	return r;	
 #endif
 }
@@ -2677,8 +2678,8 @@ out:
 
 void kvm_exit_arch(void)
 {
-#ifndef __WINKVM__
-	misc_deregister(&kvm_dev);
+#ifndef __WINKVM__	
+	misc_deregister(&kvm_dev);	
 	sysdev_unregister(&kvm_sysdev);
 	sysdev_class_unregister(&kvm_sysdev_class);
 	unregister_reboot_notifier(&kvm_reboot_notifier);
@@ -2686,6 +2687,14 @@ void kvm_exit_arch(void)
 	on_each_cpu(kvm_arch_ops->hardware_disable, NULL, 0, 1);
 	kvm_arch_ops->hardware_unsetup();
 	kvm_arch_ops = NULL;
+#else
+	FUNCTION_ENTER();
+	
+	on_each_cpu(kvm_arch_ops->hardware_disable, NULL, 0, 1);
+	kvm_arch_ops->hardware_unsetup();
+	kvm_arch_ops = NULL;
+	
+	FUNCTION_EXIT();	
 #endif /* __WINKVM__ */	
 }
 

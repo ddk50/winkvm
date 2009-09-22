@@ -567,7 +567,9 @@ static void hardware_enable(void *garbage)
 
 static void hardware_disable(void *garbage)
 {
+	FUNCTION_ENTER();	
 	asm volatile (ASM_VMX_VMXOFF : : : "cc");
+	FUNCTION_EXIT();	
 }
 
 static __init void setup_vmcs_descriptor(void)
@@ -616,15 +618,21 @@ static struct vmcs *alloc_vmcs(void)
 
 static void free_vmcs(struct vmcs *vmcs)
 {
-	free_pages((unsigned long)vmcs, vmcs_descriptor.order);
+	FUNCTION_ENTER();	
+	free_pages((unsigned long)vmcs, vmcs_descriptor.order);	
+	FUNCTION_EXIT();	
 }
 
 static __exit void free_kvm_area(void)
 {
 	int cpu;
 
+	FUNCTION_ENTER();
+	
 	for_each_online_cpu(cpu)
 		free_vmcs(per_cpu(vmxarea, cpu));
+	
+	FUNCTION_EXIT();	
 }
 
 extern struct vmcs *alloc_vmcs_cpu(int cpu);
@@ -632,8 +640,8 @@ extern struct vmcs *alloc_vmcs_cpu(int cpu);
 static __init int alloc_kvm_area(void)
 {
 	int cpu;
-	
-	printk(KERN_ALERT "%s\n", __FUNCTION__);
+
+	FUNCTION_ENTER();	
 
 	printk(KERN_ALERT "first_cpu() = %d, get_nr_cpus() = %d\n",		   
 		   first_cpu(), get_nr_cpus());	
@@ -653,7 +661,7 @@ static __init int alloc_kvm_area(void)
 		printk(KERN_ALERT "%d\n", cpu);		
 	}
 
-	printk(KERN_ALERT "end call each online\n", __FUNCTION__);	
+	FUNCTION_EXIT();	
 	
 	return 0;
 }
@@ -2189,13 +2197,15 @@ int vmx_init(void)
 
 #ifndef __WINKVM__
 static void __exit vmx_exit(void)
-{
+{  
 	kvm_exit_arch();
 }
 #else
 void vmx_exit(void)  
 {
+	FUNCTION_ENTER();	
 	kvm_exit_arch();	
+	FUNCTION_EXIT();	
 }
 #endif /* __WINKVM__ */
 

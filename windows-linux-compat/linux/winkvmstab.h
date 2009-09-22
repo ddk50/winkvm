@@ -292,6 +292,15 @@ static inline int test_bit(int nr, const void *addr)
 #define min(x,y) ((x) < (y) ? x : y)
 #endif
 
+
+/*
+ * Kernel pointers have redundant information, so we can use a
+ * scheme where we can return either an error code or a dentry
+ * pointer with the same return value.
+ *
+ * This should be a per-architecture thing, to allow different
+ * error and pointer decisions.
+ */
 #define MAX_ERRNO	4095
 #define IS_ERR_VALUE(x) ((x) >= (unsigned long)-MAX_ERRNO)
 
@@ -302,13 +311,17 @@ static inline void *ERR_PTR(long error)
 
 static inline long PTR_ERR(const void *ptr)
 {
-	return (long) ptr;	
+	return (long)ptr;	
 }
 
 static inline long IS_ERR(const void *ptr)
 {
-	return 0;	
+	return IS_ERR_VALUE((unsigned long)ptr);	
 }
+
+/* for DEBUG */
+#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
+#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
 
 #endif /* __WINKVM__ */
 

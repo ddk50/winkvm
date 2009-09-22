@@ -4,7 +4,8 @@
 
 #define PAGE_MASK (~(PAGE_SIZE-1))
 
-#define PAGE_NOT_USED ((unsigned long)-1)
+#define PAGE_NOT_USED        0xfffffffful
+#define PAGE_NOTNEED_FREE    0xfffffffeul
 
 #define PAGE_PDE(x)         ((x) >> 22)
 #define PAGE_PTE(x)         (((x) >> 12) & 0x3ff)
@@ -34,19 +35,20 @@ void init_slab_emulater(void)
 
 void release_slab_emulater(void)
 {
-	int i, j;
+	int i, j, k;
 	struct page *pd;
 	
 	for (i = 0 ; i < page_slot_num ; i++) {
 		if (page_slot_root[i]) {
-			for (j = 0 ; j < 1024 ; j++) {
-				pd = page_slot_root[j]->page;
-				if (pd->__nt_mem)
-					KeFreePageMemory(pd->__nt_mem, pd->__nt_memsize);
+			pd = page_slot_root[i]->page;
+			/* bug!! */
+			for (k = 0 ; k < 1024 ; k++) {
+				if (pd[k].__wpfn != PAGE_NOT_USED || pd[k].__wpfn != PAGE_NOTNEED_FREE)
+					KeFreePageMemory(pd[k].__nt_mem, pd[k].__nt_memsize);
 			}
 			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
+			page_slot_root[i] = NULL;
 		}
-		page_slot_root[i] = NULL;
 	}
 }
 
@@ -212,21 +214,19 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 	for (; addr < addr + actual_size ; addr += PAGE_SIZE) {
 		page = get_page_slot(addr);
 		SAFE_ASSERT(page);
-		RtlZeroMemory(page, sizeof(struct page));
 
 		page->__nt_mem     = (void*)addr;
 		page->__nt_memsize = actual_size;
-		page->__wpfn   = addr >> PAGE_SHIFT;
+		page->__wpfn = ((hva_t)__nt_mem == addr) ? addr >> PAGE_SHIFT : PAGE_NOTNEED_FREE;
 
 		SAFE_ASSERT((addr & PAGE_MASK) == addr);
 	}
-
 	return head_page;
 }
 
 struct page* _cdecl alloc_page(unsigned int flags)
 {
-	return alloc_pages(flags, 1);
+	return alloc_pages(flags, 0);
 }
 
 struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask, 
@@ -237,21 +237,23 @@ struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask,
 
 void _cdecl __free_pages(struct page *page, unsigned int order)
 {	
-//	struct page_root *pd = get_page_rootslot
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
+	hva_t addr;
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED || page->__wpfn != PAGE_NOTNEED_FREE);
+	addr = page->__wpfn << PAGE_SHIFT;
+	free_pages(addr, order);
 }
 
 void _cdecl __free_page(struct page *page)
 {
 	hva_t addr;
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED || page->__wpfn != PAGE_NOTNEED_FREE);
 	addr = page->__wpfn << PAGE_SHIFT;
-	free_pages(addr, 1);
+	free_pages(addr, 0);
 }
 
 void _cdecl free_page(hva_t addr)
 {
-	free_pages(addr, 1);
+	free_pages(addr, 0);
 }
 
 void _cdecl free_pages(hva_t addr, unsigned long order)
@@ -266,9 +268,13 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 		SAFE_ASSERT(page);
 		SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
 
-		/* ExFreePoolWithTag(page->__nt_mem, MEM_TAG); */
-		KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
+		if (page->__wpfn != PAGE_NOTNEED_FREE)
+			KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
+
 		RtlZeroMemory(page, sizeof(struct page));
+		page->__nt_mem = NULL;
+		page->__nt_memsize = 0;
+		page->__wpfn = PAGE_NOT_USED;
 	}
 }
 
@@ -290,12 +296,13 @@ static struct page *get_page_slot(hva_t pageaddr)
 
 	if (!pgr) {
 		pgr = (struct page_root*)ExAllocatePoolWithTag(NonPagedPool, sizeof(struct page_root), MEM_TAG);		
-		RtlZeroMemory(pgr, sizeof(struct page_root));
 		page_slot_root[PAGE_PDE(addr)] = pgr;
 
 		/* FIX ME: immediate number!  */
 		for (i = 0 ; i < 1024 ; i++) {
 			pgr->page[i].__wpfn = PAGE_NOT_USED;
+			pgr->page[i].__nt_mem = NULL;
+			pgr->page[i].__nt_memsize = 0;
 		}
 	}
 

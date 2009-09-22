@@ -117,7 +117,6 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING Win32NameString;
 
-	printk("call vmx_exit()\n");
 	vmx_exit();
 
 	RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
@@ -192,8 +191,20 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			int vcpu = 0;
 			int ret;
 			RtlCopyMemory(&vcpu, inBuf, inBufLen);
-			ret = kvm_vm_ioctl_create_vcpu(DeviceObject->DeviceExtension, vcpu);
+			ret = kvm_dev_ioctl_create_vm();
 			ntStatus = CovertRetval(ret);
+			break;
+		}
+		
+	case KVM_CREATE_VCPU:
+		{			
+			ntStatus = STATUS_SUCCESS;
+			break;
+		}
+
+	case KVM_SET_MEMORY_REGION:
+		{
+			ntStatus = STATUS_SUCCESS;
 			break;
 		}
 

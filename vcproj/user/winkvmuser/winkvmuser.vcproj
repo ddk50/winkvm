@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;__WINKVM__"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -180,6 +180,10 @@
 				Filter="h;hpp;hxx;hm;inl;inc;xsd"
 				UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 				>
+				<File
+					RelativePath=".\kvmctl.h"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
