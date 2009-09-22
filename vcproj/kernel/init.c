@@ -23,10 +23,13 @@
 #include "init.h"
 #include "kernel.h"
 #include "kvmdefined.h"
+#include "file.h"
 
 #include <linux/kvm.h>
 
 PDRIVER_OBJECT DriverObject;
+
+static void *maptest_page = NULL;
 
 NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 					 IN PUNICODE_STRING RegistryPath);
@@ -45,9 +48,8 @@ NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 					   IN PVOID KernelSpaceAddress);
 
 void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
-static NTSTATUS CovertRetval(int ret);
 
-static void *maptest_page = NULL;
+static NTSTATUS CovertRetval(int ret);
 
 /* driver entry */
 NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
@@ -128,6 +130,7 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 
 	release_smp_emulater();
 	release_slab_emulater();
+	release_file_emulater();
 
     return;
 }
@@ -135,12 +138,14 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 							IN PIRP Irp)
 {
-	printk("%s\n", __FUNCTION__);
+	FUNCTION_ENTER();
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
 
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+	FUNCTION_EXIT();
 
 	return STATUS_SUCCESS;
 }
@@ -148,7 +153,7 @@ NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 							 IN PIRP Irp)
 {
-	printk("%s\n", __FUNCTION__);
+	FUNCTION_ENTER();
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
@@ -156,6 +161,8 @@ NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 //	Irp->AssociatedIrp.SystemBuffer = NULL;
 
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+	FUNCTION_EXIT();
 
 	return STATUS_SUCCESS;
 }
@@ -169,7 +176,7 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	ULONG inBufLen, outBufLen;
 	unsigned long vaddr;	
 
-	printk("%s\n", __FUNCTION__);
+	FUNCTION_ENTER();
 
     irpSp = IoGetCurrentIrpStackLocation(Irp);
 
@@ -185,35 +192,40 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
-
 	case KVM_CREATE_VM: 
 		{
 			int vcpu = 0;
 			int ret;
+
 			RtlCopyMemory(&vcpu, inBuf, inBufLen);
 			ret = kvm_dev_ioctl_create_vm();
 			ntStatus = CovertRetval(ret);
-			break;
-		}
-		
-	case KVM_CREATE_VCPU:
-		{			
-			ntStatus = STATUS_SUCCESS;
-			break;
-		}
 
+			break;
+		}		
+	case KVM_CREATE_VCPU:
+		{	
+			int ret;
+
+			ntStatus = STATUS_SUCCESS;
+
+			break;
+		}
 	case KVM_SET_MEMORY_REGION:
 		{
+			struct kvm_memory_region kvm_mem;
+
+			RtlCopyMemory(&kvm_mem, inBuf, sizeof(struct kvm_memory_region));
+
 			ntStatus = STATUS_SUCCESS;
+
 			break;
 		}
-
 	case WINKVM_NOPAGE:
 		{
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
-
 	case WINKVM_INIT_TESTMAP:
 		{
 			printk(KERN_ALERT "WINKVM_INIT_TESTMAP\n");
@@ -227,7 +239,6 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
-
 	case WINKVM_TESTMAP:
 		{
 			printk(KERN_ALERT "WINKVM_TESTMAP");
@@ -240,7 +251,6 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = MapPageToUser(DeviceObject, (PVOID)vaddr, maptest_page);
 			break;
 		}
-
 	case WINKVM_RELEASE_TESTMAP:
 		{
 			printk(KERN_ALERT "WINKVM_RELEASE_TESTMAP\n");
@@ -250,7 +260,6 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
-
 	default:
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 		printk(KERN_ALERT "ERROR: unreconginzed IOCTL: %x\n", 
@@ -263,6 +272,8 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	
 	// Don't boost priority when returning since this took little time.
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+	FUNCTION_EXIT();
 
 	return ntStatus;
 }

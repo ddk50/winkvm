@@ -180,6 +180,7 @@ extern void get_page(struct page *page);
 /* end notifier.h */
 
 extern void fput(struct file *file);
+extern void iput(struct inode *inode);
 
 extern void *kmap(struct page *page);
 extern void kunmap(struct page *page);
@@ -243,6 +244,10 @@ static inline void account_system_vtime(struct task_struct *tsk)
 {
 }
 
+extern struct file *get_empty_filp(void);
+extern struct inode *new_inode(void);
+extern int get_unused_fd(void);
+extern void fd_install(unsigned int fd, struct file *file);
 
 #ifdef CONFIG_SMP
 #ifndef __WINKVM__			  

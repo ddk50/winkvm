@@ -115,9 +115,9 @@ static long kvm_vcpu_ioctl(struct file *file, unsigned int ioctl,
 
 static struct inode *kvmfs_inode(struct file_operations *fops)
 {
-#ifndef __WINKVM__
-	int error = -ENOMEM;
-	struct inode *inode = new_inode(kvmfs_mnt->mnt_sb);
+	int error = -ENOMEM;	
+#ifndef __WINKVM__	
+	struct inode *inode = new_inode(kvmfs_mnt->mnt_sb);	
 
 	if (!inode)
 		goto eexit_1;
@@ -140,18 +140,25 @@ static struct inode *kvmfs_inode(struct file_operations *fops)
 eexit_1:
 	return ERR_PTR(error);
 #else
-	return NULL;	
+	struct inode *inode = new_inode();
+	
+	if (!inode)		
+		goto eexit_1;
+	
+	return inode;
+
+eexit_1:
+	return ERR_PTR(error);	
 #endif /* __WINKVM__ */
 }
 
 static struct file *kvmfs_file(struct inode *inode, void *private_data)
 {
-#ifndef __WINKVM__  
 	struct file *file = get_empty_filp();
 
 	if (!file)
-		return ERR_PTR(-ENFILE);
-
+		return ERR_PTR(-ENFILE);	
+#ifndef __WINKVM__  
 	file->f_vfsmnt = mntget(kvmfs_mnt);
 	file->f_dentry = d_alloc_anon(inode);
 	if (!file->f_dentry)
@@ -163,8 +170,9 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_op = inode->i_fop;
 	file->f_mode = FMODE_READ | FMODE_WRITE;
 	file->f_version = 0;
-#else	
-	return NULL;	
+#else
+	memset(file, 0, sizeof(struct file));	
+	return file;   
 #endif /* __WINKVM__ */
 }
 
@@ -2304,12 +2312,11 @@ static struct file_operations kvm_vm_fops = {
 };
 
 int kvm_dev_ioctl_create_vm(void)	
-{
-#ifndef __WINKVM__
+{	
 	int fd, r;
 	struct inode *inode;
 	struct file *file;
-	struct kvm *kvm;
+	struct kvm *kvm;	
 	
 	inode = kvmfs_inode(&kvm_vm_fops);
 	if (IS_ERR(inode)) {
@@ -2343,26 +2350,9 @@ out4:
 out3:
 	kvm_destroy_vm(kvm);
 out2:
-	iput(inode);
+	iput(inode);	
 out1:
 	return r;
-#else	
-	struct kvm *kvm;
-	int r = 0;
-	
-	FUNCTION_ENTER();	
-	
-	kvm = kvm_create_vm();
-	if (IS_ERR(kvm)) {
-		r = PTR_ERR(kvm);
-		kvm_destroy_vm(kvm);		
-		return r;		
-	}	
-
-	FUNCTION_EXIT();	
-	
-	return r;	
-#endif
 }
 
 static long kvm_dev_ioctl(struct file *filp,

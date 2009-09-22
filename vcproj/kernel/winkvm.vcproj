@@ -225,6 +225,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\file.c"
+				>
+			</File>
+			<File
 				RelativePath=".\init.c"
 				>
 			</File>
@@ -256,6 +260,10 @@
 			>
 			<File
 				RelativePath=".\cpu.h"
+				>
+			</File>
+			<File
+				RelativePath=".\file.h"
 				>
 			</File>
 			<File

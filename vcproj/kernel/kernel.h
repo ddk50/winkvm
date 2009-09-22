@@ -87,4 +87,8 @@ ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors);
 
 #define MEM_TAG 'HmmV'
 
+/* for DEBUG */
+#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
+#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
+
 #endif

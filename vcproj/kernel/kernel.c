@@ -64,11 +64,6 @@ int _cdecl pfn_valid(unsigned long pfn)
 	return 1;
 }
 
-void _cdecl fput(struct file *file)
-{
-	SAFE_ASSERT(0);		
-}
-
 int _cdecl cpu_to_node(int cpu)
 {
 	return cpu;
