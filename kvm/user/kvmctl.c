@@ -257,7 +257,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 		fprintf(stderr, "kvm_create_memory_region: %m\n");
 		return -1;
 	}
-	if (extended_memory.memory_size) {
+	if (extended_memory.memory_size) {	  
 		r = ioctl(fd, KVM_SET_MEMORY_REGION, &extended_memory);
 		if (r == -1) {
 			fprintf(stderr, "kvm_create_memory_region: %m\n");

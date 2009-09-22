@@ -189,11 +189,12 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 	case KVM_CREATE_VM: 
 		{
-			int vcpu;
+			int vcpu = 0;
+			int ret;
 			RtlCopyMemory(&vcpu, inBuf, inBufLen);
-			kvm_vm_ioctl_create_vcpu(DeviceObject->DeviceExtension, vcpu);
-			ntStatus = STATUS_SUCCESS;
-			break;			
+			ret = kvm_vm_ioctl_create_vcpu(DeviceObject->DeviceExtension, vcpu);
+			ntStatus = CovertRetval(ret);
+			break;
 		}
 
 	case WINKVM_NOPAGE:

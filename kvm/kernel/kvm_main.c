@@ -163,9 +163,10 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_op = inode->i_fop;
 	file->f_mode = FMODE_READ | FMODE_WRITE;
 	file->f_version = 0;
+#else	
 	file->private_data = private_data;
 	return file;
-#else
+	
 	return NULL;	
 #endif /* __WINKVM__ */
 }
@@ -1986,7 +1987,7 @@ static struct file_operations kvm_vcpu_fops = {
 /*
  * Allocates an inode for the vcpu.
  */
-static int create_vcpu_fd(struct kvm_vcpu *vcpu)
+int create_vcpu_fd(struct kvm_vcpu *vcpu)  
 {
 #ifndef __WINKVM__
 	int fd, r;
@@ -2003,7 +2004,7 @@ static int create_vcpu_fd(struct kvm_vcpu *vcpu)
 
 	file = kvmfs_file(inode, vcpu);
 	if (IS_ERR(file)) {
-		r = PTR_ERR(file);
+		r = PTR_ERR(file);		
 		goto out2;
 	}
 
@@ -2318,13 +2319,15 @@ int kvm_dev_ioctl_create_vm(void)
 		r = PTR_ERR(inode);
 		goto out1;
 	}
+#endif 
 
 	kvm = kvm_create_vm();	
 	if (IS_ERR(kvm)) {
 		r = PTR_ERR(kvm);
 		goto out2;
 	}
- 
+	
+	
 	file = kvmfs_file(inode, kvm);
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);
@@ -2336,7 +2339,7 @@ int kvm_dev_ioctl_create_vm(void)
 	if (r < 0)
 		goto out4;
 	fd = r;
-	fd_install(fd, file);
+	fd_install(fd, file);	
 
 	return fd;
 

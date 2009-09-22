@@ -7545,7 +7545,7 @@ int main(int argc, char **argv)
     register_savevm("timer", 0, 2, timer_save, timer_load, NULL);
     register_savevm("ram", 0, 3, ram_save, ram_load, NULL);
 
-    init_ioports();
+    init_ioports();	
 
     /* terminal init */
     if (nographic) {
