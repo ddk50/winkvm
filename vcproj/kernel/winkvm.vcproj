@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ProjectDir)$(ConfigurationName)"
+			OutputDirectory="$(ProjectDir)..\bin"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="0"
@@ -43,7 +43,7 @@
 				UseUnicodeResponseFiles="false"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)\include&quot;;&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(ProjectDir)&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)../include&quot;;&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(ProjectDir)&quot;"
 				PreprocessorDefinitions="DBG;DEBUG;_DEBUG;__WINKVM__"
 				StringPooling="true"
 				MinimalRebuild="true"
@@ -78,7 +78,7 @@
 				AdditionalOptions="/safeseh:no"
 				AdditionalDependencies="ntoskrnl.lib int64.lib hal.lib $(NOINHERIT)"
 				ShowProgress="0"
-				OutputFile="$(ProjectDir)bin\$(ProjectName).sys"
+				OutputFile="$(ProjectDir)..\bin\$(ProjectName).sys"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(BASEDIR2K3)\lib\wxp\i386"
 				GenerateManifest="false"
@@ -259,6 +259,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\init.h"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel.h"
 				>
 			</File>
@@ -286,23 +290,27 @@
 				Name="linux"
 				>
 				<File
-					RelativePath=".\include\linux\kvm.h"
+					RelativePath="..\include\linux\kvm.h"
 					>
 				</File>
 				<File
-					RelativePath=".\include\linux\vmx.h"
+					RelativePath="..\include\linux\vmx.h"
 					>
 				</File>
 				<File
-					RelativePath=".\include\linux\winkvm.h"
+					RelativePath="..\include\linux\winkvm.h"
 					>
 				</File>
 				<File
-					RelativePath=".\include\linux\winkvmgfp.h"
+					RelativePath="..\include\linux\winkvmgfp.h"
 					>
 				</File>
 				<File
-					RelativePath=".\include\linux\winkvmint.h"
+					RelativePath="..\include\linux\winkvmint.h"
+					>
+				</File>
+				<File
+					RelativePath="..\include\linux\winkvmtypes.h"
 					>
 				</File>
 			</Filter>
@@ -312,10 +320,6 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<File
-				RelativePath=".\init.h"
-				>
-			</File>
 			<File
 				RelativePath=".\kvmobjs\kvm_main.obj"
 				>

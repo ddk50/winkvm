@@ -234,6 +234,7 @@ int TestCraeateVM(HANDLE hnd)
 {
 	BOOL ret;
 	int fd;
+	unsigned long retlen;
 
 	ret = DeviceIoControl(hnd, KVM_CREATE_VM, &fd, 
 		                  sizeof(int), NULL, 0, &retlen, NULL);
@@ -250,62 +251,4 @@ void FreeMemSpace(void *ptr, unsigned long npage, unsigned long pagesize)
 {
 	unsigned long memsize = npage * pagesize;
 	VirtualFree(ptr, memsize, MEM_RELEASE);
-}
-
-int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
-{
-    unsigned long dosmem = 0xa0000;
-    unsigned long exmem = 0xc0000;
-    int fd = kvm->fd;
-    int zfd;
-    int r;
-    struct kvm_memory_region low_memory;
-    struct kvm_memory_region extended_memory;
-
-    kvm->vcpu_fd[0] = -1;
-
-    fd = ioctl(fd, KVM_CREATE_VM, 0);
-    if (fd == -1) {
-        fprintf(stderr, "kvm_create_vm: %m\n");
-        return -1;
-    }
-    kvm->vm_fd = fd;
-
-    /* 640K should be enough. */
-    r = ioctl(fd, KVM_SET_MEMORY_REGION, &low_memory);
-    if (r == -1) {
-        fprintf(stderr, "kvm_create_memory_region: %m\n");
-        return -1;
-    }
-    if (extended_memory.memory_size) {
-        r = ioctl(fd, KVM_SET_MEMORY_REGION, &extended_memory);
-        if (r == -1) {
-            fprintf(stderr, "kvm_create_memory_region: %m\n");
-            return -1;
-        }
-    }
-
-    kvm_memory_region_save_params(kvm, &low_memory);
-    kvm_memory_region_save_params(kvm, &extended_memory);
-
-    *vm_mem = mmap(0, memory, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-    if (*vm_mem == MAP_FAILED) {
-        fprintf(stderr, "mmap: %m\n");
-        return -1;
-    }
-    kvm->physical_memory = *vm_mem;
-
-    zfd = open("/dev/zero", O_RDONLY);
-    mmap(*vm_mem + 0xa8000, 0x8000, PROT_READ|PROT_WRITE,
-         MAP_PRIVATE|MAP_FIXED, zfd, 0);
-    close(zfd);
-
-    r = ioctl(fd, KVM_CREATE_VCPU, 0);
-    if (r == -1) {
-        fprintf(stderr, "kvm_create_vcpu: %m\n");
-        return -1;
-    }
-    kvm->vcpu_fd[0] = r;
-    return 0;
-
 }

@@ -59,7 +59,7 @@ sync:
 
 cpobjs:
 	for nm in *.o; do `cp $$nm $${nm%.o}.obj`; done
-	mv *.obj ../../vcproj/kvmobjs/
+	mv *.obj ../../vcproj/kernel/kvmobjs/
 
 install:
 	mkdir -p $(DESTDIR)/$(INSTALLDIR)
