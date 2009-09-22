@@ -43,7 +43,7 @@ void release_slab_emulater(void)
 			pd = page_slot_root[i]->page;
 			/* bug!! */
 			for (k = 0 ; k < 1024 ; k++) {
-				if (pd[k].__wpfn != PAGE_NOT_USED || pd[k].__wpfn != PAGE_NOTNEED_FREE)
+				if (pd[k].__wpfn != PAGE_NOT_USED && pd[k].__wpfn != PAGE_NOTNEED_FREE)
 					KeFreePageMemory(pd[k].__nt_mem, pd[k].__nt_memsize);
 			}
 			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
@@ -238,7 +238,7 @@ struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask,
 void _cdecl __free_pages(struct page *page, unsigned int order)
 {	
 	hva_t addr;
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED || page->__wpfn != PAGE_NOTNEED_FREE);
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
 	addr = page->__wpfn << PAGE_SHIFT;
 	free_pages(addr, order);
 }
@@ -246,7 +246,7 @@ void _cdecl __free_pages(struct page *page, unsigned int order)
 void _cdecl __free_page(struct page *page)
 {
 	hva_t addr;
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED || page->__wpfn != PAGE_NOTNEED_FREE);
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
 	addr = page->__wpfn << PAGE_SHIFT;
 	free_pages(addr, 0);
 }
@@ -271,7 +271,6 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 		if (page->__wpfn != PAGE_NOTNEED_FREE)
 			KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
 
-		RtlZeroMemory(page, sizeof(struct page));
 		page->__nt_mem = NULL;
 		page->__nt_memsize = 0;
 		page->__wpfn = PAGE_NOT_USED;
