@@ -49,7 +49,7 @@ NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 
 void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
 
-static NTSTATUS CovertRetval(int ret);
+static NTSTATUS ConvertRetval(int ret);
 
 /* driver entry */
 NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
@@ -199,26 +199,37 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			RtlCopyMemory(&vcpu, inBuf, inBufLen);
 			ret = kvm_dev_ioctl_create_vm();
-			ntStatus = CovertRetval(ret);
-
+			ntStatus = ConvertRetval(ret);
 			break;
 		}		
 	case KVM_CREATE_VCPU:
 		{	
 			int ret;
+			int n;
 
-			ntStatus = STATUS_SUCCESS;
+			RtlCopyMemory(&n, inBuf, sizeof(int));		  
 
+			ret = kvm_vm_ioctl_create_vcpu(filp->private_data, n);
+			ntStatus = ConvertRetval(ret);
 			break;
 		}
 	case KVM_SET_MEMORY_REGION:
 		{
 			struct kvm_memory_region kvm_mem;
+			int ret;
 
-			RtlCopyMemory(&kvm_mem, inBuf, sizeof(struct kvm_memory_region));
+			printk(KERN_ALERT "KVM_SET_MEMORY_REGION\n");
 
-			ntStatus = STATUS_SUCCESS;
+			RtlCopyMemory(&kvm_mem, inBuf, sizeof(struct kvm_memory_region));			
 
+			printk(KERN_ALERT "MEMORY REGION (flag) : 0x%08x\n", kvm_mem.flags);
+			printk(KERN_ALERT "MEMORY REGION (memory_size) : %d\n", kvm_mem.memory_size);		   
+			printk(KERN_ALERT "MEMORY REGION (slot) : %d\n", kvm_mem.slot);
+			printk(KERN_ALERT "MEMORY REGION (guest_phys_addr) : 0x%08lx\n", kvm_mem.guest_phys_addr);
+
+			ret = kvm_vm_ioctl_set_memory_region(filp->private_data, &kvm_mem);
+
+			ntStatus = ConvertRetval(ret);
 			break;
 		}
 	case WINKVM_NOPAGE:
@@ -308,7 +319,7 @@ ret:
 	return ntStatus;
 }
 
-static NTSTATUS CovertRetval(int ret)
+static NTSTATUS ConvertRetval(int ret)
 {
 	NTSTATUS ntStatus;
 

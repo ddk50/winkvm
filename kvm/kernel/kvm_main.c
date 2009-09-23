@@ -170,8 +170,10 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_op = inode->i_fop;
 	file->f_mode = FMODE_READ | FMODE_WRITE;
 	file->f_version = 0;
+	file->private_data = private_data;	
 #else
-	memset(file, 0, sizeof(struct file));	
+	memset(file, 0, sizeof(struct file));
+	file->private_data = private_data;	
 	return file;   
 #endif /* __WINKVM__ */
 }
@@ -663,6 +665,10 @@ int kvm_vm_ioctl_set_memory_region(struct kvm *kvm,
 	struct kvm_memory_slot old, new;
 	int memory_config_version;
 
+	FUNCTION_ENTER();
+
+	printk(KERN_ALERT "kvm->lock: %d\n", kvm->lock);
+
 	r = -EINVAL;
 	/* General sanity checks */
 	if (mem->memory_size & (PAGE_SIZE - 1))
@@ -783,13 +789,15 @@ raced:
 	}
 
 	kvm_free_physmem_slot(&old, &new);
+	FUNCTION_EXIT();	
 	return 0;
 
-out_unlock:
+out_unlock:	
 	spin_unlock(&kvm->lock);
 out_free:
 	kvm_free_physmem_slot(&new, &old);
 out:
+	FUNCTION_EXIT();	
 	return r;
 }
 
@@ -2038,7 +2046,7 @@ out1:
 int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n) 
 {
 	int r;
-	struct kvm_vcpu *vcpu;
+	struct kvm_vcpu *vcpu;	
 
 	r = -EINVAL;
 	if (!valid_vcpu(n))
@@ -2330,7 +2338,7 @@ int kvm_dev_ioctl_create_vm(void)
 		goto out2;
 	}	
 	
-	file = kvmfs_file(inode, kvm);
+	file = kvmfs_file(inode, kvm);	
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);
 		goto out3;

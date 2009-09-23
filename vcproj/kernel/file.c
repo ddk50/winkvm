@@ -3,7 +3,7 @@
 #include "kernel.h"
 #include "file.h"
 
-struct kvm *kvm = NULL;
+/* struct kvm *kvm = NULL; */
 struct file *filp = NULL;
 struct inode *inode = NULL;
 
@@ -11,8 +11,8 @@ void release_file_emulater(void)
 {
 	FUNCTION_ENTER();
 
-	if (kvm)
-		ExFreePoolWithTag(kvm, MEM_TAG);
+//	if (kvm)
+//		ExFreePoolWithTag(kvm, MEM_TAG);
 
 	if (filp)
 		ExFreePoolWithTag(filp, MEM_TAG);
@@ -34,7 +34,7 @@ struct file* _cdecl get_empty_filp(void)
 		                       sizeof(struct file),
 							   MEM_TAG);
 
-	SAFE_ASSERT(!fp);
+	SAFE_ASSERT(fp);
 	filp = fp;
 	FUNCTION_EXIT();
 	return fp;
@@ -42,13 +42,13 @@ struct file* _cdecl get_empty_filp(void)
 
 struct inode* _cdecl new_inode(void)
 {
-	struct inode *i;
+	struct inode *i = NULL;
 	FUNCTION_ENTER();
 	i = ExAllocatePoolWithTag(NonPagedPool, 
 		                      sizeof(struct inode),
 							  MEM_TAG);
 
-	SAFE_ASSERT(!i);
+	SAFE_ASSERT(i);
 	inode = i;
 	FUNCTION_EXIT();
 	return i;

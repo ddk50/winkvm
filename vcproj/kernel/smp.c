@@ -123,6 +123,8 @@ void _cdecl mutex_init(struct mutex *lock)
 	int i;
 	FAST_MUTEX *get_mutex = NULL;
 
+	FUNCTION_ENTER();
+
 	SAFE_ASSERT(mutex_emulater_initialized);
 
 	ExAcquireFastMutex(&emulater_mutex);
@@ -139,6 +141,9 @@ void _cdecl mutex_init(struct mutex *lock)
 	ExReleaseFastMutex(&emulater_mutex);
 
 	SAFE_ASSERT(get_mutex != NULL);
+	ExInitializeFastMutex(get_mutex);
+
+	FUNCTION_EXIT();
 
 	return;
 }
@@ -147,34 +152,48 @@ void _cdecl mutex_lock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
 	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
+	SAFE_ASSERT(mutex_slot[lock->mutex_number].used);
+	FUNCTION_ENTER();
 
-	mutex = &mutex_slot[lock->mutex_number].mutex;
+	mutex = &(mutex_slot[lock->mutex_number].mutex);
 
 	ExAcquireFastMutex(mutex);
+
+	FUNCTION_EXIT();
 }
 
 void _cdecl mutex_unlock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
-	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
 
-	mutex = &mutex_slot[lock->mutex_number].mutex;
+	FUNCTION_ENTER();
+
+	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
+	SAFE_ASSERT(mutex_slot[lock->mutex_number].used);
+
+	mutex = &(mutex_slot[lock->mutex_number].mutex);
 
 	ExReleaseFastMutex(mutex);
+
+	FUNCTION_EXIT();
 }
 
 int _cdecl mutex_trylock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
+
+	FUNCTION_ENTER();
+
 	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
 	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
 
 	mutex = &mutex_slot[lock->mutex_number].mutex;
-	if (ExTryToAcquireFastMutex(mutex))
+	if (ExTryToAcquireFastMutex(mutex)) {
+		FUNCTION_EXIT();
 		return 1;
+	}
 
+	FUNCTION_EXIT();
 	return 0;
 }
 
@@ -183,6 +202,8 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 	int i;
 	struct spinlock_emulater_slot *new_slot = NULL;
 
+	FUNCTION_ENTER();
+
 	ExAcquireFastMutex(&emulater_spinlock); 
 
 	for (i = 0 ; i < MAX_SPINLOCK_COUNT ; i++) {
@@ -190,8 +211,6 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 			new_slot = &spinlock_slot[lock->spinlock_number];			
 			lock->spinlock_number = i;
 			spinlock_slot[i].used = 1;
-
-			RtlZeroMemory(new_slot, sizeof(struct spinlock_emulater_slot));
 			break;
 		}
 	}
@@ -200,20 +219,30 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 	SAFE_ASSERT(new_slot);
 
 	KeInitializeSpinLock(&new_slot->spinlock);
+
+	FUNCTION_EXIT();
 }
 
 void _cdecl spin_lock(spinlock_t *lock)
 {   
-	struct spinlock_emulater_slot *slot = &spinlock_slot[lock->spinlock_number];
-	SAFE_ASSERT(!slot->used);
+	struct spinlock_emulater_slot *slot;
+	FUNCTION_ENTER();
+	SAFE_ASSERT(lock->spinlock_number < MAX_SPINLOCK_COUNT);   	
+	slot = &spinlock_slot[lock->spinlock_number];
+	SAFE_ASSERT(slot->used);
 	KeAcquireSpinLock(&slot->spinlock, &slot->IrqL);
+	FUNCTION_EXIT();
 }
 
 void _cdecl spin_unlock(spinlock_t *lock)
 {
-	struct spinlock_emulater_slot *slot = &spinlock_slot[lock->spinlock_number];
-	SAFE_ASSERT(!slot->used);
+	struct spinlock_emulater_slot *slot;
+	FUNCTION_ENTER();
+	SAFE_ASSERT(lock->spinlock_number < MAX_SPINLOCK_COUNT);   
+	slot = &spinlock_slot[lock->spinlock_number];
+	SAFE_ASSERT(slot->used);
 	KeReleaseSpinLock(&slot->spinlock, slot->IrqL);
+	FUNCTION_EXIT();
 }
 
 void _cdecl prefetch(const void *x)

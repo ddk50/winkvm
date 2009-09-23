@@ -42,6 +42,7 @@
 #define KVM_IRQ_BITMAP_SIZE_BYTES    ((KVM_NR_INTERRUPTS + 7) / 8)
 #define KVM_IRQ_BITMAP_SIZE(type)    (KVM_IRQ_BITMAP_SIZE_BYTES / sizeof(type))
 
+#pragma pack(1)
 
 /* for KVM_CREATE_MEMORY_REGION */
 struct kvm_memory_region {
@@ -50,6 +51,8 @@ struct kvm_memory_region {
   __u64 guest_phys_addr;
   __u64 memory_size; /* bytes */
 };
+
+#pragma pack()
 
 /* for kvm_memory_region::flags */
 #define KVM_MEM_LOG_DIRTY_PAGES  1UL
@@ -70,9 +73,7 @@ enum kvm_exit_reason {
   KVM_EXIT_SHUTDOWN         = 8,
 };
 
-#ifdef __WINKVM__
 #pragma pack(1)
-#endif
 
 /* for KVM_RUN */
 struct kvm_run {
@@ -237,9 +238,7 @@ struct kvm_dirty_log {
   };
 };
 
-#ifdef __WINKVM__
 #pragma pack()
-#endif
 
 #define KVMIO 0xAE
 

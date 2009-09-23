@@ -4,7 +4,7 @@
 
 #include <linux/winkvm.h>
 
-extern struct kvm *kvm;
+/* extern struct kvm *kvm; */
 extern struct file *filp;
 extern struct inode *inode;
 

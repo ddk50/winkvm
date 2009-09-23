@@ -328,7 +328,10 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	struct kvm_memory_region low_memory;
 	struct kvm_memory_region extended_memory;
 	BOOL ret;
-	
+
+	memset(&low_memory, 0, sizeof(struct kvm_memory_region));
+	memset(&extended_memory, 0, sizeof(struct kvm_memory_region));
+
 	low_memory.slot = 3;
 	low_memory.memory_size = memory  < dosmem ? memory : dosmem;
 	low_memory.guest_phys_addr = 0;
@@ -339,6 +342,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	
     kvm->vcpu_fd[0] = -1;
 
+	printf("Create VM ... \n");
 	ret = DeviceIoControl(hnd,						  
 						  KVM_CREATE_VM,
 						  NULL,
@@ -355,6 +359,15 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
     }
     kvm->vm_fd = fd;	
 
+	printf(" Done\n");
+
+	printf("Set Memory Region ... \n");
+
+	printf(" MEMORY REGION (flag) : 0x%08x\n", low_memory.flags);
+	printf(" MEMORY REGION (memory_size) : %d [bytes]\n", low_memory.memory_size); 
+	printf(" MEMORY REGION (slot) : %d\n", low_memory.slot);
+	printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", low_memory.guest_phys_addr);
+
     /* 640K should be enough. */
 	//    r = ioctl(fd, KVM_SET_MEMORY_REGION, &low_memory);
 	ret = DeviceIoControl(hnd,						  
@@ -365,12 +378,22 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 						  sizeof(struct kvm_memory_region),						  
 						  &retlen,						  
 						  NULL);	
-    if (!ret) {	  
+    if (!ret) {
         fprintf(stderr, "kvm_create_memory_region: %m\n");
         return -1;		
     }
+
+	printf(" Done\n");
+
     if (extended_memory.memory_size) {
 //        r = ioctl(fd, KVM_SET_MEMORY_REGION, &extended_memory);
+		printf("Set another memory region ... \n");
+
+		printf(" MEMORY REGION (flag) : 0x%08x\n", extended_memory.flags);
+		printf(" MEMORY REGION (memory_size) : %d\n", extended_memory.memory_size);		   
+		printf(" MEMORY REGION (slot) : %d\n", extended_memory.slot);
+		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.guest_phys_addr);
+
 		ret = DeviceIoControl(hnd,
 							  KVM_SET_MEMORY_REGION,
 							  &extended_memory,
@@ -383,6 +406,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
             fprintf(stderr, "kvm_create_memory_region: %m\n");
             return -1; 
         }
+		printf(" Done\n");
     }
 
 /*     kvm_memory_region_save_params(kvm, &low_memory); */

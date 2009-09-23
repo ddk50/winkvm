@@ -311,16 +311,19 @@ static inline int test_bit(int nr, const void *addr)
 
 static inline void *ERR_PTR(long error)
 {
+	printk(KERN_ALERT "%s\n", __FUNCTION__);	
 	return (void *)error;	
 }
 
 static inline long PTR_ERR(const void *ptr)
 {
+	printk(KERN_ALERT "%s\n", __FUNCTION__);	
 	return (long)ptr;	
 }
 
 static inline long IS_ERR(const void *ptr)
 {
+	printk(KERN_ALERT "%s\n", __FUNCTION__);	
 	return IS_ERR_VALUE((unsigned long)ptr);	
 }
 
