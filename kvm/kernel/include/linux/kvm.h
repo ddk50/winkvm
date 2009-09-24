@@ -18,16 +18,16 @@
 #define __user
 
 #define _IOW(x, val, y) \
-  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #define _IOR(x, val, y) \
-  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #define _IO(x, val) \
-  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #define _IOWR(x, val, y) \
-  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+  CTL_CODE(KVMIO, 0x900 + val, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #endif
 #endif
@@ -51,6 +51,18 @@ struct kvm_memory_region {
   __u64 guest_phys_addr;
   __u64 memory_size; /* bytes */
 };
+
+#ifdef __WINKVM__
+struct winkvm_memory_region {
+  int vm_fd;  
+  struct kvm_memory_region kvm_memory_region;  
+};
+
+struct winkvm_create_vcpu {
+  int vm_fd;
+  int vcpu_num;  
+};
+#endif
 
 #pragma pack()
 

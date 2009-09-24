@@ -21,7 +21,7 @@ struct page {
 };
 
 struct inode {	
-	void *__inode;   
+	void *__inode;	
  };
 
 typedef struct {  
@@ -32,9 +32,17 @@ struct mutex {
 	int mutex_number;	
 };
 
+enum private_data_type {	
+	WINKVM_KVM = -1,	
+	WINKVM_VCPU,   
+};
+
 struct file {
-	void *private_data;
+	void *private_data;	
+	int __private_data_type;	
 	int fd;
+	int f_count;
+	struct inode *__inode;	
 	int r_flags;	
 };
 

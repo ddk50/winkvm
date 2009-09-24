@@ -69,6 +69,37 @@ int _cdecl cpu_to_node(int cpu)
 	return cpu;
 }
 
+int atomic_dec_and_test(int *v)
+{
+	unsigned char c;
+
+	FUNCTION_ENTER();
+
+	__asm {
+		lock dec v
+		sete c
+	};
+
+	FUNCTION_EXIT();
+
+	return c != 0;
+}
+
+int atomic_inc_and_test(int *v)
+{
+	unsigned char c;
+	FUNCTION_ENTER();
+
+	__asm {
+		lock inc v
+		sete c
+	};
+	
+	FUNCTION_EXIT();
+
+	return c != 0;
+}
+
 ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors)
 {	
 #if (NTDDI_VERSION >= NTDDI_VISTA)

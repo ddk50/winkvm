@@ -31,6 +31,9 @@ HANDLE OpenWinkvm(void);
 BOOL InitTestMap(HANDLE hnd);
 void MemmapAndTest(unsigned long dwPageSize);
 
+static void kvm_memory_region_save_params(kvm_context_t kvm, struct kvm_memory_region *mem);
+static void kvm_memory_region_clear_params(kvm_context_t kvm, int regnum);
+
 static HANDLE g_hnd;
 
 #pragma pack(1)
@@ -143,7 +146,7 @@ int main(int argc, char *argv[])
 	printf(" page size: %d\n page shift: %d\n", dwPageSize, pageshift);
 
 	kvm = kvm_init(NULL, NULL);
-	kvm_create(kvm, 128 * 1024 * 1024, NULL);
+	kvm_create(kvm, 5 * 1024 * 1024, NULL);
 
 	CloseHandle(kvm->hnd);
 
@@ -302,7 +305,6 @@ kvm_context_t kvm_init(struct kvm_callbacks *callbacks,
 {
 	HANDLE hnd;
 	kvm_context_t kvm;
-	int r;
 
 	hnd = OpenWinkvm();   
 
@@ -322,62 +324,63 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
     unsigned long dosmem = 0xa0000;
     unsigned long exmem = 0xc0000;
     HANDLE hnd = kvm->hnd;
-	int fd, retlen;	
+	int fd, vcpufd, retlen;
     int zfd;	
     int r;
-	struct kvm_memory_region low_memory;
-	struct kvm_memory_region extended_memory;
+	struct winkvm_memory_region low_memory;
+	struct winkvm_memory_region extended_memory;
+	struct winkvm_create_vcpu create_vcpu;
 	BOOL ret;
 
-	memset(&low_memory, 0, sizeof(struct kvm_memory_region));
-	memset(&extended_memory, 0, sizeof(struct kvm_memory_region));
+	memset(&low_memory, 0, sizeof(struct winkvm_memory_region));
+	memset(&extended_memory, 0, sizeof(struct winkvm_memory_region));
 
-	low_memory.slot = 3;
-	low_memory.memory_size = memory  < dosmem ? memory : dosmem;
-	low_memory.guest_phys_addr = 0;
+	low_memory.kvm_memory_region.slot = 3;
+	low_memory.kvm_memory_region.memory_size = memory  < dosmem ? memory : dosmem;
+	low_memory.kvm_memory_region.guest_phys_addr = 0;
 
-	extended_memory.slot = 0;
-	extended_memory.memory_size = memory < exmem ? 0 : memory - exmem;
-	extended_memory.guest_phys_addr = exmem;
+	extended_memory.kvm_memory_region.slot = 0;
+	extended_memory.kvm_memory_region.memory_size = memory < exmem ? 0 : memory - exmem;
+	extended_memory.kvm_memory_region.guest_phys_addr = exmem;
 	
     kvm->vcpu_fd[0] = -1;
 
 	printf("Create VM ... \n");
-	ret = DeviceIoControl(hnd,						  
+	ret = DeviceIoControl(hnd,			  
 						  KVM_CREATE_VM,
 						  NULL,
 						  0,
 						  &fd,
-						  sizeof(int),
-						  &retlen,						  
+						  sizeof(fd),
+						  &retlen,					  
 						  NULL);	
 	
 	//    fd = ioctl(fd, KVM_CREATE_VM, 0);	
-    if (fd == -1) {	  
+    if (!ret && fd == -1) {	  
         fprintf(stderr, "winkvm_create_vm: %m\n");		
         return -1;		
     }
     kvm->vm_fd = fd;	
-
 	printf(" Done\n");
 
 	printf("Set Memory Region ... \n");
-
-	printf(" MEMORY REGION (flag) : 0x%08x\n", low_memory.flags);
-	printf(" MEMORY REGION (memory_size) : %d [bytes]\n", low_memory.memory_size); 
-	printf(" MEMORY REGION (slot) : %d\n", low_memory.slot);
-	printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", low_memory.guest_phys_addr);
+	low_memory.vm_fd = fd;
+	printf(" VM_FD : %d\n", low_memory.vm_fd);
+	printf(" MEMORY REGION (flag) : 0x%08x\n", low_memory.kvm_memory_region.flags);
+	printf(" MEMORY REGION (memory_size) : %d [bytes]\n", low_memory.kvm_memory_region.memory_size); 
+	printf(" MEMORY REGION (slot) : %d\n", low_memory.kvm_memory_region.slot);
+	printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", low_memory.kvm_memory_region.guest_phys_addr);
 
     /* 640K should be enough. */
 	//    r = ioctl(fd, KVM_SET_MEMORY_REGION, &low_memory);
 	ret = DeviceIoControl(hnd,						  
 						  KVM_SET_MEMORY_REGION,						  
 						  &low_memory,
-						  sizeof(struct kvm_memory_region),						  
+						  sizeof(struct winkvm_memory_region),
 						  &low_memory,
-						  sizeof(struct kvm_memory_region),						  
+						  sizeof(struct winkvm_memory_region),
 						  &retlen,						  
-						  NULL);	
+						  NULL);
     if (!ret) {
         fprintf(stderr, "kvm_create_memory_region: %m\n");
         return -1;		
@@ -385,21 +388,21 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 
 	printf(" Done\n");
 
-    if (extended_memory.memory_size) {
+    if (extended_memory.kvm_memory_region.memory_size) {
 //        r = ioctl(fd, KVM_SET_MEMORY_REGION, &extended_memory);
-		printf("Set another memory region ... \n");
+		printf("Set Another memory region ... \n");
 
-		printf(" MEMORY REGION (flag) : 0x%08x\n", extended_memory.flags);
-		printf(" MEMORY REGION (memory_size) : %d\n", extended_memory.memory_size);		   
-		printf(" MEMORY REGION (slot) : %d\n", extended_memory.slot);
-		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.guest_phys_addr);
+		printf(" MEMORY REGION (flag) : 0x%08x\n", extended_memory.kvm_memory_region.flags);
+		printf(" MEMORY REGION (memory_size) : %d\n", extended_memory.kvm_memory_region.memory_size);		   
+		printf(" MEMORY REGION (slot) : %d\n", extended_memory.kvm_memory_region.slot);
+		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.kvm_memory_region.guest_phys_addr);
 
 		ret = DeviceIoControl(hnd,
 							  KVM_SET_MEMORY_REGION,
 							  &extended_memory,
-							  sizeof(struct kvm_memory_region),
+							  sizeof(struct winkvm_memory_region),
 							  &extended_memory,
-							  sizeof(struct kvm_memory_region),
+							  sizeof(struct winkvm_memory_region),
 							  &retlen,
 							  NULL);
         if (!ret) {			
@@ -409,8 +412,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 		printf(" Done\n");
     }
 
-/*     kvm_memory_region_save_params(kvm, &low_memory); */
-/*     kvm_memory_region_save_params(kvm, &extended_memory); */
+	kvm_memory_region_save_params(kvm, &low_memory.kvm_memory_region);
+	kvm_memory_region_save_params(kvm, &extended_memory.kvm_memory_region);
 
 /*     *vm_mem = mmap(0, memory, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0); */
 /*     if (*vm_mem == MAP_FAILED) { */
@@ -425,10 +428,47 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 /*     close(zfd); */
 
 /*     r = ioctl(fd, KVM_CREATE_VCPU, 0); */
-/*     if (r == -1) { */
-/*         fprintf(stderr, "kvm_create_vcpu: %m\n"); */
-/*         return -1; */
-/*     } */
-/*     kvm->vcpu_fd[0] = r; */	
-    return 0;
+	create_vcpu.vm_fd    = fd;
+	create_vcpu.vcpu_num = 0;
+
+	printf("Create VCPU ... \n");
+	ret = DeviceIoControl(hnd,
+		                  KVM_CREATE_VCPU,
+						  &create_vcpu,
+						  sizeof(create_vcpu),
+						  &vcpufd,
+						  sizeof(vcpufd),
+						  &retlen,
+						  NULL);
+     if (vcpufd == -1) {
+         fprintf(stderr, " kvm_create_vcpu: %m\n");
+         return -1;
+     }
+     kvm->vcpu_fd[0] = vcpufd;
+	 printf(" vcpu num: %d\n", vcpufd);
+	 printf(" Done\n");
+	 return 0;
+}
+
+/*
+ * memory regions parameters
+ */
+static void
+kvm_memory_region_save_params(kvm_context_t kvm, struct kvm_memory_region *mem)
+{
+    if (!mem || (mem->slot >= KVM_MAX_NUM_MEM_REGIONS)) {
+        fprintf(stderr, "BUG: %s: invalid parameters\n", __FUNCTION__);
+        return;
+    }
+    kvm->mem_regions[mem->slot] = *mem;
+}
+
+static void 
+kvm_memory_region_clear_params(kvm_context_t kvm, int regnum)
+{
+    if (regnum >= KVM_MAX_NUM_MEM_REGIONS) {
+        fprintf(stderr, "BUG: %s: invalid parameters\n", __FUNCTION__);
+        return;
+    }
+    kvm->mem_regions[regnum].memory_size = 0;
 }

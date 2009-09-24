@@ -100,6 +100,7 @@ NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 
 	init_smp_emulater();
 	init_slab_emulater();
+	init_file_emulater();
 
 	printk(KERN_ALERT "All initialized!\n");
 	printk("call vmx_init()\n");
@@ -194,41 +195,46 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		}
 	case KVM_CREATE_VM: 
 		{
-			int vcpu = 0;
 			int ret;
-
-			RtlCopyMemory(&vcpu, inBuf, inBufLen);
 			ret = kvm_dev_ioctl_create_vm();
+			RtlCopyMemory(outBuf, &ret, sizeof(ret));
+			Irp->IoStatus.Information = sizeof(ret);
 			ntStatus = ConvertRetval(ret);
 			break;
 		}		
 	case KVM_CREATE_VCPU:
 		{	
 			int ret;
-			int n;
-
-			RtlCopyMemory(&n, inBuf, sizeof(int));		  
-
-			ret = kvm_vm_ioctl_create_vcpu(filp->private_data, n);
+			struct winkvm_create_vcpu vcpu;
+			RtlCopyMemory(&vcpu, inBuf, sizeof(vcpu));
+			ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_num);
+			RtlCopyMemory(&outBuf, &ret, sizeof(ret));
+			Irp->IoStatus.Information = sizeof(ret);
 			ntStatus = ConvertRetval(ret);
 			break;
 		}
 	case KVM_SET_MEMORY_REGION:
 		{
-			struct kvm_memory_region kvm_mem;
+			struct winkvm_memory_region winkvm_mem;
+			struct kvm_memory_region *kvm_mem;
 			int ret;
 
 			printk(KERN_ALERT "KVM_SET_MEMORY_REGION\n");
 
-			RtlCopyMemory(&kvm_mem, inBuf, sizeof(struct kvm_memory_region));			
+			RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
 
-			printk(KERN_ALERT "MEMORY REGION (flag) : 0x%08x\n", kvm_mem.flags);
-			printk(KERN_ALERT "MEMORY REGION (memory_size) : %d\n", kvm_mem.memory_size);		   
-			printk(KERN_ALERT "MEMORY REGION (slot) : %d\n", kvm_mem.slot);
-			printk(KERN_ALERT "MEMORY REGION (guest_phys_addr) : 0x%08lx\n", kvm_mem.guest_phys_addr);
+			kvm_mem = &winkvm_mem.kvm_memory_region;
 
-			ret = kvm_vm_ioctl_set_memory_region(filp->private_data, &kvm_mem);
+			printk(KERN_ALERT "VM_FD : 0x%08x\n", winkvm_mem.vm_fd);
+			printk(KERN_ALERT "MEMORY REGION (flag) : 0x%08x\n", kvm_mem->flags);
+			printk(KERN_ALERT "MEMORY REGION (memory_size) : %d\n", kvm_mem->memory_size);		   
+			printk(KERN_ALERT "MEMORY REGION (slot) : %d\n", kvm_mem->slot);
+			printk(KERN_ALERT "MEMORY REGION (guest_phys_addr) : 0x%08lx\n", kvm_mem->guest_phys_addr);
 
+			ret = kvm_vm_ioctl_set_memory_region(get_kvm(winkvm_mem.vm_fd), kvm_mem);
+
+			RtlCopyMemory(outBuf, &winkvm_mem, sizeof(winkvm_mem));
+			Irp->IoStatus.Information = sizeof(winkvm_mem);
 			ntStatus = ConvertRetval(ret);
 			break;
 		}

@@ -197,7 +197,7 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 	hva_t addr;
 
 	SAFE_ASSERT((order + 1) > 0);
-	printk(KERN_ALERT "allocater order size: %d\n", actual_size);
+/*	printk(KERN_ALERT "allocater order size: %d\n", actual_size); */
 
 /*	__nt_mem = (void*)ExAllocatePoolWithTag(NonPagedPool, actual_size, MEM_TAG); */
 	__nt_mem = (void*)KeGetPageMemory(actual_size);

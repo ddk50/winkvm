@@ -152,7 +152,11 @@ eexit_1:
 #endif /* __WINKVM__ */
 }
 
-static struct file *kvmfs_file(struct inode *inode, void *private_data)
+#ifndef __WINKVM__
+static struct file *kvmfs_file(struct inode *inode, void *private_data)  
+#else
+static struct file *kvmfs_file(struct inode *inode, void *private_data, int type)  
+#endif
 {
 	struct file *file = get_empty_filp();
 
@@ -172,8 +176,10 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data)
 	file->f_version = 0;
 	file->private_data = private_data;	
 #else
-	memset(file, 0, sizeof(struct file));
-	file->private_data = private_data;	
+	memset(file, 0, sizeof(struct file));   
+	file->private_data = private_data;
+	file->__private_data_type = type;	
+	file->__inode = inode;	
 	return file;   
 #endif /* __WINKVM__ */
 }
@@ -407,7 +413,7 @@ static void kvm_destroy_vm(struct kvm *kvm)
 	spin_unlock(&kvm_lock);
 	kvm_free_vcpus(kvm);
 	kvm_free_physmem(kvm);
-	kfree(kvm);
+	kfree(kvm);	
 }
 
 static int kvm_vm_release(struct inode *inode, struct file *filp)
@@ -2015,7 +2021,11 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 		goto out1;
 	}
 
+#ifndef __WINKVM__
 	file = kvmfs_file(inode, vcpu);
+#else
+	file = kvmfs_file(inode, vcpu, WINKVM_VCPU);	
+#endif
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);		
 		goto out2;
@@ -2234,7 +2244,7 @@ static long kvm_vm_ioctl(struct file *filp,
 
 	switch (ioctl) {
 	case KVM_CREATE_VCPU:
-		r = kvm_vm_ioctl_create_vcpu(kvm, arg);
+		r = kvm_vm_ioctl_create_vcpu(kvm, arg);		
 		if (r < 0)
 			goto out;
 		break;
@@ -2337,8 +2347,12 @@ int kvm_dev_ioctl_create_vm(void)
 		r = PTR_ERR(kvm);
 		goto out2;
 	}	
-	
-	file = kvmfs_file(inode, kvm);	
+
+#ifndef __WINKVM__
+	file = kvmfs_file(inode, kvm);
+#else
+	file = kvmfs_file(inode, kvm, WINKVM_KVM);	
+#endif
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);
 		goto out3;

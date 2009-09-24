@@ -84,6 +84,8 @@ typedef unsigned long  hfn_t;
 //#pragma pack(pop)
 
 ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors);
+int atomic_dec_and_test(int *v);
+int atomic_inc_and_test(int *v);
 
 #define MEM_TAG 'HmmV'
 
