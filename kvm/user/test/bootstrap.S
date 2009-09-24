@@ -22,8 +22,16 @@ pmode:
 	mov %ax, %gs
 	mov %ax, %ss
 	mov $0xa0000, %esp
-	ljmp $8, $0x100000
+##	ljmp $8, $0x100000
+	jmp main_loop		
 
+main_loop:
+	mov $0x11111111, %eax		
+	mov $0x22222222, %ebx		
+	mov $0x33333333, %ecx		
+	mov $0x44444444, %edx		
+	jmp main_loop
+		
 .align 16
 	
 idt_desc:
