@@ -2056,7 +2056,9 @@ out1:
 int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n) 
 {
 	int r;
-	struct kvm_vcpu *vcpu;	
+	struct kvm_vcpu *vcpu;
+
+	FUNCTION_ENTER();	
 
 	r = -EINVAL;
 	if (!valid_vcpu(n))
@@ -2096,6 +2098,7 @@ int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n)
 	if (r < 0)
 		goto out_free_vcpus;
 
+	FUNCTION_EXIT();	
 	return r;
 
 out_free_vcpus:

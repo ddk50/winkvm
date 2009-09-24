@@ -100,7 +100,8 @@ int _cdecl get_unused_fd(void)
 
 	FUNCTION_ENTER();
 
-	ExAcquireFastMutex(&fd_slot_mutex); {
+//	ExAcquireFastMutex(&fd_slot_mutex); {
+	{
 		int i;	   
 		for (i = 0 ; i < MAX_FD_SLOT ; i++) {
 			if (!fd_slot[i].used) {
@@ -109,7 +110,8 @@ int _cdecl get_unused_fd(void)
 				break;
 			}
 		}
-	} ExReleaseFastMutex(&fd_slot_mutex);
+	}
+//	} ExReleaseFastMutex(&fd_slot_mutex
 
 	SAFE_ASSERT(new_fd != -1);
 

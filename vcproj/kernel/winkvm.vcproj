@@ -142,8 +142,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				UseUnicodeResponseFiles="false"
+				EnableIntrinsicFunctions="true"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(InputDir)\Linux&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)../include&quot;;&quot;$(BASEDIR2K3)\inc\ddk\wxp&quot;;&quot;$(BASEDIR2K3)\inc\ifs\wxp&quot;;&quot;$(BASEDIR2K3)\inc\wxp&quot;;&quot;$(BASEDIR2K3)\inc\crt&quot;;&quot;$(InputDir)\Linux&quot;"
 				PreprocessorDefinitions=""
 				IgnoreStandardIncludePath="true"
 				StringPooling="true"

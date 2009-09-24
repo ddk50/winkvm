@@ -1,2 +1,2 @@
 PREFIX=/usr/local
-KERNELDIR=/mnt/share/gitrep/winkvm/kvm/kernel
+KERNELDIR=/usr/src/linux-headers-2.6.24-24-generic

@@ -2090,6 +2090,8 @@ static int vmx_create_vcpu(struct kvm_vcpu *vcpu)
 {
 	struct vmcs *vmcs;
 
+	FUNCTION_ENTER();	
+
 	vcpu->guest_msrs = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	if (!vcpu->guest_msrs)
 		return -ENOMEM;
@@ -2106,6 +2108,7 @@ static int vmx_create_vcpu(struct kvm_vcpu *vcpu)
 	vcpu->vmcs = vmcs;
 	vcpu->launched = 0;
 
+	FUNCTION_EXIT();	
 	return 0;
 
 out_free_msrs:

@@ -289,7 +289,7 @@ static struct page *get_page_slot(hva_t pageaddr)
 	unsigned long addr = (unsigned long)pageaddr;
 	int i;
 
-	ExAcquireFastMutex(&page_emulater_mutex);
+//	ExAcquireFastMutex(&page_emulater_mutex);
 
 	pgr = page_slot_root[PAGE_PDE(addr)];
 
@@ -309,7 +309,7 @@ static struct page *get_page_slot(hva_t pageaddr)
 	if (!page)
 		SAFE_ASSERT(0);
 
-	ExReleaseFastMutex(&page_emulater_mutex);
+//	ExReleaseFastMutex(&page_emulater_mutex);
 
 	return page;
 }
@@ -339,10 +339,12 @@ int _cdecl get_order(unsigned long size)
 
 void* KeGetPageMemory(unsigned long size)
 {
-	return MmAllocateNonCachedMemory(size);
+	return ExAllocatePoolWithTag(NonPagedPool, size, MEM_TAG);
+//	return MmAllocateNonCachedMemory(size);
 }
 
 void KeFreePageMemory(void *ptr, unsigned long size)
 {
-	MmFreeNonCachedMemory(ptr, size);
+	ExFreePoolWithTag(ptr, MEM_TAG);
+	//MmFreeNonCachedMemory(ptr, size);
 }

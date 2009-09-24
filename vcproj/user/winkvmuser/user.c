@@ -445,7 +445,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
          return -1;
      }
      kvm->vcpu_fd[0] = vcpufd;
-	 printf(" vcpu num: %d\n", vcpufd);
+	 printf(" vcpu fd : %d\n", vcpufd);
 	 printf(" Done\n");
 	 return 0;
 }
@@ -472,3 +472,85 @@ kvm_memory_region_clear_params(kvm_context_t kvm, int regnum)
     }
     kvm->mem_regions[regnum].memory_size = 0;
 }
+
+int kvm_run(kvm_context_t kvm, int vcpu)
+{
+	int r;
+	int fd = kvm->vcpu_fd[vcpu];
+	struct kvm_run kvm_run;
+
+	kvm_run.emulated = 0;
+	kvm_run.mmio_completed = 0
+
+again:
+	kvm_run.request_interrupt_window = try_push_interrupts(kvm);
+	pre_kvm_run(kvm, &kvm_run);
+
+	r = ioctl(fd, KVM_RUN, &kvm_run);
+
+	post_kvm_run(kvm, &kvm_run);
+	kvm_run.emulated = 0;
+	kvm_run.mmio_completed = 0;
+	if (r == -1 && errno != EINTR) {
+		r = -errno;
+		printf("kvm_run: %m\n");
+		return r;
+	}
+	if (r == -1) {
+		r = handle_io_window(kvm, &kvm_run);
+		goto more;
+	}
+	switch (kvm_run.exit_type) {
+	case KVM_EXIT_TYPE_FAIL_ENTRY:
+		fprintf(stderr, "kvm_run: failed entry, reason %u\n", 
+			kvm_run.exit_reason & 0xffff);
+		return -ENOEXEC;
+		break;
+	case KVM_EXIT_TYPE_VM_EXIT:
+		switch (kvm_run.exit_reason) {
+		case KVM_EXIT_UNKNOWN:
+			fprintf(stderr, "unhandled vm exit:  0x%x\n", 
+			       kvm_run.hw.hardware_exit_reason);
+			kvm_show_regs(kvm, vcpu);
+			abort();
+			break;
+		case KVM_EXIT_EXCEPTION:
+			fprintf(stderr, "exception %d (%x)\n", 
+			       kvm_run.ex.exception,
+			       kvm_run.ex.error_code);
+			kvm_show_regs(kvm, vcpu);
+			abort();
+			break;
+		case KVM_EXIT_IO:
+			r = handle_io(kvm, &kvm_run, vcpu);
+			break;
+		case KVM_EXIT_CPUID:
+			r = handle_cpuid(kvm, &kvm_run, vcpu);
+			break;
+		case KVM_EXIT_DEBUG:
+			r = handle_debug(kvm, &kvm_run, vcpu);
+			break;
+		case KVM_EXIT_MMIO:
+			r = handle_mmio(kvm, &kvm_run);
+			break;
+		case KVM_EXIT_HLT:
+			r = handle_halt(kvm, &kvm_run, vcpu);
+			break;
+		case KVM_EXIT_IRQ_WINDOW_OPEN:
+			break;
+		case KVM_EXIT_SHUTDOWN:
+			r = handle_shutdown(kvm, &kvm_run, vcpu);
+			break;
+		default:
+			fprintf(stderr, "unhandled vm exit: 0x%x\n", kvm_run.exit_reason);
+			kvm_show_regs(kvm, vcpu);
+			abort();
+			break;
+		}
+	}
+more:
+	if (!r)
+		goto again;
+	return r;
+}
+
