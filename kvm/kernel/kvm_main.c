@@ -2008,12 +2008,13 @@ static struct file_operations kvm_vcpu_fops = {
  */
 int create_vcpu_fd(struct kvm_vcpu *vcpu)  
 {
-#ifndef __WINKVM__
-	int fd, r;
+	int fd, r;	
 	struct inode *inode;
 	struct file *file;
 
-	atomic_inc(&vcpu->kvm->filp->f_count);
+	FUNCTION_ENTER();	
+
+	//	atomic_inc(&vcpu->kvm->filp->f_count);	
 	
 	inode = kvmfs_inode(&kvm_vcpu_fops);
 	if (IS_ERR(inode)) {
@@ -2028,7 +2029,7 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 #endif
 	if (IS_ERR(file)) {
 		r = PTR_ERR(file);		
-		goto out2;
+		goto out2;		
 	}
 
 	r = get_unused_fd();
@@ -2037,6 +2038,7 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 	fd = r;
 	fd_install(fd, file);
 
+	FUNCTION_EXIT();	
 	return fd;
 
 out3:
@@ -2046,8 +2048,6 @@ out2:
 out1:
 	fput(vcpu->kvm->filp);
 	return r;
-#endif
-	return 0;   
 }
 
 /*

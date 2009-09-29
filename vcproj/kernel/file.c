@@ -32,7 +32,6 @@ void release_file_emulater(void)
 {
 	int i;
 	FUNCTION_ENTER();
-
 	for (i = 0 ; i < MAX_FD_SLOT ; i++) {
 		if (fd_slot[i].file) {
 			if (fd_slot[i].file->__inode)
@@ -40,7 +39,6 @@ void release_file_emulater(void)
 			ExFreePoolWithTag(fd_slot[i].file, MEM_TAG);
 		}
 	}
-
 	RtlZeroMemory(fd_slot, sizeof(fd_slot));
 	FUNCTION_EXIT();
 	return;
@@ -58,6 +56,7 @@ struct kvm *get_kvm(int fd)
 {
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].file->__private_data_type == WINKVM_KVM);
+	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
 	return (struct kvm*)(fd_slot[fd].file->private_data);
 }
 
@@ -65,6 +64,7 @@ struct kvm_vcpu *get_vcpu(int fd)
 {
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].file->__private_data_type == WINKVM_VCPU);
+	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
 	return (struct kvm_vcpu*)(fd_slot[fd].file->private_data);
 }
 
@@ -109,20 +109,20 @@ int _cdecl get_unused_fd(void)
 			if (!fd_slot[i].used) {
 				fd_slot[i].used = 1;
 				new_fd = i;
+				printk(KERN_ALERT "new fd was allocated: %d\n", new_fd);
 				break;
 			}
 		}
 	} ExReleaseFastMutex(&fd_slot_mutex);
 
 	SAFE_ASSERT(new_fd != -1);
-
 	FUNCTION_EXIT();
 
 	return new_fd;
 }
 
-void _cdecl fd_install(unsigned int fd, struct file *file)
-{	
+void _cdecl fd_install(int fd, struct file *file)
+{
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].used);
 

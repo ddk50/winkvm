@@ -47,8 +47,9 @@ NTSTATUS
 __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				   IN PIRP Irp);
 
-__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
-							   IN PIRP Irp,
+NTSTATUS
+__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,							   
+							   IN PIRP Irp,							   
 							   IN struct kvm_vcpu *vcpu);
 
 NTSTATUS 
@@ -181,9 +182,10 @@ __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 }
 
 #define MAX_PATH        256
-#define GUEST_IMG_PATH  L"\\DosDevice\\C:\\GuestOS\\guest.img"
+#define GUEST_IMG_PATH  L"\\DosDevices\\C:\\bootstrap.bin"
 #define GUEST_IMG_SIZE  65536
 
+NTSTATUS
 __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 							   IN PIRP Irp,
 							   IN struct kvm_vcpu *vcpu)
@@ -279,15 +281,17 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	switch (irpSp->Parameters.DeviceIoControl.IoControlCode) {
 	case KVM_GET_API_VERSION:
 		{
+			printk(KERN_ALERT "Call KVM_GET_API_VERSION\n");
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
 	case KVM_CREATE_VM: 
 		{
 			int ret;
+			printk(KERN_ALERT "Call KVM_CREATE_VM\n");
 			ret = kvm_dev_ioctl_create_vm();
-			RtlCopyMemory(outBuf, &ret, sizeof(ret));
-			Irp->IoStatus.Information = sizeof(ret);
+			RtlCopyMemory(outBuf, &ret, sizeof(ret));			
+			Irp->IoStatus.Information = sizeof(ret);	   
 			ntStatus = ConvertRetval(ret);
 			break;
 		}		
@@ -295,9 +299,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		{	
 			int ret;
 			struct winkvm_create_vcpu vcpu;
+			printk(KERN_ALERT "Call KVM_CREATE_VCPU\n");
 			RtlCopyMemory(&vcpu, inBuf, sizeof(vcpu));
 			ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_num);
-			RtlCopyMemory(&outBuf, &ret, sizeof(ret));
+
+			/* return vcpu value */
+			RtlCopyMemory(outBuf, &ret, sizeof(ret));
 			Irp->IoStatus.Information = sizeof(ret);
 			ntStatus = ConvertRetval(ret);
 			break;
@@ -308,8 +315,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_memory_region *kvm_mem;
 			int ret;
 
-			printk(KERN_ALERT "KVM_SET_MEMORY_REGION\n");
-
+			printk(KERN_ALERT "Call KVM_SET_MEMORY_REGION\n");
 			RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
 
 			kvm_mem = &winkvm_mem.kvm_memory_region;
@@ -327,11 +333,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = ConvertRetval(ret);
 			break;
 		}
-	case WINKVM_EXECUTE_TEST:		
+	case WINKVM_EXECUTE_TEST:
 		{
 			struct kvm_vcpu *vcpu;
 			int vcpu_fd;
 
+			printk(KERN_ALERT "Call WINKVM_EXECUTE_TEST\n");
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
 			vcpu = get_vcpu(vcpu_fd);
 			SAFE_ASSERT(vcpu != NULL);

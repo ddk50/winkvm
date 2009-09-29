@@ -342,6 +342,32 @@ static inline void native_set_debugreg(int regno, unsigned long value)
 	}
 }
 
+/**
+ * atomic_inc - increment atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically increments @v by 1.
+ */
+static __inline__ void atomic_inc(int *v)  
+{
+	__asm__ __volatile__(
+		LOCK_PREFIX "incl %0"					   
+		:"+m" (v));   
+}
+
+/**
+ * atomic_dec - decrement atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically decrements @v by 1.
+ */
+static __inline__ void atomic_dec(int *v)	
+{
+	__asm__ __volatile__(
+		LOCK_PREFIX "decl %0"
+		:"+m" (v));	
+}
+
 #endif /* __WINKVM__ */
 
 #endif /* _WINKVMMISC_H_ */

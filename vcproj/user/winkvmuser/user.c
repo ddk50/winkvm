@@ -447,9 +447,9 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
          fprintf(stderr, " kvm_create_vcpu: %m\n");
          return -1;
      }
-     kvm->vcpu_fd[0] = vcpufd;
 	 printf(" vcpu fd : %d\n", vcpufd);
 	 printf(" Done\n");
+     kvm->vcpu_fd[0] = vcpufd;
 
 	 printf("Execute winkvm test run ... \n");
 	 ret = winkvm_test_run(hnd, vcpufd);	 
