@@ -31,21 +31,30 @@ PDRIVER_OBJECT DriverObject;
 
 static void *maptest_page = NULL;
 
-NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
-					 IN PUNICODE_STRING RegistryPath);
+NTSTATUS 
+DriverEntry(IN OUT PDRIVER_OBJECT  DriverObjaect,
+			IN PUNICODE_STRING RegistryPath);
 
-NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
-							IN PIRP Irp);
+NTSTATUS 
+__winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
+				   IN PIRP Irp);
 
-NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
-							 IN PIRP Irp);
+NTSTATUS 
+__winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
+					IN PIRP Irp);
 
-NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
-							IN PIRP Irp);
+NTSTATUS 
+__winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
+				   IN PIRP Irp);
 
-NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-					   IN PVOID UserSpaceAddress,
-					   IN PVOID KernelSpaceAddress);
+__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
+							   IN PIRP Irp,
+							   IN struct kvm_vcpu *vcpu);
+
+NTSTATUS 
+MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
+			  IN PVOID UserSpaceAddress,
+			  IN PVOID KernelSpaceAddress);
 
 void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
 
@@ -115,7 +124,8 @@ err:
 }
 
 /* winkvm release */
-void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
+void 
+__winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 {
 	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING Win32NameString;
@@ -136,8 +146,9 @@ void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
     return;
 }
 
-NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
-							IN PIRP Irp)
+NTSTATUS 
+__winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
+				   IN PIRP Irp)
 {
 	FUNCTION_ENTER();
 
@@ -151,8 +162,9 @@ NTSTATUS __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
-							 IN PIRP Irp)
+NTSTATUS 
+__winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
+					IN PIRP Irp)
 {
 	FUNCTION_ENTER();
 
@@ -168,8 +180,85 @@ NTSTATUS __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
-							IN PIRP Irp)
+#define MAX_PATH        256
+#define GUEST_IMG_PATH  L"\\DosDevice\\C:\\GuestOS\\guest.img"
+#define GUEST_IMG_SIZE  65536
+
+__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
+							   IN PIRP Irp,
+							   IN struct kvm_vcpu *vcpu)
+{
+	OBJECT_ATTRIBUTES objAttr;
+	IO_STATUS_BLOCK   ioStatusBlock;
+	UNICODE_STRING    uniStr;
+	HANDLE            fHandle;
+	LARGE_INTEGER     byteOffset;
+	unsigned char     *buf;
+	NTSTATUS          ret = STATUS_INVALID_DEVICE_REQUEST;
+
+	FUNCTION_ENTER();
+
+	buf = ExAllocatePoolWithTag(NonPagedPool, GUEST_IMG_SIZE, MEM_TAG);
+	SAFE_ASSERT(buf);
+	if (!buf)
+		goto ret;
+
+	RtlInitUnicodeString(&uniStr, GUEST_IMG_PATH);
+	InitializeObjectAttributes(&objAttr, &uniStr, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
+
+	printk(KERN_ALERT "Try to open file ... \n");
+	SAFE_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+	ret = ZwOpenFile(&fHandle,
+		             GENERIC_READ,
+					 &objAttr,
+					 &ioStatusBlock,
+					 0,
+					 FILE_NON_DIRECTORY_FILE);	
+	if (!NT_SUCCESS(ret)) {
+		printk(KERN_ALERT " Could not open test binary file\n");
+		goto free_ret;
+	}
+	printk(KERN_ALERT "Done\n");
+
+	printk(KERN_ALERT "Read Guest Image ... \n");
+	byteOffset.u.HighPart = byteOffset.u.LowPart = 0;
+	ret = ZwReadFile(fHandle, 
+		             NULL, 
+					 NULL, 
+					 NULL, 
+					 &ioStatusBlock, 
+		             buf, 
+					 GUEST_IMG_SIZE, 
+					 &byteOffset, 
+					 NULL);
+	if (!NT_SUCCESS(ret)){
+		printk(KERN_ALERT " Could not read test binary\n");
+		goto close_free_ret;
+	}
+	printk(KERN_ALERT " Read bytes: High: %d, Low: %d\n", 
+		               byteOffset.u.HighPart,
+					   byteOffset.u.LowPart);
+
+	printk(KERN_ALERT "Done\n");
+	
+	printk(KERN_ALERT "Write to guest ... \n");	
+	kvm_write_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);
+	printk(KERN_ALERT "Done\n");
+
+close_free_ret:
+	ZwClose(fHandle);
+
+free_ret:
+	ExFreePoolWithTag(buf, MEM_TAG);
+
+ret:
+	FUNCTION_EXIT();
+	return ret;
+}
+
+NTSTATUS 
+__winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
+				   IN PIRP Irp)
 {
 	NTSTATUS ntStatus;
 	PIO_STACK_LOCATION irpSp;
@@ -238,6 +327,22 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = ConvertRetval(ret);
 			break;
 		}
+	case WINKVM_EXECUTE_TEST:		
+		{
+			struct kvm_vcpu *vcpu;
+			int vcpu_fd;
+
+			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
+			vcpu = get_vcpu(vcpu_fd);
+			SAFE_ASSERT(vcpu != NULL);
+			if (vcpu) {
+				ntStatus = __winkvmstab_execute_guestcode(DeviceObject, Irp, vcpu);
+			} else {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
+			
+			break;
+		}
 	case WINKVM_NOPAGE:
 		{
 			ntStatus = STATUS_SUCCESS;
@@ -294,6 +399,21 @@ NTSTATUS __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 	return ntStatus;
 }
+
+/*
+NTSTATUS __winkvmstab_read(IN PDEVICE_OBJECT DeviceObject,
+						   IN PIRP Irp)
+{
+	PIO_STACK_LOCATION irpSp;
+	PVOID SystemAddress;
+	kvm_vcpu *test
+
+	irpSp = IoGetCurrentIrpStackLocation(Irp);
+
+	SystemAddress = (PVOID)MmGetSystemAddressForMdl(Irp->MdlAddress);
+	Irp->IoStatus.Information = irpSp->Parameters.Read.Length;
+}
+*/
 
 NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 					   IN PVOID UserSpaceAddress,

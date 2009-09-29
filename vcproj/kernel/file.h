@@ -14,6 +14,6 @@ void init_file_emulater(void);
 void release_file_emulater(void);
 
 struct kvm *get_kvm(int fd);
-struct vcpu *get_vcpu(int fd);
+struct kvm_vcpu *get_vcpu(int fd);
 
 #endif

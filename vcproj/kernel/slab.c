@@ -35,7 +35,7 @@ void init_slab_emulater(void)
 
 void release_slab_emulater(void)
 {
-	int i, j, k;
+	int i, k;
 	struct page *pd;
 	
 	for (i = 0 ; i < page_slot_num ; i++) {

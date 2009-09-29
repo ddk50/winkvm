@@ -19,8 +19,11 @@ static int VALID_FD(int fd);
 
 void init_file_emulater(void)
 {
+	int i;
 	FUNCTION_ENTER();
-	RtlZeroMemory(fd_slot, sizeof(*fd_slot));
+	for (i = 0 ; i < MAX_FD_SLOT ; i++) {
+		fd_slot[i].used = 0;
+	}
 	ExInitializeFastMutex(&fd_slot_mutex);
 	FUNCTION_EXIT();
 }
@@ -58,11 +61,11 @@ struct kvm *get_kvm(int fd)
 	return (struct kvm*)(fd_slot[fd].file->private_data);
 }
 
-struct vcpu *get_vcpu(int fd)
+struct kvm_vcpu *get_vcpu(int fd)
 {
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].file->__private_data_type == WINKVM_VCPU);
-	return (struct vcpu*)(fd_slot[fd].file->private_data);
+	return (struct kvm_vcpu*)(fd_slot[fd].file->private_data);
 }
 
 /* FIXME: These methods are corrupt, if caller use 
@@ -100,8 +103,7 @@ int _cdecl get_unused_fd(void)
 
 	FUNCTION_ENTER();
 
-//	ExAcquireFastMutex(&fd_slot_mutex); {
-	{
+	ExAcquireFastMutex(&fd_slot_mutex); {
 		int i;	   
 		for (i = 0 ; i < MAX_FD_SLOT ; i++) {
 			if (!fd_slot[i].used) {
@@ -110,8 +112,7 @@ int _cdecl get_unused_fd(void)
 				break;
 			}
 		}
-	}
-//	} ExReleaseFastMutex(&fd_slot_mutex
+	} ExReleaseFastMutex(&fd_slot_mutex);
 
 	SAFE_ASSERT(new_fd != -1);
 

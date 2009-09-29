@@ -294,6 +294,7 @@ struct kvm_dirty_log {
 #define WINKVM_INIT_TESTMAP    _IO(KVMIO, 30)
 #define WINKVM_TESTMAP         _IOW(KVMIO, 31, unsigned long)
 #define WINKVM_RELEASE_TESTMAP _IO(KVMIO, 32)
+#define WINKVM_EXECUTE_TEST    _IO(KVMIO, 33)
 
 #endif
 

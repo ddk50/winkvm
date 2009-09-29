@@ -294,7 +294,7 @@ EXPORT_SYMBOL_GPL(kvm_write_guest);
 static void vcpu_load(struct kvm_vcpu *vcpu)
 {
 	mutex_lock(&vcpu->mutex);
-	kvm_arch_ops->vcpu_load(vcpu);
+	kvm_arch_ops->vcpu_load(vcpu);	
 }
 
 /*

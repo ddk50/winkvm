@@ -31,6 +31,7 @@ HANDLE OpenWinkvm(void);
 BOOL InitTestMap(HANDLE hnd);
 void MemmapAndTest(unsigned long dwPageSize);
 
+static BOOL winkvm_test_run(HANDLE hnd, int vcpu_fd);
 static void kvm_memory_region_save_params(kvm_context_t kvm, struct kvm_memory_region *mem);
 static void kvm_memory_region_clear_params(kvm_context_t kvm, int regnum);
 
@@ -431,6 +432,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	create_vcpu.vm_fd    = fd;
 	create_vcpu.vcpu_num = 0;
 
+	vcpufd = -1;
+
 	printf("Create VCPU ... \n");
 	ret = DeviceIoControl(hnd,
 		                  KVM_CREATE_VCPU,
@@ -440,13 +443,18 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 						  sizeof(vcpufd),
 						  &retlen,
 						  NULL);
-     if (vcpufd == -1) {
+     if (vcpufd == -1) {	   
          fprintf(stderr, " kvm_create_vcpu: %m\n");
          return -1;
      }
      kvm->vcpu_fd[0] = vcpufd;
 	 printf(" vcpu fd : %d\n", vcpufd);
 	 printf(" Done\n");
+
+	 printf("Execute winkvm test run ... \n");
+	 ret = winkvm_test_run(hnd, vcpufd);	 
+	 printf("Done\n");
+
 	 return 0;
 }
 
@@ -473,6 +481,32 @@ kvm_memory_region_clear_params(kvm_context_t kvm, int regnum)
     kvm->mem_regions[regnum].memory_size = 0;
 }
 
+static BOOL
+winkvm_test_run(HANDLE hnd, int vcpu_fd)	
+{
+	BOOL ret = FALSE;
+	unsigned long retlen = 0;	
+
+	printf("%s\n", __FUNCTION__);	
+	
+	ret = DeviceIoControl(hnd,
+						  WINKVM_EXECUTE_TEST,
+						  &vcpu_fd,						  
+						  sizeof(vcpu_fd),
+						  NULL,
+						  0,
+						  &retlen,
+						  NULL);
+	if (ret) {
+		printf(" Success: DeviceIoControl\n");
+	} else {
+		printf(" Failed: DeviceIoControl\n");		
+	}
+	
+	return ret;	
+}
+
+/*
 int kvm_run(kvm_context_t kvm, int vcpu)
 {
 	int r;
@@ -553,4 +587,4 @@ more:
 		goto again;
 	return r;
 }
-
+*/
