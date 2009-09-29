@@ -16,6 +16,8 @@
 int _cdecl printk(const char *s, ...);
 void _cdecl get_page(struct page *page);
 
+void dump_hex(unsigned char *buffer, int len, int row);
+
 /*
  * Address types:
  *

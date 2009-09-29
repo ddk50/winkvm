@@ -121,3 +121,15 @@ ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors)
 	return NumberOfProcessors;
 #endif
 }
+
+void dump_hex(unsigned char *buffer, int len, int row)
+{
+	int i, j;
+	for (i = 0, j = 1 ; i < len ; i++, j++) {		
+		printk("0x%02x ", buffer[i]);
+		if (j == row) {
+			printk("\n");
+			j = 1;
+		}		
+	}
+}

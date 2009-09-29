@@ -226,6 +226,8 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 	unsigned char *host_buf = dest;
 	unsigned long req_size = size;
 
+	FUNCTION_ENTER();	
+
 	while (size) {
 		hpa_t paddr;
 		unsigned now;
@@ -249,15 +251,20 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 		size -= now;
 		kunmap_atomic((void *)(guest_buf & PAGE_MASK), KM_USER0);
 	}
+
+	FUNCTION_EXIT();
+	
 	return req_size - size;
 }
 EXPORT_SYMBOL_GPL(kvm_read_guest);
 
 int kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
-		    void *data)
+					void *data)  
 {
 	unsigned char *host_buf = data;
 	unsigned long req_size = size;
+
+	FUNCTION_ENTER();	
 
 	while (size) {
 		hpa_t paddr;
@@ -284,6 +291,9 @@ int kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 		size -= now;
 		kunmap_atomic((void *)(guest_buf & PAGE_MASK), KM_USER0);
 	}
+
+	FUNCTION_EXIT();	
+	
 	return req_size - size;
 }
 EXPORT_SYMBOL_GPL(kvm_write_guest);
@@ -2739,6 +2749,10 @@ static __init int kvm_init(void)
 
 	bad_page_address = page_to_pfn(bad_page) << PAGE_SHIFT;
 	memset(__va(bad_page_address), 0, PAGE_SIZE);
+
+#ifdef CONFIG_X86_64
+	printk(KERN_ALERT "!! WARNING X86_64 mode was enabled !!\n");	
+#endif
 
 	return 0;
 

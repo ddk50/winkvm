@@ -67,7 +67,7 @@ static struct vmcs_descriptor {
 		.ar_bytes = GUEST_##seg##_AR_BYTES,	   	\
 	}
 
-static struct kvm_vmx_segment_field {
+static struct kvm_vmx_segment_field {	
 	unsigned selector;
 	unsigned base;
 	unsigned limit;

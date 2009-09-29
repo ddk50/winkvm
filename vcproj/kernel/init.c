@@ -196,6 +196,7 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 	HANDLE            fHandle;
 	LARGE_INTEGER     byteOffset;
 	unsigned char     *buf;
+	int               copied;
 	NTSTATUS          ret = STATUS_INVALID_DEVICE_REQUEST;
 
 	FUNCTION_ENTER();
@@ -206,10 +207,13 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 		goto ret;
 
 	RtlInitUnicodeString(&uniStr, GUEST_IMG_PATH);
-	InitializeObjectAttributes(&objAttr, &uniStr, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
+	InitializeObjectAttributes(&objAttr, &uniStr,
+							   OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);	
 
 	printk(KERN_ALERT "Try to open file ... \n");
+	
 	SAFE_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+	
 	ret = ZwOpenFile(&fHandle,
 		             GENERIC_READ,
 					 &objAttr,
@@ -223,7 +227,7 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 	printk(KERN_ALERT "Done\n");
 
 	printk(KERN_ALERT "Read Guest Image ... \n");
-	byteOffset.u.HighPart = byteOffset.u.LowPart = 0;
+	byteOffset.u.HighPart = byteOffset.u.LowPart = 0;	
 	ret = ZwReadFile(fHandle, 
 		             NULL, 
 					 NULL, 
@@ -238,17 +242,22 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 		goto close_free_ret;
 	}
 	printk(KERN_ALERT " Read bytes: High: %d, Low: %d\n", 
-		               byteOffset.u.HighPart,
+		               byteOffset.u.HighPart,		   
 					   byteOffset.u.LowPart);
 
-	printk(KERN_ALERT "Done\n");
+	printk(KERN_ALERT "Done\n");	
 	
 	printk(KERN_ALERT "Write to guest ... \n");	
-	kvm_write_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);
-	printk(KERN_ALERT "Done\n");
+	copied = kvm_write_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);	
+	printk(KERN_ALERT "Done copied: %d\n", copied);	
+
+	RtlZeroMemory(buf, GUEST_IMG_SIZE);
+	kvm_read_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);	
+
+	dump_hex(buf, GUEST_IMG_SIZE, 9);
 
 close_free_ret:
-	ZwClose(fHandle);
+	ZwClose(fHandle);	
 
 free_ret:
 	ExFreePoolWithTag(buf, MEM_TAG);
