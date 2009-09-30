@@ -98,6 +98,8 @@ typedef unsigned long  hfn_t;
 
 #define NR_PTE_CHAIN_ENTRIES 5
 
+#pragma pack(1)
+
 struct kvm_pte_chain {
 	u64 *parent_ptes[NR_PTE_CHAIN_ENTRIES];
 	struct hlist_node link;

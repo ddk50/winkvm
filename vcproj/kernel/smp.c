@@ -296,13 +296,17 @@ int _cdecl raw_smp_processor_id(void)
 
 int _cdecl get_cpu(void)
 {
-	SAFE_ASSERT(0);
+	/* FIXME: smp process */
+	/* This function have to ensure preempt */
+	raw_smp_processor_id();
 	return 1;
 }
 
 int _cdecl put_cpu(void)
 {
-	SAFE_ASSERT(0);
+	/* FIXME: smp process */
+	/* This function have to ensure preempt */
+	raw_smp_processor_id();
 	return 1;
 }
 

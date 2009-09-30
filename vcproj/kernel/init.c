@@ -39,6 +39,9 @@ NTSTATUS
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 				   IN PIRP Irp);
 
+void 
+__winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
+
 NTSTATUS 
 __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 					IN PIRP Irp);
@@ -57,13 +60,13 @@ MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 			  IN PVOID UserSpaceAddress,
 			  IN PVOID KernelSpaceAddress);
 
-void __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
-
-static NTSTATUS ConvertRetval(int ret);
+NTSTATUS 
+ConvertRetval(IN int ret);
 
 /* driver entry */
-NTSTATUS DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
-					 IN PUNICODE_STRING RegistryPath)
+NTSTATUS 
+DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
+			IN PUNICODE_STRING RegistryPath)
 {
 	PDEVICE_OBJECT deviceObject = NULL;
 	NTSTATUS status;
@@ -197,7 +200,9 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 	LARGE_INTEGER     byteOffset;
 	unsigned char     *buf;
 	int               copied;
+	int               r;
 	NTSTATUS          ret = STATUS_INVALID_DEVICE_REQUEST;
+	struct kvm_run    kvm_run;
 
 	FUNCTION_ENTER();
 
@@ -254,7 +259,16 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 	RtlZeroMemory(buf, GUEST_IMG_SIZE);
 	kvm_read_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);	
 
-	dump_hex(buf, GUEST_IMG_SIZE, 9);
+	printk(KERN_ALERT "Read to run!!\n");
+	RtlZeroMemory(&kvm_run, sizeof(kvm_run));
+
+	printk(KERN_ALERT "Run!!\n");
+	r = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+	if (r < 0) {
+		printk(KERN_ALERT "kvm_vcpu_ioctl_run was failed!!\n");
+	} else {	  
+		printk(KERN_ALERT "kvm_vcpu_ioctl_run was success!!\n");
+	}
 
 close_free_ret:
 	ZwClose(fHandle);	
@@ -431,9 +445,10 @@ NTSTATUS __winkvmstab_read(IN PDEVICE_OBJECT DeviceObject,
 }
 */
 
-NTSTATUS MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-					   IN PVOID UserSpaceAddress,
-					   IN PVOID KernelSpaceAddress)
+NTSTATUS 
+MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
+			  IN PVOID UserSpaceAddress,
+			  IN PVOID KernelSpaceAddress)
 {
 	NTSTATUS ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 	PMDL mdl = NULL;
@@ -461,7 +476,8 @@ ret:
 	return ntStatus;
 }
 
-static NTSTATUS ConvertRetval(int ret)
+NTSTATUS 
+ConvertRetval(IN int ret)
 {
 	NTSTATUS ntStatus;
 

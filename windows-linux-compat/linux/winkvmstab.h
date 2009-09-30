@@ -269,28 +269,38 @@ extern void fd_install(unsigned int fd, struct file *file);
 
 #define ADDR (*(volatile long *)addr)
 
-static inline void set_bit(int nr, volatile unsigned long *addr)	
-{	
-	__asm__ __volatile__(LOCK_PREFIX
-						 "btsl %1,%0"
-						 :"+m" (ADDR)
-						 :"Ir" (nr));	
+/**
+ * __set_bit - Set a bit in memory
+ * @nr: the bit to set
+ * @addr: the address to start counting from
+ *
+ * Unlike set_bit(), this function is non-atomic and may be reordered.
+ * If it's called on the same region of memory simultaneously, the effect
+ * may be that only one operation succeeds.
+ */
+static inline void set_bit(int nr, volatile unsigned long * addr)	
+{
+	__asm__ __volatile__(
+		"lock; btsl %1,%0"		
+		:"+m" (ADDR)		 
+		:"Ir" (nr));	
 }
 
-static inline void __set_bit(int nr, volatile unsigned long *addr)	
-{	
-	__asm__("btsl %1,%0"
-			:"+m" (ADDR)
-			:"Ir" (nr));	
+static inline void __set_bit(int nr, volatile unsigned long * addr)	
+{
+	__asm__(
+		"btsl %1,%0"
+		:"+m" (ADDR)
+		:"Ir" (nr));	
 }
 
-static inline int test_bit(int nr, const void *addr)	
-{	
+static inline int test_bit(int nr, const void * addr)	
+{
 	u8 v;
 	const u32 *p = (const u32 *)addr;
 
 	asm("btl %2,%1; setc %0" : "=qm" (v) : "m" (*p), "Ir" (nr));
-	return v;	
+	return v;
 }
 
 #ifndef min

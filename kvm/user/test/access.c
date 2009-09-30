@@ -123,8 +123,7 @@ void memset(void *a, unsigned char v, int n)
 
 unsigned short read_cs()
 {
-    unsigned short r;
-
+    unsigned short r;	
     asm volatile ("mov %%cs, %0" : "=r"(r));
 }
 

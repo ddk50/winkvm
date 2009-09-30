@@ -1,4 +1,4 @@
-/*
+/*  
  * Kernel-based Virtual Machine driver for Linux
  *
  * This module enables machines with Intel VT-x extensions to run virtual
@@ -223,6 +223,8 @@ static void vmx_vcpu_load(struct kvm_vcpu *vcpu)
 	u64 phys_addr = __pa(vcpu->vmcs);
 	int cpu;
 
+	FUNCTION_ENTER();	
+
 	cpu = get_cpu();
 
 	if (vcpu->cpu != cpu)
@@ -257,6 +259,8 @@ static void vmx_vcpu_load(struct kvm_vcpu *vcpu)
 		rdmsrl(MSR_IA32_SYSENTER_ESP, sysenter_esp);
 		vmcs_writel(HOST_IA32_SYSENTER_ESP, sysenter_esp); /* 22.2.3 */
 	}
+
+	FUNCTION_EXIT();	
 }
 
 static void vmx_vcpu_put(struct kvm_vcpu *vcpu)
@@ -1164,23 +1168,42 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	vmcs_writel(HOST_CR4, read_cr4());  /* 22.2.3, 22.2.5 */
 	vmcs_writel(HOST_CR3, read_cr3());  /* 22.2.3  FIXME: shadow tables */
 
+#ifndef __WINKVM__
 	vmcs_write16(HOST_CS_SELECTOR, __KERNEL_CS);  /* 22.2.4 */
 	vmcs_write16(HOST_DS_SELECTOR, __KERNEL_DS);  /* 22.2.4 */
 	vmcs_write16(HOST_ES_SELECTOR, __KERNEL_DS);  /* 22.2.4 */
 	vmcs_write16(HOST_FS_SELECTOR, read_fs());    /* 22.2.4 */
 	vmcs_write16(HOST_GS_SELECTOR, read_gs());    /* 22.2.4 */
 	vmcs_write16(HOST_SS_SELECTOR, __KERNEL_DS);  /* 22.2.4 */
+#else
+	vmcs_write16(HOST_CS_SELECTOR, read_cs());  /* 22.2.4 */
+	vmcs_write16(HOST_DS_SELECTOR, read_ds() & ~3);  /* 22.2.4 */	
+	vmcs_write16(HOST_ES_SELECTOR, read_es() & ~3);  /* 22.2.4 */	
+	vmcs_write16(HOST_FS_SELECTOR, read_fs());    /* 22.2.4 */
+	vmcs_write16(HOST_GS_SELECTOR, read_gs());    /* 22.2.4 */	
+	vmcs_write16(HOST_SS_SELECTOR, read_ss());  /* 22.2.4 */	
+#endif
+	
 #ifdef CONFIG_X86_64
 	rdmsrl(MSR_FS_BASE, a);
 	vmcs_writel(HOST_FS_BASE, a); /* 22.2.4 */
 	rdmsrl(MSR_GS_BASE, a);
 	vmcs_writel(HOST_GS_BASE, a); /* 22.2.4 */
-#else
+#else   
+#ifndef __WINKVM__
 	vmcs_writel(HOST_FS_BASE, 0); /* 22.2.4 */
 	vmcs_writel(HOST_GS_BASE, 0); /* 22.2.4 */
-#endif
+#else
+	vmcs_writel(HOST_FS_BASE, read_fs_base()); /* 22.2.4 */
+	vmcs_writel(HOST_GS_BASE, read_gs_base()); /* 22.2.4 */	
+#endif /* __WINKVM__ */
+#endif /* CONFIG_X86_64 */   
 
+#ifndef __WINKVM__
 	vmcs_write16(HOST_TR_SELECTOR, GDT_ENTRY_TSS*8);  /* 22.2.4 */
+#else
+	vmcs_write16(HOST_TR_SELECTOR, store_tr());  /* 22.2.4 */	
+#endif
 
 	get_idt(&dt);
 	vmcs_writel(HOST_IDTR_BASE, dt.base);   /* 22.2.4 */
@@ -1305,16 +1328,21 @@ static void kvm_do_inject_irq(struct kvm_vcpu *vcpu)
 	int bit_index = __ffs(vcpu->irq_pending[word_index]);
 	int irq = word_index * BITS_PER_LONG + bit_index;
 
+	FUNCTION_ENTER();	
+
 	clear_bit(bit_index, &vcpu->irq_pending[word_index]);
 	if (!vcpu->irq_pending[word_index])
 		clear_bit(word_index, &vcpu->irq_summary);
 
 	if (vcpu->rmode.active) {
 		inject_rmode_irq(vcpu, irq);
+		FUNCTION_EXIT();		
 		return;
 	}
 	vmcs_write32(VM_ENTRY_INTR_INFO_FIELD,
 			irq | INTR_TYPE_EXT_INTR | INTR_INFO_VALID_MASK);
+
+	FUNCTION_EXIT();	
 }
 
 
@@ -1322,6 +1350,8 @@ static void do_interrupt_requests(struct kvm_vcpu *vcpu,
 				       struct kvm_run *kvm_run)
 {
 	u32 cpu_based_vm_exec_control;
+
+	FUNCTION_ENTER();	
 
 	vcpu->interrupt_window_open =
 		((vmcs_readl(GUEST_RFLAGS) & X86_EFLAGS_IF) &&
@@ -1345,6 +1375,8 @@ static void do_interrupt_requests(struct kvm_vcpu *vcpu,
 	else
 		cpu_based_vm_exec_control &= ~CPU_BASED_VIRTUAL_INTR_PENDING;
 	vmcs_write32(CPU_BASED_VM_EXEC_CONTROL, cpu_based_vm_exec_control);
+
+	FUNCTION_EXIT();	
 }
 
 static void kvm_guest_debug_pre(struct kvm_vcpu *vcpu)
@@ -1799,12 +1831,18 @@ static int dm_request_for_irq_injection(struct kvm_vcpu *vcpu,
 		(vmcs_readl(GUEST_RFLAGS) & X86_EFLAGS_IF));
 }
 
-static int vmx_vcpu_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
-{
+int vmx_vcpu_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)   
+{	
 	u8 fail;
 	u16 fs_sel, gs_sel, ldt_sel;
 	int fs_gs_ldt_reload_needed;
 	int r;
+
+	asm volatile ("xorl %%eax, %%eax \n\t"				  
+				  "xorl %%ebx, %%ebx \n\t"
+				  "xorl %%ecx, %%ecx \n\t" ::: "memory" );	
+
+	FUNCTION_ENTER();	
 
 again:
 	/*
@@ -1814,34 +1852,49 @@ again:
 	fs_sel = read_fs();
 	gs_sel = read_gs();
 	ldt_sel = read_ldt();
-	fs_gs_ldt_reload_needed = (fs_sel & 7) | (gs_sel & 7) | ldt_sel;
+	fs_gs_ldt_reload_needed = (fs_sel & 7) | (gs_sel & 7) | ldt_sel;   
 	if (!fs_gs_ldt_reload_needed) {
 		vmcs_write16(HOST_FS_SELECTOR, fs_sel);
 		vmcs_write16(HOST_GS_SELECTOR, gs_sel);
 	} else {
+#ifndef __WINKVM__
 		vmcs_write16(HOST_FS_SELECTOR, 0);
 		vmcs_write16(HOST_GS_SELECTOR, 0);
+#else
+		vmcs_write16(HOST_FS_SELECTOR, fs_sel);
+		vmcs_write16(HOST_GS_SELECTOR, gs_sel);		
+#endif /* __WINKVM__ */
 	}
+
+	printk(KERN_ALERT "start to store fs, gs base\n");	
 
 #ifdef CONFIG_X86_64
 	vmcs_writel(HOST_FS_BASE, read_msr(MSR_FS_BASE));
 	vmcs_writel(HOST_GS_BASE, read_msr(MSR_GS_BASE));
 #else
-	vmcs_writel(HOST_FS_BASE, segment_base(fs_sel));
-	vmcs_writel(HOST_GS_BASE, segment_base(gs_sel));
+/*	vmcs_writel(HOST_FS_BASE, segment_base(fs_sel)); */
+/*	vmcs_writel(HOST_GS_BASE, segment_base(gs_sel)); */
+	vmcs_writel(HOST_FS_BASE, read_fs_base());	
+	vmcs_writel(HOST_GS_BASE, read_gs_base());	
 #endif
 
+	printk(KERN_ALERT "end fs, gs base\n");	
+
 	if (!vcpu->mmio_read_completed)
-		do_interrupt_requests(vcpu, kvm_run);
+		do_interrupt_requests(vcpu, kvm_run);	
 
 	if (vcpu->guest_debug.enabled)
 		kvm_guest_debug_pre(vcpu);
 
+	printk(KERN_ALERT "start fx function\n");	
 	fx_save(vcpu->host_fx_image);
 	fx_restore(vcpu->guest_fx_image);
+	printk(KERN_ALERT "end fx function\n");	
 
 	save_msrs(vcpu->host_msrs, vcpu->nmsrs);
-	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);
+	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);	
+
+	printk(KERN_ALERT "starting guest OS...\n");	
 
 	asm (
 		/* Store host registers */
@@ -1962,6 +2015,8 @@ again:
 		[cr2]"i"(offsetof(struct kvm_vcpu, cr2))
 	      : "cc", "memory" );
 
+	printk(KERN_ALERT "return to guest OS\n");
+	
 	/*
 	 * Reload segment selectors ASAP. (it's needed for a functional
 	 * kernel: x86 relies on having __KERNEL_PDA in %fs and x86_64
@@ -1969,15 +2024,15 @@ again:
 	 */
 	if (fs_gs_ldt_reload_needed) {
 		load_ldt(ldt_sel);
-		load_fs(fs_sel);
+		load_fs(fs_sel);		
 		/*
 		 * If we have to reload gs, we must take care to
 		 * preserve our gs base.
 		 */
 		local_irq_disable();
-		load_gs(gs_sel);
+		load_gs(gs_sel);		
 #ifdef CONFIG_X86_64
-		wrmsrl(MSR_GS_BASE, vmcs_readl(HOST_GS_BASE));
+		wrmsrl(MSR_GS_BASE, vmcs_readl(HOST_GS_BASE));		
 #endif
 		local_irq_enable();
 
@@ -1992,7 +2047,11 @@ again:
 	fx_restore(vcpu->host_fx_image);
 	vcpu->interrupt_window_open = (vmcs_read32(GUEST_INTERRUPTIBILITY_INFO) & 3) == 0;
 
+#ifndef __WINKVM__
 	asm ("mov %0, %%ds; mov %0, %%es" : : "r"(__USER_DS));
+#else
+	asm ("mov %0, %%ds; mov %1, %%es" : : "r"(read_ds()), "r"(read_es()));	
+#endif
 
 	kvm_run->exit_type = 0;
 	if (fail) {
@@ -2018,6 +2077,7 @@ again:
 			if (signal_pending(current)) {
 				++kvm_stat.signal_exits;
 				post_kvm_run_save(vcpu, kvm_run);
+				FUNCTION_EXIT();				
 				return -EINTR;
 			}
 #endif			
@@ -2025,6 +2085,7 @@ again:
 			if (dm_request_for_irq_injection(vcpu, kvm_run)) {
 				++kvm_stat.request_irq_exits;
 				post_kvm_run_save(vcpu, kvm_run);
+				FUNCTION_EXIT();				
 				return -EINTR;
 			}
 
@@ -2033,7 +2094,8 @@ again:
 		}
 	}
 
-	post_kvm_run_save(vcpu, kvm_run);
+	post_kvm_run_save(vcpu, kvm_run);	
+	FUNCTION_EXIT();	
 	return r;
 }
 

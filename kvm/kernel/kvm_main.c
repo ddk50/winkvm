@@ -1613,9 +1613,11 @@ void save_msrs(struct vmx_msr_entry *e, int n)
 }
 EXPORT_SYMBOL_GPL(save_msrs);
 
-static int kvm_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
+int kvm_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)  
 {
 	int r;
+
+	FUNCTION_ENTER();	
 
 	vcpu_load(vcpu);
 
@@ -1638,6 +1640,8 @@ static int kvm_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 	r = kvm_arch_ops->run(vcpu, kvm_run);
 
 	vcpu_put(vcpu);
+
+	FUNCTION_EXIT();	
 	return r;
 }
 
@@ -2024,7 +2028,7 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 
 	FUNCTION_ENTER();	
 
-	//	atomic_inc(&vcpu->kvm->filp->f_count);	
+	atomic_inc(&vcpu->kvm->filp->f_count);	
 	
 	inode = kvmfs_inode(&kvm_vcpu_fops);
 	if (IS_ERR(inode)) {
@@ -2063,7 +2067,7 @@ out1:
 /*
  * Creates some virtual cpus.  Good luck creating more than one.
  */
-int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n) 
+int kvm_vm_ioctl_create_vcpu(struct kvm *kvm, int n)  
 {
 	int r;
 	struct kvm_vcpu *vcpu;

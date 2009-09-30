@@ -4,7 +4,7 @@
 
 #ifdef __WINKVM__
 
-#include <asm/segment_32.h>
+//#include <asm/segment_32.h>
 #include <asm/winkvm86.h>
 
 /* FIXME */
@@ -141,10 +141,10 @@ static inline unsigned long __ffs(unsigned long word)
  */
 static inline void clear_bit(int nr, volatile unsigned long * addr)
 {
-	__asm__ __volatile__( LOCK_PREFIX
-		"btrl %1,%0"
-		:"+m" (ADDR)
-		:"Ir" (nr));
+	__asm__ __volatile__(						 
+		"lock; btrl %1,%0"		
+		:"+m" (ADDR)		 
+		:"Ir" (nr));	
 }
 
 #define rdmsr(msr,val1,val2)						\
@@ -203,11 +203,25 @@ static inline int wrmsr_safe(u32 __msr, u32 __low, u32 __high)
 #define rdtscp(low,high,aux) \
      __asm__ __volatile__ (".byte 0x0f,0x01,0xf9" : "=a" (low), "=d" (high), "=c" (aux))
 
-#define rdtscll(val) do { \
-     unsigned int __a,__d; \
-     __asm__ __volatile__("rdtsc" : "=a" (__a), "=d" (__d)); \
-     (val) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
-} while(0)
+/* #define rdtscll(val) do {	\ */
+/*       unsigned int __a,__d; \ */
+/*       __asm__ __volatile__("rdtsc" : "=a" (__a), "=d" (__d)); \ */
+/*       (val) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \ */
+/*   } while(0) */
+
+static inline unsigned long long native_read_tsc(void)
+{
+	unsigned long long val;
+
+	/* rdtsc_barrier(); */
+	asm volatile("rdtsc" : "=A" (val));
+	/* rdtsc_barrier(); */	
+
+	return val;
+}
+
+#define rdtscll(val)							\
+  ((val) = native_read_tsc())
 
 #define rdtscpll(val, aux) do { \
      unsigned long __a, __d; \
@@ -218,7 +232,10 @@ static inline int wrmsr_safe(u32 __msr, u32 __low, u32 __high)
 #define write_tsc(val1,val2) wrmsr(0x10, val1, val2)
 #define write_rdtscp_aux(val) wrmsr(0xc0000103, val, 0)
 
-static inline void load_TR_desc(void)  
+/* FIXME */
+#define GDT_ENTRY_TSS			(4)
+
+static inline void load_TR_desc(void)
 {
 	asm volatile("ltr %w0"::"q" (GDT_ENTRY_TSS*8));
 }
@@ -265,7 +282,7 @@ static inline unsigned long read_cr4(void)
 static inline unsigned long read_cr0(void)
 {
 	unsigned long val;
-	asm volatile("movl %%cr0,%0\n\t" :"=r" (val));
+	asm volatile("movl %%cr0,%0\n\t" :"=r" (val));	
 	return val;
 }
 
@@ -297,6 +314,94 @@ static inline void write_cr3(unsigned long val)
 {
 	asm volatile("movl %0,%%cr3": :"r" (val));
 }
+
+/**
+ * Kazushi original functions 
+ */
+
+static inline unsigned short read_es(void)
+{
+	unsigned short r;	
+	asm volatile ("mov %%es, %0" : "=r"(r));	
+	return r;
+}
+
+static inline unsigned short read_cs(void)
+{
+	unsigned short r;	
+	asm volatile ("mov %%cs, %0" : "=r"(r));	
+	return r;
+}
+
+static inline unsigned short read_ss(void)
+{
+	unsigned short r;	
+	asm volatile ("mov %%ss, %0" : "=r"(r));	
+	return r;
+}
+
+static inline unsigned short read_ds(void)	
+{
+	unsigned short r;	
+	asm volatile ("mov %%ds, %0" : "=r"(r));	
+	return r;
+}
+
+static inline unsigned short store_fs(void)  
+{
+	unsigned short r;
+	asm volatile ("mov %%fs, %0" : "=r"(r));
+	return r;
+}
+
+static inline unsigned short store_gs(void)  
+{
+	unsigned short r;
+	asm volatile ("mov %%gs, %0" : "=r"(r));	
+	return r;
+}
+
+static inline unsigned long read_fs_base(void)
+{
+	unsigned short fs_s = store_fs() >> 3;	
+	unsigned long base_address;	
+	struct Xgt_desc_struct Xgt_desc;	
+	struct desc_struct *desc;
+
+	FUNCTION_ENTER();   
+
+	store_gdt(&Xgt_desc);
+	desc = (struct desc_struct*)Xgt_desc.address;	
+
+	base_address =  (desc[fs_s].base2 << 24) | (desc[fs_s].base1 << 16) | desc[fs_s].base0;
+	
+	FUNCTION_EXIT();
+	
+	return base_address;
+}
+
+static inline unsigned long read_gs_base(void)
+{
+	unsigned short gs_s = store_gs() >> 3;	
+	unsigned long base_address;	
+	struct Xgt_desc_struct Xgt_desc;	
+	struct desc_struct *desc;
+
+	FUNCTION_ENTER();
+	
+	store_gdt(&Xgt_desc);
+	desc = (struct desc_struct*)Xgt_desc.address;
+
+	base_address =  (desc[gs_s].base2 << 24) | (desc[gs_s].base1 << 16) | desc[gs_s].base0;	
+
+	FUNCTION_EXIT();	
+	
+	return base_address;
+}
+
+/**
+ * end original functions
+ */
 
 /**
  * container_of - cast a member of a structure out to the containing structure
@@ -351,7 +456,7 @@ static inline void native_set_debugreg(int regno, unsigned long value)
 static __inline__ void atomic_inc(int *v)  
 {
 	__asm__ __volatile__(
-		LOCK_PREFIX "incl %0"					   
+		"lock; incl %0"					   
 		:"+m" (v));   
 }
 
@@ -363,8 +468,8 @@ static __inline__ void atomic_inc(int *v)
  */
 static __inline__ void atomic_dec(int *v)	
 {
-	__asm__ __volatile__(
-		LOCK_PREFIX "decl %0"
+	__asm__ __volatile__(		
+		"lock; decl %0"		
 		:"+m" (v));	
 }
 

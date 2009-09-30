@@ -23,7 +23,6 @@ sync:
 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
           "$(LINUX)"/include/asm/msr-index.h \
           "$(LINUX)"/include/asm/processor-flags.h \
-          "$(LINUX)"/include/asm/segment_32.h \
           "$(LINUX)"/include/asm/errno.h \
           "$(LINUX)"/include/asm/winkvm86.h \
            ../../windows-linux-compat/asm
