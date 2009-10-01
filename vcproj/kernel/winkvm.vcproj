@@ -253,6 +253,14 @@
 				RelativePath=".\undefined.c"
 				>
 			</File>
+			<File
+				RelativePath=".\vmx-debug.c"
+				>
+			</File>
+			<File
+				RelativePath=".\vmxop.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -289,6 +297,10 @@
 			</File>
 			<File
 				RelativePath=".\test.h"
+				>
+			</File>
+			<File
+				RelativePath=".\vmxop.h"
 				>
 			</File>
 			<File
@@ -339,10 +351,6 @@
 			</File>
 			<File
 				RelativePath=".\kvmobjs\svm.obj"
-				>
-			</File>
-			<File
-				RelativePath=".\kvmobjs\vmx-debug.obj"
 				>
 			</File>
 			<File

@@ -10,7 +10,7 @@
 
 struct page {
 	union {
-		unsigned long private;
+		unsigned long private;	  
 		void *__mapping;		
 	};	
 	unsigned long index;

@@ -1831,16 +1831,14 @@ static int dm_request_for_irq_injection(struct kvm_vcpu *vcpu,
 		(vmcs_readl(GUEST_RFLAGS) & X86_EFLAGS_IF));
 }
 
+extern int vm_entry_test(struct kvm_vcpu *vcpu);
+
 int vmx_vcpu_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)   
 {	
 	u8 fail;
 	u16 fs_sel, gs_sel, ldt_sel;
 	int fs_gs_ldt_reload_needed;
 	int r;
-
-	asm volatile ("xorl %%eax, %%eax \n\t"				  
-				  "xorl %%ebx, %%ebx \n\t"
-				  "xorl %%ecx, %%ecx \n\t" ::: "memory" );	
 
 	FUNCTION_ENTER();	
 
@@ -1866,8 +1864,6 @@ again:
 #endif /* __WINKVM__ */
 	}
 
-	printk(KERN_ALERT "start to store fs, gs base\n");	
-
 #ifdef CONFIG_X86_64
 	vmcs_writel(HOST_FS_BASE, read_msr(MSR_FS_BASE));
 	vmcs_writel(HOST_GS_BASE, read_msr(MSR_GS_BASE));
@@ -1878,23 +1874,19 @@ again:
 	vmcs_writel(HOST_GS_BASE, read_gs_base());	
 #endif
 
-	printk(KERN_ALERT "end fs, gs base\n");	
-
 	if (!vcpu->mmio_read_completed)
 		do_interrupt_requests(vcpu, kvm_run);	
 
 	if (vcpu->guest_debug.enabled)
 		kvm_guest_debug_pre(vcpu);
-
-	printk(KERN_ALERT "start fx function\n");	
+	
 	fx_save(vcpu->host_fx_image);
 	fx_restore(vcpu->guest_fx_image);
-	printk(KERN_ALERT "end fx function\n");	
 
 	save_msrs(vcpu->host_msrs, vcpu->nmsrs);
-	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);	
+	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);
 
-	printk(KERN_ALERT "starting guest OS...\n");	
+	vm_entry_test(vcpu);	
 
 	asm (
 		/* Store host registers */

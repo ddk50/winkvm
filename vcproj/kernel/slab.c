@@ -18,8 +18,6 @@
 #include "slab.h"
 #include "kernel.h"
 
-#define PAGE_MASK (~(PAGE_SIZE-1))
-
 #define PAGE_NOT_USED        0xfffffffful
 #define PAGE_NOTNEED_FREE    0xfffffffeul
 

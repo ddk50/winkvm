@@ -172,7 +172,8 @@ static int is_canonical(unsigned long addr)
        return  addr == ((long)addr << 16) >> 16;
 }
 
-int vm_entry_test_guest(struct kvm_vcpu *vcpu)
+
+int vm_entry_test_guest(struct kvm_vcpu *vcpu)  
 {
 	unsigned long cr0;
 	unsigned long cr4;
@@ -935,12 +936,12 @@ int vm_entry_test_host(struct kvm_vcpu *vcpu)
 	return r;
 }
 
-int vm_entry_test(struct kvm_vcpu *vcpu)
+int vm_entry_test(struct kvm_vcpu *vcpu)  
 {
 	int rg, rh;
 
 	rg = vm_entry_test_guest(vcpu);
-	rh = vm_entry_test_host(vcpu);
+	rh = vm_entry_test_host(vcpu);	
 	return rg && rh;
 }
 

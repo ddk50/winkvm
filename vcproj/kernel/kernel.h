@@ -49,4 +49,6 @@ int atomic_inc_and_test(int *v);
 #define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
 #define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
 
+#define PAGE_MASK (~(PAGE_SIZE-1))
+
 #endif
