@@ -167,9 +167,9 @@ void vmcs_write32(unsigned long field, __u32 value)
 
 void vmcs_write64(unsigned long field, __u64 value)
 {
-  /*
-   * [FIXME]: Bugs on 64bit mode
-   */
-  vmcs_writel(field, value & 0xffffffff);
-  vmcs_writel(field+1, value >> 32);
+	/*
+	* [FIXME]: Bugs on 64bit mode
+	*/
+	vmcs_writel(field, value & 0xffffffff);
+	vmcs_writel(field+1, value >> 32);
 }

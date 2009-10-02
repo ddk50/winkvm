@@ -1056,6 +1056,9 @@ static void seg_setup(int seg)
 	vmcs_write32(sf->ar_bytes, 0x93);
 }
 
+extern void kvm_vmx_return(void);
+extern void kvm_vmx_fake_return(void);
+
 /*
  * Sets up the vmcs for emulated real mode.
  */
@@ -1069,7 +1072,6 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	int ret = 0;
 	int nr_good_msrs;
 	
-	extern void kvm_vmx_return(void);	
 	//	extern void _kvm_vmx_return(void);	
 
 	if (!init_rmode_tss(vcpu->kvm)) {
@@ -1182,7 +1184,7 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	vmcs_write16(HOST_FS_SELECTOR, read_fs());    /* 22.2.4 */
 	vmcs_write16(HOST_GS_SELECTOR, read_gs());    /* 22.2.4 */	
 	vmcs_write16(HOST_SS_SELECTOR, read_ss());  /* 22.2.4 */	
-#endif
+#endif /* __WINKVM__ */   
 	
 #ifdef CONFIG_X86_64
 	rdmsrl(MSR_FS_BASE, a);
@@ -1209,7 +1211,8 @@ static int vmx_vcpu_setup(struct kvm_vcpu *vcpu)
 	vmcs_writel(HOST_IDTR_BASE, dt.base);   /* 22.2.4 */
 
 
-	vmcs_writel(HOST_RIP, (unsigned long)kvm_vmx_return); /* 22.2.5 */	
+	//	vmcs_writel(HOST_RIP, (unsigned long)kvm_vmx_return); /* 22.2.5 */
+	vmcs_writel(HOST_RIP, (unsigned long)kvm_vmx_fake_return);	
 
 	rdmsr(MSR_IA32_SYSENTER_CS, host_sysenter_cs, junk);
 	vmcs_write32(HOST_IA32_SYSENTER_CS, host_sysenter_cs);
@@ -1574,8 +1577,7 @@ static int handle_io(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 	return 0;
 }
 
-static void
-vmx_patch_hypercall(struct kvm_vcpu *vcpu, unsigned char *hypercall)
+static void vmx_patch_hypercall(struct kvm_vcpu *vcpu, unsigned char *hypercall)  
 {
 	/*
 	 * Patch in the VMCALL instruction:
@@ -1832,6 +1834,7 @@ static int dm_request_for_irq_injection(struct kvm_vcpu *vcpu,
 }
 
 extern int vm_entry_test(struct kvm_vcpu *vcpu);
+extern void vm_start(void);
 
 int vmx_vcpu_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)   
 {	
@@ -1869,7 +1872,7 @@ again:
 	vmcs_writel(HOST_GS_BASE, read_msr(MSR_GS_BASE));
 #else
 /*	vmcs_writel(HOST_FS_BASE, segment_base(fs_sel)); */
-/*	vmcs_writel(HOST_GS_BASE, segment_base(gs_sel)); */
+/*	vmcs_writel(HOST_GS_BASE, segment_base(gs_sel)); */	
 	vmcs_writel(HOST_FS_BASE, read_fs_base());	
 	vmcs_writel(HOST_GS_BASE, read_gs_base());	
 #endif
@@ -1884,12 +1887,23 @@ again:
 	fx_restore(vcpu->guest_fx_image);
 
 	save_msrs(vcpu->host_msrs, vcpu->nmsrs);
-	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);
+	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);	
 
-	vm_entry_test(vcpu);	
+	vm_entry_test(vcpu);
+
+#ifndef __WINKVM
+	vmcs_writel(HOST_CR0, read_cr0());  /* 22.2.3 */
+	vmcs_writel(HOST_CR4, read_cr4());  /* 22.2.3, 22.2.5 */
+	vmcs_writel(HOST_CR3, read_cr3());  /* 22.2.3  FIXME: shadow tables */	
+#endif	
+
+	printk(KERN_ALERT "host_cr0: 0x%08lx\n", vmcs_readl(HOST_CR0));
+	printk(KERN_ALERT "RIP: 0x%08lx\n", vmcs_readl(HOST_RIP));	
 
 	asm (
 		/* Store host registers */
+		 ".globl _vm_start \n\t"		 
+		 "_vm_start: \n\t"		 
 		"pushf \n\t"
 #ifdef CONFIG_X86_64
 		"push %%rax; push %%rbx; push %%rdx;"
@@ -2007,7 +2021,7 @@ again:
 		[cr2]"i"(offsetof(struct kvm_vcpu, cr2))
 	      : "cc", "memory" );
 
-	printk(KERN_ALERT "return to guest OS\n");
+	printk(KERN_ALERT "return to guest OS\n");	
 	
 	/*
 	 * Reload segment selectors ASAP. (it's needed for a functional

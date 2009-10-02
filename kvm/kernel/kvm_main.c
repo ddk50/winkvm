@@ -229,7 +229,7 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 	FUNCTION_ENTER();	
 
 	while (size) {
-		hpa_t paddr;
+		hpa_t paddr;		
 		unsigned now;
 		unsigned offset;
 		hva_t guest_buf;
@@ -258,7 +258,7 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 }
 EXPORT_SYMBOL_GPL(kvm_read_guest);
 
-int kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
+int kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,					
 					void *data)  
 {
 	unsigned char *host_buf = data;
@@ -269,7 +269,7 @@ int kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 	while (size) {
 		hpa_t paddr;
 		unsigned now;
-		unsigned offset;
+		unsigned offset;		
 		hva_t guest_buf;
 		gfn_t gfn;
 
@@ -809,7 +809,7 @@ raced:
 	return 0;
 
 out_unlock:	
-	spin_unlock(&kvm->lock);
+	spin_unlock(&kvm->lock);	
 out_free:
 	kvm_free_physmem_slot(&new, &old);
 out:
@@ -873,7 +873,7 @@ static int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
 		}
 	}
 
-	r = 0;
+	r = 0;	
 
 out:
 	spin_lock(&kvm->lock);

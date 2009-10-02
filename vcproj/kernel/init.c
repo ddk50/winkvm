@@ -134,6 +134,8 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING Win32NameString;
 
+	FUNCTION_ENTER();
+
 	vmx_exit();
 
 	RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
@@ -146,6 +148,8 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	release_smp_emulater();
 	release_slab_emulater();
 	release_file_emulater();
+
+	FUNCTION_EXIT();
 
     return;
 }
@@ -225,6 +229,7 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 					 &ioStatusBlock,
 					 0,
 					 FILE_NON_DIRECTORY_FILE);	
+
 	if (!NT_SUCCESS(ret)) {
 		printk(KERN_ALERT " Could not open test binary file\n");
 		goto free_ret;
@@ -242,10 +247,12 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 					 GUEST_IMG_SIZE, 
 					 &byteOffset, 
 					 NULL);
+
 	if (!NT_SUCCESS(ret)){
 		printk(KERN_ALERT " Could not read test binary\n");
 		goto close_free_ret;
 	}
+
 	printk(KERN_ALERT " Read bytes: High: %d, Low: %d\n", 
 		               byteOffset.u.HighPart,		   
 					   byteOffset.u.LowPart);
@@ -454,7 +461,12 @@ MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 	PMDL mdl = NULL;
 	PVOID ret = NULL;
 
-	mdl = IoAllocateMdl(KernelSpaceAddress, PAGE_SIZE, FALSE, FALSE, NULL);
+	mdl = IoAllocateMdl(KernelSpaceAddress, 
+		                PAGE_SIZE, 
+						FALSE, 
+						FALSE, 
+						NULL);
+
 	SAFE_ASSERT(mdl != NULL);
 	if (!mdl) {		
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
@@ -466,9 +478,13 @@ MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 	MmBuildMdlForNonPagedPool(mdl);
 	printk(KERN_ALERT "BuildMdlForNonPage\n");
 
-	ret = MmMapLockedPagesSpecifyCache(mdl, UserMode, 
-		                               MmNonCached, UserSpaceAddress, 
-									   FALSE, HighPagePriority);
+	ret = MmMapLockedPagesSpecifyCache(mdl,
+		                               UserMode, 
+		                               MmNonCached, 
+									   UserSpaceAddress, 
+									   FALSE, 
+									   HighPagePriority);
+
 	SAFE_ASSERT(ret == UserSpaceAddress);
 	
 	printk(KERN_ALERT "Mapping done\n");
@@ -488,4 +504,20 @@ ConvertRetval(IN int ret)
 	}
 
 	return ntStatus;
+}
+
+__declspec( naked ) 
+void _cdecl kvm_vmx_fake_return(void)
+{
+	__asm {
+		pushfd
+		pushad
+	};
+
+	printk("VM-exit\n");
+
+	__asm {
+		popad
+		popfd
+	};
 }

@@ -209,7 +209,7 @@ void show_u64(struct kvm_vcpu *vcpu, gva_t addr)
 
 static int is_canonical(unsigned long addr)
 {
-       return  addr == ((long)addr << 16) >> 16;
+	return  addr == ((long)addr << 16) >> 16;
 }
 
 
@@ -326,9 +326,11 @@ int _cdecl vm_entry_test_guest(struct kvm_vcpu *vcpu)
 		return 0;
 	}
 
-	if (!long_mode && (cr4 & CR4_PAE_MASK)) {
+
+/* This test was skipped */
+/*	if (!long_mode && (cr4 & CR4_PAE_MASK)) { */
 		/* check the 4 PDPTEs for reserved bits */
-		unsigned long pdpt_pfn = cr3 >> PAGE_SHIFT;
+/*		unsigned long pdpt_pfn = cr3 >> PAGE_SHIFT;
 		int i;
 		u64 pdpte;
 		unsigned offset = (cr3 & (PAGE_SIZE-1)) >> 5;
@@ -348,6 +350,7 @@ int _cdecl vm_entry_test_guest(struct kvm_vcpu *vcpu)
 			return 0;
 		}
 	}
+	*/
 
 	dr7 = vmcs_readl(GUEST_DR7);
 
