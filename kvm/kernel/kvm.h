@@ -491,12 +491,20 @@ void kvm_mmu_free_some_pages(struct kvm_vcpu *vcpu);
 
 int kvm_hypercall(struct kvm_vcpu *vcpu, struct kvm_run *run);
 
-static inline int kvm_mmu_page_fault(struct kvm_vcpu *vcpu, gva_t gva,
-				     u32 error_code)
+static inline int kvm_mmu_page_fault(struct kvm_vcpu *vcpu, gva_t gva,									 
+									 u32 error_code)
 {
+	FUNCTION_ENTER();	
+#ifndef __WINKVM__
 	if (unlikely(vcpu->kvm->n_free_mmu_pages < KVM_MIN_FREE_MMU_PAGES))
 		kvm_mmu_free_some_pages(vcpu);
-	return vcpu->mmu.page_fault(vcpu, gva, error_code);
+#else
+	if (vcpu->kvm->n_free_mmu_pages < KVM_MIN_FREE_MMU_PAGES)		
+		kvm_mmu_free_some_pages(vcpu);	
+#endif
+	FUNCTION_EXIT();
+	/* vcpu->mmu.page_fault was jumped to irrigal rip */	
+	return vcpu->mmu.page_fault(vcpu, gva, error_code);	
 }
 
 static inline struct page *_gfn_to_page(struct kvm *kvm, gfn_t gfn)
@@ -626,6 +634,7 @@ static inline u32 get_rdx_init_val(void)
 	return 0x600; /* P6 family */
 }
 
+/* RAX -> RDX */
 #define ASM_VMX_VMCLEAR_RAX       ".byte 0x66, 0x0f, 0xc7, 0x30"
 #define ASM_VMX_VMLAUNCH          ".byte 0x0f, 0x01, 0xc2"
 #define ASM_VMX_VMRESUME          ".byte 0x0f, 0x01, 0xc3"

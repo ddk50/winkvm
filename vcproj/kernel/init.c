@@ -506,6 +506,7 @@ ConvertRetval(IN int ret)
 	return ntStatus;
 }
 
+/* test trampline */
 __declspec( naked ) 
 void _cdecl kvm_vmx_fake_return(void)
 {

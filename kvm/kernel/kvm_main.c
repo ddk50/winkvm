@@ -301,7 +301,7 @@ EXPORT_SYMBOL_GPL(kvm_write_guest);
 /*
  * Switches to specified vcpu, until a matching vcpu_put()
  */
-static void vcpu_load(struct kvm_vcpu *vcpu)
+static void vcpu_load(struct kvm_vcpu *vcpu)  
 {
 	mutex_lock(&vcpu->mutex);
 	kvm_arch_ops->vcpu_load(vcpu);	
@@ -1223,10 +1223,12 @@ int emulate_instruction(struct kvm_vcpu *vcpu,
 	int r;
 	int cs_db, cs_l;
 
+	FUNCTION_ENTER();	
+
 	vcpu->mmio_fault_cr2 = cr2;
 	kvm_arch_ops->cache_regs(vcpu);
 
-	kvm_arch_ops->get_cs_db_l_bits(vcpu, &cs_db, &cs_l);
+	kvm_arch_ops->get_cs_db_l_bits(vcpu, &cs_db, &cs_l);	
 
 	emulate_ctxt.vcpu = vcpu;
 	emulate_ctxt.eflags = kvm_arch_ops->get_rflags(vcpu);
@@ -1262,21 +1264,29 @@ int emulate_instruction(struct kvm_vcpu *vcpu,
 	}
 
 	if (r) {
-		if (kvm_mmu_unprotect_page_virt(vcpu, cr2))
+		if (kvm_mmu_unprotect_page_virt(vcpu, cr2)) {
+			FUNCTION_EXIT();			
 			return EMULATE_DONE;
+		}		
 		if (!vcpu->mmio_needed) {
 			report_emulation_failure(&emulate_ctxt);
+			FUNCTION_EXIT();			
 			return EMULATE_FAIL;
 		}
+		FUNCTION_EXIT();		
 		return EMULATE_DO_MMIO;
 	}
 
 	kvm_arch_ops->decache_regs(vcpu);
 	kvm_arch_ops->set_rflags(vcpu, emulate_ctxt.eflags);
 
-	if (vcpu->mmio_is_write)
+	if (vcpu->mmio_is_write) {
+		FUNCTION_EXIT();		
 		return EMULATE_DO_MMIO;
+	}	
 
+	FUNCTION_EXIT();
+	
 	return EMULATE_DONE;
 }
 EXPORT_SYMBOL_GPL(emulate_instruction);
@@ -1586,12 +1596,14 @@ static int set_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 data)
 
 void kvm_resched(struct kvm_vcpu *vcpu)
 {
-#ifndef __WINKVM__
+	FUNCTION_ENTER();	
+#ifndef __WINKVM__  
 	vcpu_put(vcpu);
 	cond_resched();
 	vcpu_load(vcpu);
 #else	
 #endif
+	FUNCTION_EXIT();	
 }
 EXPORT_SYMBOL_GPL(kvm_resched);
 

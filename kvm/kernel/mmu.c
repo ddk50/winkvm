@@ -896,6 +896,8 @@ static int nonpaging_init_context(struct kvm_vcpu *vcpu)
 {
 	struct kvm_mmu *context = &vcpu->mmu;
 
+	FUNCTION_ENTER();	
+
 	context->new_cr3 = nonpaging_new_cr3;
 	context->page_fault = nonpaging_page_fault;
 	context->gva_to_gpa = nonpaging_gva_to_gpa;
@@ -905,6 +907,9 @@ static int nonpaging_init_context(struct kvm_vcpu *vcpu)
 	mmu_alloc_roots(vcpu);
 	ASSERT(VALID_PAGE(context->root_hpa));
 	kvm_arch_ops->set_cr3(vcpu, context->root_hpa);
+
+	FUNCTION_EXIT();   
+	
 	return 0;
 }
 
@@ -1022,6 +1027,8 @@ static int paging64_init_context_common(struct kvm_vcpu *vcpu, int level)
 {
 	struct kvm_mmu *context = &vcpu->mmu;
 
+	FUNCTION_ENTER();	
+
 	ASSERT(is_pae(vcpu));
 	context->new_cr3 = paging_new_cr3;
 	context->page_fault = paging64_page_fault;
@@ -1033,17 +1040,22 @@ static int paging64_init_context_common(struct kvm_vcpu *vcpu, int level)
 	ASSERT(VALID_PAGE(context->root_hpa));
 	kvm_arch_ops->set_cr3(vcpu, context->root_hpa |
 		    (vcpu->cr3 & (CR3_PCD_MASK | CR3_WPT_MASK)));
+
+	FUNCTION_EXIT();
+	
 	return 0;
 }
 
 static int paging64_init_context(struct kvm_vcpu *vcpu)
-{
+{	
 	return paging64_init_context_common(vcpu, PT64_ROOT_LEVEL);
 }
 
 static int paging32_init_context(struct kvm_vcpu *vcpu)
 {
 	struct kvm_mmu *context = &vcpu->mmu;
+
+	FUNCTION_ENTER();	
 
 	context->new_cr3 = paging_new_cr3;
 	context->page_fault = paging32_page_fault;
@@ -1055,6 +1067,9 @@ static int paging32_init_context(struct kvm_vcpu *vcpu)
 	ASSERT(VALID_PAGE(context->root_hpa));
 	kvm_arch_ops->set_cr3(vcpu, context->root_hpa |
 		    (vcpu->cr3 & (CR3_PCD_MASK | CR3_WPT_MASK)));
+
+	FUNCTION_EXIT();	
+	
 	return 0;
 }
 
@@ -1065,17 +1080,23 @@ static int paging32E_init_context(struct kvm_vcpu *vcpu)
 
 static int init_kvm_mmu(struct kvm_vcpu *vcpu)
 {
+	FUNCTION_ENTER();	
 	ASSERT(vcpu);
 	ASSERT(!VALID_PAGE(vcpu->mmu.root_hpa));
 
-	if (!is_paging(vcpu))
+	if (!is_paging(vcpu)) {
+		FUNCTION_EXIT();
 		return nonpaging_init_context(vcpu);
-	else if (is_long_mode(vcpu))
+	} else if (is_long_mode(vcpu)) {
+		FUNCTION_EXIT();
 		return paging64_init_context(vcpu);
-	else if (is_pae(vcpu))
+	} else if (is_pae(vcpu)) {
+		FUNCTION_EXIT();
 		return paging32E_init_context(vcpu);
-	else
+	} else {
+		FUNCTION_EXIT();	   
 		return paging32_init_context(vcpu);
+	}   
 }
 
 static void destroy_kvm_mmu(struct kvm_vcpu *vcpu)
@@ -1091,12 +1112,15 @@ int kvm_mmu_reset_context(struct kvm_vcpu *vcpu)
 {
 	int r;
 
+	FUNCTION_ENTER();	
+
 	destroy_kvm_mmu(vcpu);
 	r = init_kvm_mmu(vcpu);
 	if (r < 0)
 		goto out;
 	r = mmu_topup_memory_caches(vcpu);
 out:
+	FUNCTION_EXIT();	
 	return r;
 }
 
