@@ -22,4 +22,6 @@ extern int _cdecl kvm_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_
 extern int _cdecl kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size, void *dest);
 extern int _cdecl kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size, void *data);
 
+extern int _cdecl check_function_pointer_test(void);
+
 #endif

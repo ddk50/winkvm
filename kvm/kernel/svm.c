@@ -61,7 +61,7 @@ struct kvm_ldttss_desc {
 	unsigned base1 : 8, type : 5, dpl : 2, p : 1;
 	unsigned limit1 : 4, zero0 : 3, g : 1, base2 : 8;
 	u32 base3;
-	u32 zero1;
+	u32 zero1;  
 } __attribute__((packed));
 
 struct svm_cpu_data {
@@ -182,7 +182,7 @@ static inline void write_dr7(unsigned long val)
 
 static inline void force_new_asid(struct kvm_vcpu *vcpu)
 {
-	vcpu->svm->asid_generation--;
+	vcpu->svm->asid_generation--;	
 }
 
 static inline void flush_guest_tlb(struct kvm_vcpu *vcpu)

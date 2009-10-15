@@ -619,7 +619,11 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 
 static struct vmcs *alloc_vmcs(void)
 {
-	return alloc_vmcs_cpu(raw_smp_processor_id());
+	struct vmcs *ptr;	
+	FUNCTION_ENTER();   
+	ptr = alloc_vmcs_cpu(raw_smp_processor_id());
+	FUNCTION_EXIT();	
+	return ptr;	
 }
 
 static void free_vmcs(struct vmcs *vmcs)
@@ -660,6 +664,7 @@ static __init int alloc_kvm_area(void)
 		vmcs = alloc_vmcs_cpu(cpu);
 		if (!vmcs) {
 			free_kvm_area();
+			FUNCTION_EXIT();			
 			return -ENOMEM;
 		}		
 
@@ -744,7 +749,7 @@ static void enter_pmode(struct kvm_vcpu *vcpu)
 static int rmode_tss_base(struct kvm* kvm)
 {
 	gfn_t base_gfn = kvm->memslots[0].base_gfn + kvm->memslots[0].npages - 3;
-	return base_gfn << PAGE_SHIFT;
+	return base_gfn << PAGE_SHIFT;	
 }
 
 static void fix_rmode_seg(int seg, struct kvm_save_segment *save)
@@ -1011,12 +1016,15 @@ static int init_rmode_tss(struct kvm* kvm)
 	gfn_t fn = rmode_tss_base(kvm) >> PAGE_SHIFT;
 	char *page;
 
+	FUNCTION_ENTER();	
+
 	p1 = _gfn_to_page(kvm, fn++);
 	p2 = _gfn_to_page(kvm, fn++);
 	p3 = _gfn_to_page(kvm, fn);
 
 	if (!p1 || !p2 || !p3) {
 		kvm_printf(kvm,"%s: gfn_to_page failed\n", __FUNCTION__);
+		FUNCTION_EXIT();		
 		return 0;
 	}
 
@@ -1033,6 +1041,8 @@ static int init_rmode_tss(struct kvm* kvm)
 	memset(page, 0, PAGE_SIZE);
 	*(page + RMODE_TSS_SIZE - 2 * PAGE_SIZE - 1) = ~0;
 	kunmap_atomic(page, KM_USER0);
+
+	FUNCTION_EXIT();	
 
 	return 1;
 }
@@ -1446,6 +1456,7 @@ static int handle_exception(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 		set_bit(irq, vcpu->irq_pending);
 		set_bit(irq / BITS_PER_LONG, &vcpu->irq_summary);
 	}
+	
 
 	if ((intr_info & INTR_INFO_INTR_TYPE_MASK) == 0x200) { /* nmi */
 		asm ("int $2");
@@ -1460,6 +1471,7 @@ static int handle_exception(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 		cr2 = vmcs_readl(EXIT_QUALIFICATION);
 
 		spin_lock(&vcpu->kvm->lock);
+		/* here is bug point */
 		r = kvm_mmu_page_fault(vcpu, cr2, error_code);
 		if (r < 0) {
 			spin_unlock(&vcpu->kvm->lock);
@@ -1827,8 +1839,9 @@ static int kvm_handle_exit(struct kvm_run *kvm_run, struct kvm_vcpu *vcpu)
 {
 	u32 vectoring_info = vmcs_read32(IDT_VECTORING_INFO_FIELD);
 	u32 exit_reason = vmcs_read32(VM_EXIT_REASON);
+	int r;	
 
-	FUNCTION_ENTER();	
+	FUNCTION_ENTER();
 
 	if ( (vectoring_info & VECTORING_INFO_VALID_MASK) &&
 				exit_reason != EXIT_REASON_EXCEPTION_NMI )
@@ -1837,13 +1850,13 @@ static int kvm_handle_exit(struct kvm_run *kvm_run, struct kvm_vcpu *vcpu)
 	kvm_run->instruction_length = vmcs_read32(VM_EXIT_INSTRUCTION_LEN);
 	if (exit_reason < kvm_vmx_max_exit_handlers
 	    && kvm_vmx_exit_handlers[exit_reason]) {
-		printk(KERN_ALERT "exit reason is 0x%x\n", exit_reason);		
-		return kvm_vmx_exit_handlers[exit_reason](vcpu, kvm_run);
+		r = kvm_vmx_exit_handlers[exit_reason](vcpu, kvm_run);
 		FUNCTION_EXIT();		
+		return r;		
 	} else {		
 		kvm_run->exit_reason = KVM_EXIT_UNKNOWN;
 		kvm_run->hw.hardware_exit_reason = exit_reason;
-	}
+	}	
 	FUNCTION_EXIT();	
 	return 0;	
 }
@@ -1929,8 +1942,7 @@ again:
 
 	printk(KERN_ALERT "host_cr0: 0x%08lx\n", vmcs_readl(HOST_CR0));
 	printk(KERN_ALERT "RIP: 0x%08lx\n", vmcs_readl(HOST_RIP));
-
-	printk(KERN_ALERT "vcpu->launched: %d\n", vcpu->launched);	
+	printk(KERN_ALERT "vcpu->launched: %d\n", vcpu->launched);
 
 	asm (
 		/* Store host registers */
@@ -2066,19 +2078,19 @@ again:
 	printk(KERN_ALERT "return to guest OS\n");
 
 	printk("************************ sregs_dump ************************\n");
-	printk("cr0 = 0x%lx\n", vmcs_readl(GUEST_CR0));	
+	printk("cr0 = 0x%lx\n", vmcs_readl(GUEST_CR0));
 	printk("cr2 = 0x%lx\n", vcpu->cr2);
-	printk("cr3 = 0x%lx\n", vmcs_readl(GUEST_CR3));	
-	printk("cr4 = 0x%lx\n", vmcs_readl(GUEST_CR4));	
-	printk("rip = 0x%lx\n", vmcs_readl(GUEST_RIP));	
+	printk("cr3 = 0x%lx\n", vmcs_readl(GUEST_CR3));
+	printk("cr4 = 0x%lx\n", vmcs_readl(GUEST_CR4));
+	printk("rip = 0x%lx\n", vmcs_readl(GUEST_RIP));
 	printk("***********************************************************\n");
 
 #define REG_DUMP(reg)													\
 	printk(#reg" = 0x%lx(VCPU)\n", vcpu->regs[VCPU_REGS_##reg])
 #define VMCS_REG_DUMP(reg)												\
-	printk(#reg" = 0x%lx(VMCS)\n", vmcs_readl(GUEST_##reg))	
+	printk(#reg" = 0x%lx(VMCS)\n", vmcs_readl(GUEST_##reg))
 	
-	printk("************************ regs_dump ************************\n");	
+	printk("************************ regs_dump ************************\n");
 	REG_DUMP(RAX);
 	REG_DUMP(RBX);
 	REG_DUMP(RCX);
@@ -2087,7 +2099,10 @@ again:
 	REG_DUMP(RBP);
 	REG_DUMP(RSI);
 	REG_DUMP(RDI);
-#endif	
+#endif
+
+	printk(KERN_ALERT "VM-exit immediate aftermath\n");	
+	//	DbgBreakPoint();	
 	
 	/*
 	 * Reload segment selectors ASAP. (it's needed for a functional
@@ -2095,7 +2110,7 @@ again:
 	 * relies on having 0 in %gs for the CPU PDA to work.)
 	 */
 	if (fs_gs_ldt_reload_needed) {
-		load_ldt(ldt_sel);
+		load_ldt(ldt_sel);		
 		load_fs(fs_sel);		
 		/*
 		 * If we have to reload gs, we must take care to
@@ -2117,13 +2132,15 @@ again:
 
 	fx_save(vcpu->guest_fx_image);
 	fx_restore(vcpu->host_fx_image);
-	vcpu->interrupt_window_open = (vmcs_read32(GUEST_INTERRUPTIBILITY_INFO) & 3) == 0;
+	vcpu->interrupt_window_open = (vmcs_read32(GUEST_INTERRUPTIBILITY_INFO) & 3) == 0;	
 
 #ifndef __WINKVM__
 	asm ("mov %0, %%ds; mov %0, %%es" : : "r"(__USER_DS));
 #else
 	asm ("mov %0, %%ds; mov %1, %%es" : : "r"(read_ds()), "r"(read_es()));	
 #endif
+	
+	dump_context(&vcpu->mmu);	
 
 	kvm_run->exit_type = 0;
 	if (fail) {
@@ -2136,11 +2153,11 @@ again:
 	  
 		/*
 		 * Profile KVM exit RIPs:
-		 */
+		 */		
 #ifndef __WINKVM__
 		if (unlikely(prof_on == KVM_PROFILING))
 			profile_hit(KVM_PROFILING, (void *)vmcs_readl(GUEST_RIP));		
-#endif
+#endif		
 		
 		vcpu->launched = 1;
 		kvm_run->exit_type = KVM_EXIT_TYPE_VM_EXIT;		
@@ -2165,7 +2182,7 @@ again:
 			}
 
 			kvm_resched(vcpu);
-			goto again;
+			goto again;			
 		}
 	}
 	
@@ -2211,11 +2228,13 @@ static void vmx_inject_page_fault(struct kvm_vcpu *vcpu,
 
 static void vmx_free_vmcs(struct kvm_vcpu *vcpu)
 {
+	FUNCTION_ENTER();	
 	if (vcpu->vmcs) {
 		on_each_cpu(__vcpu_clear, vcpu, 0, 1);
 		free_vmcs(vcpu->vmcs);
 		vcpu->vmcs = NULL;
 	}
+	FUNCTION_EXIT();	
 }
 
 static void vmx_free_vcpu(struct kvm_vcpu *vcpu)
@@ -2320,6 +2339,7 @@ extern void test_size(int pvoid_size,
 			   int LIST_ENTRY_size);
 extern void test_call(char *from_func, int a, int b, int c);
 extern void test_nullcheck(void *null_val1);
+extern void test_for_phys2virt(void);
 extern int check_page_compatible(unsigned long page_size,
 								 unsigned long page_shift,
 								 unsigned long page_mask);
@@ -2329,7 +2349,7 @@ int vmx_init(void)
 	test_call(__FUNCTION__, 10, 20, 30);
 	test_size(sizeof(void*), sizeof(LIST_ENTRY));	
 	test_nullcheck(NULL);	
-	check_page_compatible(PAGE_SIZE, PAGE_SHIFT, PAGE_MASK);	
+	check_page_compatible(PAGE_SIZE, PAGE_SHIFT, PAGE_MASK);
 	
 	return kvm_init_arch(&vmx_arch_ops, THIS_MODULE);	
 }

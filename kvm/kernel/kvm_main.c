@@ -102,7 +102,7 @@ struct vfsmount *kvmfs_mnt;
 
 #ifdef CONFIG_X86_64
 // LDT or TSS descriptor in the GDT. 16 bytes.
-struct segment_descriptor_64 {
+struct segment_descriptor_64 {	
 	struct segment_descriptor s;
 	u32 base_higher;
 	u32 pad_zero;
@@ -958,20 +958,26 @@ void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
 	struct kvm_memory_slot *memslot = NULL;
 	unsigned long rel_gfn;
 
+	FUNCTION_ENTER();	
+
 	for (i = 0; i < kvm->nmemslots; ++i) {
 		memslot = &kvm->memslots[i];
 
 		if (gfn >= memslot->base_gfn
 		    && gfn < memslot->base_gfn + memslot->npages) {
 
-			if (!memslot || !memslot->dirty_bitmap)
+			if (!memslot || !memslot->dirty_bitmap) {
+				FUNCTION_EXIT();				
 				return;
+			}
 
 			rel_gfn = gfn - memslot->base_gfn;
 
 			/* avoid RMW */
 			if (!test_bit(rel_gfn, memslot->dirty_bitmap))
 				set_bit(rel_gfn, memslot->dirty_bitmap);
+			
+			FUNCTION_EXIT();			
 			return;
 		}
 	}
@@ -2780,7 +2786,7 @@ out2:
 out3:
 	return r;
 #else
-	test_call(__FUNCTION__, 10, 20, 30);	
+	test_call(__FUNCTION__, 10, 20, 30);
 	kvm_init_msr_list();	
 	
 	return 0;	
@@ -2795,6 +2801,51 @@ static __exit void kvm_exit(void)
 	unregister_filesystem(&kvm_fs_type);
 #endif	
 }
+
+#ifdef __WINKVM__
+
+void test_1_t(int a, int b, int c)
+{
+	printk(KERN_ALERT "%d %d %d %s\n",
+		   a, b, c, __FUNCTION__);	
+	return;	
+}
+
+static int test_2_t(int a, int b, int c)	
+{
+	printk(KERN_ALERT "%d, %d, %d %s\n",
+		   a, b, c, __FUNCTION__);	
+	return 1;	
+}
+
+int check_function_pointer_test(void)
+{
+	struct func_pointer_test *func_p;
+
+	FUNCTION_ENTER();	
+
+	func_p = kmalloc(sizeof(struct func_pointer_test), GFP_KERNEL);	
+	if (!func_p) {
+		printk(KERN_ALERT "Can not allocate memory for func test\n");		
+		return 0;		
+	}
+
+	memset(func_p, 0, sizeof(struct func_pointer_test));
+
+	func_p->test_1 = test_1_t;
+	func_p->test_2 = test_2_t;	
+
+	func_p->test_1(1, 2, 3);
+	func_p->test_2(10, 20, 30);	
+
+	kfree(func_p);
+	
+	FUNCTION_EXIT();	
+
+	return 1;	
+	
+}
+#endif
 
 module_init(kvm_init)
 module_exit(kvm_exit)

@@ -118,7 +118,8 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	printk(KERN_ALERT "All initialized!\n");
 	printk("call vmx_init()\n");
 
-	vmx_init();
+	check_function_pointer_test();
+	vmx_init();   
 
     return status;
 

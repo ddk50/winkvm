@@ -57,7 +57,8 @@ void release_slab_emulater(void)
 			pd = page_slot_root[i]->page;
 			/* bug!! */
 			for (k = 0 ; k < 1024 ; k++) {
-				if (pd[k].__wpfn != PAGE_NOT_USED && pd[k].__wpfn != PAGE_NOTNEED_FREE)
+				if (pd[k].__wpfn != PAGE_NOT_USED && 
+					pd[k].__wpfn != PAGE_NOTNEED_FREE)
 					KeFreePageMemory(pd[k].__nt_mem, pd[k].__nt_memsize);
 			}
 			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
@@ -232,6 +233,7 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 		page->__nt_mem     = (void*)addr;
 		page->__nt_memsize = actual_size;
 		page->__wpfn = ((hva_t)__nt_mem == addr) ? addr >> PAGE_SHIFT : PAGE_NOTNEED_FREE;
+		page->__ppfn = (unsigned long)__pa(addr) >> PAGE_SHIFT;
 
 		SAFE_ASSERT((addr & PAGE_MASK) == addr);
 	}
@@ -287,6 +289,7 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 
 		page->__nt_mem = NULL;
 		page->__nt_memsize = 0;
+		page->__ppfn = 0;
 		page->__wpfn = PAGE_NOT_USED;
 	}
 }
@@ -330,12 +333,12 @@ static struct page *get_page_slot(hva_t pageaddr)
 
 struct page* _cdecl pfn_to_page(hfn_t pfn)
 {
-	return get_page_slot(pfn << PAGE_SHIFT);
+	return get_page_slot((hva_t)__va(pfn << PAGE_SHIFT));
 }
 
 hfn_t _cdecl page_to_pfn(struct page *page)
-{
-	return ((hfn_t)page->__nt_mem) >> PAGE_SHIFT;
+{	
+	return (hfn_t)page->__ppfn;
 }
 
 int _cdecl get_order(unsigned long size)

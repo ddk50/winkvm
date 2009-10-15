@@ -174,6 +174,16 @@ struct kvm_mmu {
 	u64 *pae_root;
 };
 
+/* this is test code for ddk */
+struct func_pointer_test {	
+	void (*test_1)(int a, int b, int c);
+	int (*test_2)(int a, int b, int c);
+	hpa_t root_hpa;	
+	int root_level;
+	int shadow_root_level;
+	u64 *pae_root;	
+};
+
 #define KVM_NR_MEM_OBJS 20
 
 struct kvm_mmu_memory_cache {
@@ -491,10 +501,29 @@ void kvm_mmu_free_some_pages(struct kvm_vcpu *vcpu);
 
 int kvm_hypercall(struct kvm_vcpu *vcpu, struct kvm_run *run);
 
+extern __stdcall void DbgBreakPoint(void);
+
+/* for debugging (by ddk) */
+static inline void dump_context(struct kvm_mmu *context)	
+{
+	printk("context->new_cr3: 0x%08lx\n"		   
+		   "context->page_fault: 0x%08lx\n"		   
+		   "context->gva_to_gpa: 0x%08lx\n"
+		   "context->free: 0x%08lx\n"
+		   "context->root_level: 0x%08lx\n"
+		   "context->shadow_root_level: 0x%08lx\n",		   
+		   context->new_cr3,
+		   context->page_fault,
+		   context->gva_to_gpa,
+		   context->free,
+		   context->root_level,		   
+		   context->shadow_root_level);
+	return;	
+}
+
 static inline int kvm_mmu_page_fault(struct kvm_vcpu *vcpu, gva_t gva,									 
 									 u32 error_code)
 {
-	FUNCTION_ENTER();	
 #ifndef __WINKVM__
 	if (unlikely(vcpu->kvm->n_free_mmu_pages < KVM_MIN_FREE_MMU_PAGES))
 		kvm_mmu_free_some_pages(vcpu);
@@ -502,8 +531,8 @@ static inline int kvm_mmu_page_fault(struct kvm_vcpu *vcpu, gva_t gva,
 	if (vcpu->kvm->n_free_mmu_pages < KVM_MIN_FREE_MMU_PAGES)		
 		kvm_mmu_free_some_pages(vcpu);	
 #endif
-	FUNCTION_EXIT();
-	/* vcpu->mmu.page_fault was jumped to irrigal rip */	
+	dump_context(&vcpu->mmu);	
+	/* vcpu->mmu.page_fault jump to irrigal rip ??? */	
 	return vcpu->mmu.page_fault(vcpu, gva, error_code);	
 }
 

@@ -46,9 +46,27 @@ hpa_t get_phys(PHYSICAL_ADDRESS *addr)
 	return PAU64(addr);
 }
 
+/* Hidden API */
+NTKERNELAPI
+PVOID
+MmGetVirtualForPhysical(
+IN PHYSICAL_ADDRESS PhysicalAddress
+);
+
+void _cdecl test_for_phys2virt(void);
+
 void* _cdecl __va(unsigned long addr)
-{	
-	return (void*)addr;
+{
+	void *ret;
+	PHYSICAL_ADDRESS pr;	
+	pr.u.HighPart = (u64)addr << 32;
+	pr.u.LowPart  = addr;
+	pr.QuadPart = 0;
+	pr.HighPart = 0;
+	pr.LowPart = addr;
+	ret = MmGetVirtualForPhysical(pr);
+	SAFE_ASSERT(ret != (void*)0x0);
+	return ret;
 }
 
 u64 _cdecl __pa(hva_t virt)
@@ -56,6 +74,24 @@ u64 _cdecl __pa(hva_t virt)
 	PHYSICAL_ADDRESS paddr;
 	paddr = MmGetPhysicalAddress((PVOID)virt);
 	return PAU64(&paddr);
+}
+
+void _cdecl test_for_phys2virt(void)
+{
+	/* test */
+	PVOID p = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, MEM_TAG);
+	PHYSICAL_ADDRESS realAddr = MmGetPhysicalAddress(p);
+	PHYSICAL_ADDRESS *prealAddr = &realAddr;
+	unsigned long intrealaddr = (unsigned long)__pa((unsigned long)p);
+
+	printk(KERN_ALERT "Get Virtual Address: 0x%08lx\n", (unsigned long)p);
+	printk(KERN_ALERT "Physical Address (throught __pa): 0x%llx\n", intrealaddr);
+
+	printk(KERN_ALERT "Retranslate address\n");
+	printk(KERN_ALERT "Get Virtual Address: 0x%08lx\n", (unsigned long)MmGetVirtualForPhysical(realAddr));
+	printk(KERN_ALERT "Get Virtual Address (throught __va): 0x%08lx\n", __va(intrealaddr));
+
+	ExFreePoolWithTag(p, MEM_TAG);
 }
 
 int _cdecl pfn_valid(unsigned long pfn)

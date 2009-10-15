@@ -51,4 +51,7 @@ int atomic_inc_and_test(int *v);
 
 #define PAGE_MASK (~(PAGE_SIZE-1))
 
+void* _cdecl __va(unsigned long addr);
+u64 _cdecl __pa(hva_t virt);
+
 #endif
