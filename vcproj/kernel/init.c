@@ -433,19 +433,24 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			SAFE_ASSERT(vcpu);
 			ret = kvm_read_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
 			Irp->IoStatus.Information = ret;
-			ntStatus = ConvertRetval(ret);			
+			ntStatus = ConvertRetval(ret);
 			break;
 		}
 	case WINKVM_WRITE_GUEST:
 		{
-			struct winkvm_transfer_mem trans_mem;
+			struct winkvm_transfer_mem *trans_mem;
 			struct kvm_vcpu *vcpu;
+			unsigned char *p;
 			int ret;
 
-			RtlCopyMemory(&trans_mem, inBuf, sizeof(trans_mem));
-			vcpu = get_vcpu(trans_mem.vcpu_fd);
+			p = (unsigned char*)trans_mem = inBuf;
+			p += sizeof(trans_mem);
+
+			vcpu = get_vcpu(trans_mem->vcpu_fd);
 			SAFE_ASSERT(vcpu);
-			ret = kvm_write_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
+
+			ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, p);
+
 			Irp->IoStatus.Information = ret;
 			ntStatus = ConvertRetval(ret);	 
 			break;
