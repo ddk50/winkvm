@@ -30,6 +30,8 @@
 PDRIVER_OBJECT DriverObject;
 
 static void *maptest_page = NULL;
+/* this buffer should be take in DriverObject->DriverExtension */
+static int current_vcpu = -1;
 
 NTSTATUS 
 DriverEntry(IN OUT PDRIVER_OBJECT  DriverObjaect,
@@ -418,6 +420,34 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				KeFreePageMemory(maptest_page, PAGE_SIZE);
 			}
 			ntStatus = STATUS_SUCCESS;
+			break;
+		}
+	case WINKVM_READ_GUEST:
+		{
+			struct winkvm_transfer_mem trans_mem;
+			struct kvm_vcpu *vcpu;
+			int ret;
+
+			RtlCopyMemory(&trans_mem, inBuf, sizeof(trans_mem));
+			vcpu = get_vcpu(trans_mem.vcpu_fd);
+			SAFE_ASSERT(vcpu);
+			ret = kvm_read_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
+			Irp->IoStatus.Information = ret;
+			ntStatus = ConvertRetval(ret);			
+			break;
+		}
+	case WINKVM_WRITE_GUEST:
+		{
+			struct winkvm_transfer_mem trans_mem;
+			struct kvm_vcpu *vcpu;
+			int ret;
+
+			RtlCopyMemory(&trans_mem, inBuf, sizeof(trans_mem));
+			vcpu = get_vcpu(trans_mem.vcpu_fd);
+			SAFE_ASSERT(vcpu);
+			ret = kvm_write_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
+			Irp->IoStatus.Information = ret;
+			ntStatus = ConvertRetval(ret);	 
 			break;
 		}
 	default:

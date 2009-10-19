@@ -595,24 +595,22 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 	int node = cpu_to_node(cpu);
 	struct page *pages;
 	struct vmcs *vmcs;
-	
-	printk(KERN_ALERT "%s\n", __FUNCTION__);
-	printk(KERN_ALERT "order: 1024 = %d\n", get_order(1024));
-	printk(KERN_ALERT "order: 4096 = %d\n", get_order(4096));
-	printk(KERN_ALERT "order: 4096 * 2 = %d\n", get_order(4096 * 2));
-	printk(KERN_ALERT "order: 4096 * 3 = %d\n", get_order(4096 * 3));	
+
+	FUNCTION_ENTER();	   
 
 	pages = alloc_pages_node(node, GFP_KERNEL, vmcs_descriptor.order);
-	if (!pages)
+	if (!pages) {		
 		return NULL;
+	}	
 	vmcs = page_address(pages);
 	memset(vmcs, 0, vmcs_descriptor.size);
 	vmcs->revision_id = vmcs_descriptor.revision_id; /* vmcs revision id */
-	printk(KERN_ALERT "%s end\n", __FUNCTION__);
 
 	printk(KERN_ALERT "vmcs pointer: 0x%x\n", (unsigned long)vmcs);	
 	printk(KERN_ALERT "vmcs revision_id: %d\n", vmcs->revision_id);	
-	printk(KERN_ALERT "vmcs abort: %d\n", vmcs->abort);	
+	printk(KERN_ALERT "vmcs abort: %d\n", vmcs->abort);
+
+	FUNTION_EXIT();	
 	
 	return vmcs;
 }

@@ -54,13 +54,19 @@ struct kvm_memory_region {
 
 #ifdef __WINKVM__
 struct winkvm_memory_region {
-  int vm_fd;  
-  struct kvm_memory_region kvm_memory_region;  
+	int vm_fd;  
+	struct kvm_memory_region kvm_memory_region;	
 };
 
 struct winkvm_create_vcpu {
-  int vm_fd;
-  int vcpu_num;  
+	int vm_fd;
+	int vcpu_num;  
+};
+
+struct winkvm_transfer_mem {
+	int vcpu_fd;	
+	__u32 gva;
+	__u32 size;	
 };
 #endif
 
@@ -295,6 +301,9 @@ struct kvm_dirty_log {
 #define WINKVM_TESTMAP         _IOW(KVMIO, 31, unsigned long)
 #define WINKVM_RELEASE_TESTMAP _IO(KVMIO, 32)
 #define WINKVM_EXECUTE_TEST    _IO(KVMIO, 33)
+#define WINKVM_PUT_VCPU        _IO(KVMIO, 34)
+#define WINKVM_READ_GUEST      _IO(KVMIO, 35)
+#define WINKVM_WRITE_GUEST     _IO(KVMIO, 36)
 
 #endif
 
