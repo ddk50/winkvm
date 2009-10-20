@@ -58,9 +58,10 @@ struct winkvm_memory_region {
 	struct kvm_memory_region kvm_memory_region;	
 };
 
+/* vm_fd only is enough ?? */
 struct winkvm_create_vcpu {
 	int vm_fd;
-	int vcpu_num;  
+	int vcpu_fd;	
 };
 
 struct winkvm_transfer_mem {
@@ -95,6 +96,9 @@ enum kvm_exit_reason {
 
 /* for KVM_RUN */
 struct kvm_run {
+#ifdef __WINKVM__
+  int vcpu_fd;  
+#endif   
   /* in */
   __u32 emulated;  /* skip current instruction */
   __u32 mmio_completed; /* mmio request completed */
@@ -282,7 +286,11 @@ struct kvm_dirty_log {
 /*
  * ioctls for vcpu fds
  */
+#ifndef __WINKVM__
 #define KVM_RUN                   _IOWR(KVMIO, 2, struct kvm_run)
+#else
+#define KVM_RUN                   _IOWR(KVMIO, 17, struct kvm_run)
+#endif
 #define KVM_GET_REGS              _IOR(KVMIO, 3, struct kvm_regs)
 #define KVM_SET_REGS              _IOW(KVMIO, 4, struct kvm_regs)
 #define KVM_GET_SREGS             _IOR(KVMIO, 5, struct kvm_sregs)

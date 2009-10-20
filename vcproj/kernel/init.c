@@ -334,7 +334,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct winkvm_create_vcpu vcpu;
 			printk(KERN_ALERT "Call KVM_CREATE_VCPU\n");
 			RtlCopyMemory(&vcpu, inBuf, sizeof(vcpu));
-			ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_num);
+			ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_fd);
 
 			/* return vcpu value */
 			RtlCopyMemory(outBuf, &ret, sizeof(ret));
@@ -363,6 +363,22 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			RtlCopyMemory(outBuf, &winkvm_mem, sizeof(winkvm_mem));
 			Irp->IoStatus.Information = sizeof(winkvm_mem);
+			ntStatus = ConvertRetval(ret);
+			break;
+		}
+	case KVM_RUN:
+		{		
+			int ret;
+			struct kvm_run kvm_run;
+			struct kvm_vcpu *vcpu;
+
+			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
+
+			vcpu = get_vcpu(kvm_run.vcpu_fd);
+			SAFE_ASSERT(vcpu);		   
+
+			ret = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+
 			ntStatus = ConvertRetval(ret);
 			break;
 		}

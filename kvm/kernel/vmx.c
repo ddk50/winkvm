@@ -610,7 +610,7 @@ static struct vmcs *alloc_vmcs_cpu(int cpu)
 	printk(KERN_ALERT "vmcs revision_id: %d\n", vmcs->revision_id);	
 	printk(KERN_ALERT "vmcs abort: %d\n", vmcs->abort);
 
-	FUNTION_EXIT();	
+	FUNCTION_EXIT();	
 	
 	return vmcs;
 }

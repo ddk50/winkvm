@@ -319,6 +319,7 @@ static struct page *get_page_slot(hva_t pageaddr)
 			pgr->page[i].__wpfn = PAGE_NOT_USED;
 			pgr->page[i].__nt_mem = NULL;
 			pgr->page[i].__nt_memsize = 0;
+			pgr->page[i].__ppfn = 0;
 		}
 	}
 

@@ -422,15 +422,13 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 /*         return -1; */
 /*     } */
 /*     kvm->physical_memory = *vm_mem; */
-
 /*     zfd = open("/dev/zero", O_RDONLY); */
 /*     mmap(*vm_mem + 0xa8000, 0x8000, PROT_READ|PROT_WRITE, */
 /*          MAP_PRIVATE|MAP_FIXED, zfd, 0); */
 /*     close(zfd); */
-
 /*     r = ioctl(fd, KVM_CREATE_VCPU, 0); */
 	create_vcpu.vm_fd    = fd;
-	create_vcpu.vcpu_num = 0;
+	create_vcpu.vcpu_fd  = 0;
 
 	vcpufd = -1;
 
@@ -503,24 +501,28 @@ winkvm_test_run(HANDLE hnd, int vcpu_fd)
 		printf(" Failed: DeviceIoControl\n");		
 	}
 	
-	return ret;	
+	return ret;
 }
 
-/*
-int kvm_run(kvm_context_t kvm, int vcpu)
+int kvm_run(HANDLE handle, kvm_context_t kvm, int vcpu)
 {
 	int r;
 	int fd = kvm->vcpu_fd[vcpu];
 	struct kvm_run kvm_run;
+	BOOL ret = FALSE;
 
 	kvm_run.emulated = 0;
-	kvm_run.mmio_completed = 0
+	kvm_run.mmio_completed = 0;	
 
 again:
 	kvm_run.request_interrupt_window = try_push_interrupts(kvm);
 	pre_kvm_run(kvm, &kvm_run);
 
-	r = ioctl(fd, KVM_RUN, &kvm_run);
+/*	r = ioctl(fd, KVM_RUN, &kvm_run); */
+	ret = DeviceIoControl(hnd,
+		                  WINKVM_KVM_RUN,
+						  
+
 
 	post_kvm_run(kvm, &kvm_run);
 	kvm_run.emulated = 0;
