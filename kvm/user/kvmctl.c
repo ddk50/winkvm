@@ -420,7 +420,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			}
 		}
 
-		switch (run->io.direction) {
+		switch (run->io.direction) {		  
 		case KVM_EXIT_IO_IN: {
 			switch (run->io.size) {
 			case 1: {

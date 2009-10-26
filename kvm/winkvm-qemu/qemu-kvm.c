@@ -2,7 +2,7 @@
 #include "config.h"
 #include "config-host.h"
 
-#ifdef USE_WINKVM
+#ifdef USE_KVM
 
 #include "exec.h"
 
@@ -47,7 +47,7 @@ static int get_msr_entry(struct kvm_msr_entry *entry, CPUState *env)
             break;
 #ifdef TARGET_X86_64
         case MSR_CSTAR:
-            env->cstar        = entry->data;
+            env->cstar        = entry->data;			
             break;
         case MSR_KERNELGSBASE:
             env->kernelgsbase = entry->data;
@@ -247,7 +247,7 @@ static void save_regs(CPUState *env)
     struct kvm_sregs sregs;
     struct kvm_msr_entry msrs[MSR_COUNT];
     uint32_t hflags;
-    uint32_t i, n, rc;
+    uint32_t i, n, rc;	
 
     kvm_get_regs(kvm_context, 0, &regs);
 

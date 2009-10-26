@@ -160,6 +160,9 @@ struct kvm_run {
 
 /* for KVM_GET_REGS and KVM_SET_REGS */
 struct kvm_regs {
+#ifdef __WINKVM__  
+  int vcpu_fd;  
+#endif
   /* out (KVM_GET_REGS) / in (KVM_SET_REGS) */
   __u64 rax, rbx, rcx, rdx;
   __u64 rsi, rdi, rsp, rbp;
@@ -186,6 +189,9 @@ struct kvm_dtable {
 
 /* for KVM_GET_SREGS and KVM_SET_SREGS */
 struct kvm_sregs {
+#ifdef __WINKVM__  
+  int vcpu_fd;  
+#endif
   /* out (KVM_GET_SREGS) / in (KVM_SET_SREGS) */
   struct kvm_segment cs, ds, es, fs, gs, ss;
   struct kvm_segment tr, ldt;

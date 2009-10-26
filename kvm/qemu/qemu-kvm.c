@@ -440,7 +440,7 @@ int kvm_cpu_exec(CPUState *env)
     if (!saved_env[0])
 	saved_env[0] = env;
 
-    r = kvm_run(kvm_context, 0);
+    r = kvm_run(kvm_context, 0);	
     if (r < 0) {
         printf("kvm_run returned %d\n", r);
         exit(1);
@@ -707,7 +707,7 @@ int kvm_qemu_init()
 {
     /* Try to initialize kvm */
     kvm_context = kvm_init(&qemu_kvm_ops, saved_env);
-    if (!kvm_context) {
+    if (!kvm_context) {	  
       	return -1;
     }
 

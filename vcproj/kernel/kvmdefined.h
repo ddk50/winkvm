@@ -24,4 +24,11 @@ extern int _cdecl kvm_write_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned lo
 
 extern int _cdecl check_function_pointer_test(void);
 
+extern int _cdecl kvm_vcpu_ioctl_set_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs);
+extern int _cdecl kvm_vcpu_ioctl_get_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs);
+extern int _cdecl kvm_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu, struct kvm_sregs *sregs);
+extern int _cdecl kvm_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu, struct kvm_sregs *sregs);
+
+extern int _cdecl kvm_vcpu_ioctl_translate(struct kvm_vcpu *vcpu, struct kvm_translation *tr);
+
 #endif

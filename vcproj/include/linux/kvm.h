@@ -46,10 +46,10 @@
 
 /* for KVM_CREATE_MEMORY_REGION */
 struct kvm_memory_region {
-	__u32 slot;
-	__u32 flags;
-	__u64 guest_phys_addr;
-	__u64 memory_size; /* bytes */
+  __u32 slot;
+  __u32 flags;
+  __u64 guest_phys_addr;
+  __u64 memory_size; /* bytes */
 };
 
 #ifdef __WINKVM__
@@ -59,7 +59,7 @@ struct winkvm_memory_region {
 };
 
 /* vm_fd only is enough ?? */
-struct winkvm_create_vcpu {	
+struct winkvm_create_vcpu {
 	int vm_fd;
 	int vcpu_fd;	
 };
@@ -160,6 +160,9 @@ struct kvm_run {
 
 /* for KVM_GET_REGS and KVM_SET_REGS */
 struct kvm_regs {
+#ifdef __WINKVM__  
+  int vcpu_fd;  
+#endif
   /* out (KVM_GET_REGS) / in (KVM_SET_REGS) */
   __u64 rax, rbx, rcx, rdx;
   __u64 rsi, rdi, rsp, rbp;
@@ -186,6 +189,9 @@ struct kvm_dtable {
 
 /* for KVM_GET_SREGS and KVM_SET_SREGS */
 struct kvm_sregs {
+#ifdef __WINKVM__  
+  int vcpu_fd;  
+#endif
   /* out (KVM_GET_SREGS) / in (KVM_SET_SREGS) */
   struct kvm_segment cs, ds, es, fs, gs, ss;
   struct kvm_segment tr, ldt;

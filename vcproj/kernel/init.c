@@ -366,6 +366,29 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = ConvertRetval(ret);
 			break;
 		}
+	case KVM_GET_REGS: 
+		{
+			struct kvm_regs kvm_regs;
+			int vcpu_fd, r;
+			printk(KERN_ALERT "Call KVM_GET_REGS\n");
+			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(int));
+			r = kvm_vcpu_ioctl_get_regs(get_vcpu(vcpu_fd), &kvm_regs);
+			RtlCopyMemory(outBuf, &kvm_regs, sizeof(struct kvm_regs));
+			Irp->IoStatus.Information = sizeof(struct kvm_regs);
+			ntStatus = ConvertRetval(r);
+			break;
+		}
+    case KVM_SET_REGS: 
+		{
+			struct kvm_regs kvm_regs;
+			int r;
+			printk(KERN_ALERT "Call KVM_SET_REGS\n");
+			RtlZeroMemory(&kvm_regs, sizeof(struct kvm_regs));
+			r = kvm_vcpu_ioctl_set_regs(get_vcpu(kvm_regs.vcpu_fd), &kvm_regs);
+			Irp->IoStatus.Information = 0;
+			ntStatus = ConvertRetval(r);
+			break;
+		}
 	case KVM_RUN:
 		{		
 			int ret;

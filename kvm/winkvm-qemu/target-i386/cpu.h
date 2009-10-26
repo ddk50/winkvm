@@ -427,7 +427,7 @@ typedef union {
 } XMMReg;
 
 typedef union {
-    uint8_t _b[8];
+    uint8_t _b[8];	
     uint16_t _w[2];
     uint32_t _l[1];
     uint64_t q;
@@ -467,10 +467,10 @@ typedef union {
 #define NB_MMU_MODES 2
 
 typedef struct CPUX86State {
-#if TARGET_LONG_BITS > HOST_LONG_BITS
+#if TARGET_LONG_BITS > HOST_LONG_BITS	
     /* temporaries if we cannot store them in host registers */
     target_ulong t0, t1, t2;
-#endif
+#endif	
 
     /* standard registers */
     target_ulong regs[CPU_NB_REGS];
@@ -563,7 +563,7 @@ typedef struct CPUX86State {
     int user_mode_only; /* user mode only simulation */
     int old_exception;  /* exception in flight */
 
-    CPU_COMMON
+    CPU_COMMON	
 
     /* processor features (e.g. for CPUID insn) */
     uint32_t cpuid_level;

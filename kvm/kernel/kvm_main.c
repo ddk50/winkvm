@@ -1663,9 +1663,10 @@ int kvm_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 	return r;
 }
 
-static int kvm_vcpu_ioctl_get_regs(struct kvm_vcpu *vcpu,
-				   struct kvm_regs *regs)
+int kvm_vcpu_ioctl_get_regs(struct kvm_vcpu *vcpu,
+							struct kvm_regs *regs)
 {
+	FUNCTION_ENTER();	
 	vcpu_load(vcpu);
 
 	kvm_arch_ops->cache_regs(vcpu);
@@ -1700,12 +1701,15 @@ static int kvm_vcpu_ioctl_get_regs(struct kvm_vcpu *vcpu,
 
 	vcpu_put(vcpu);
 
+	FUNCTION_EXIT();	
+
 	return 0;
 }
 
-static int kvm_vcpu_ioctl_set_regs(struct kvm_vcpu *vcpu,
-				   struct kvm_regs *regs)
+int kvm_vcpu_ioctl_set_regs(struct kvm_vcpu *vcpu,
+							struct kvm_regs *regs)
 {
+	FUNCTION_ENTER();	
 	vcpu_load(vcpu);
 
 	vcpu->regs[VCPU_REGS_RAX] = regs->rax;
@@ -1734,6 +1738,8 @@ static int kvm_vcpu_ioctl_set_regs(struct kvm_vcpu *vcpu,
 
 	vcpu_put(vcpu);
 
+	FUNCTION_EXIT();	
+
 	return 0;
 }
 
@@ -1743,10 +1749,12 @@ static void get_segment(struct kvm_vcpu *vcpu,
 	return kvm_arch_ops->get_segment(vcpu, var, seg);
 }
 
-static int kvm_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu,
-				    struct kvm_sregs *sregs)
+int kvm_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu,
+							 struct kvm_sregs *sregs)  
 {
 	struct descriptor_table dt;
+
+	FUNCTION_ENTER();	
 
 	vcpu_load(vcpu);
 
@@ -1781,6 +1789,8 @@ static int kvm_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu,
 
 	vcpu_put(vcpu);
 
+	FUNCTION_EXIT();	
+
 	return 0;
 }
 
@@ -1790,12 +1800,14 @@ static void set_segment(struct kvm_vcpu *vcpu,
 	return kvm_arch_ops->set_segment(vcpu, var, seg);
 }
 
-static int kvm_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
-				    struct kvm_sregs *sregs)
+int kvm_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
+							 struct kvm_sregs *sregs)  
 {
 	int mmu_reset_needed = 0;
 	int i;
 	struct descriptor_table dt;
+
+	FUNCTION_ENTER();
 
 	vcpu_load(vcpu);
 
@@ -1849,6 +1861,8 @@ static int kvm_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
 			__set_bit(i, &vcpu->irq_summary);
 
 	vcpu_put(vcpu);
+
+	FUNCTION_EXIT();	
 
 	return 0;
 }
@@ -1973,8 +1987,8 @@ out:
 /*
  * Translate a guest virtual address to a guest physical address.
  */
-static int kvm_vcpu_ioctl_translate(struct kvm_vcpu *vcpu,
-				    struct kvm_translation *tr)
+int kvm_vcpu_ioctl_translate(struct kvm_vcpu *vcpu,
+							 struct kvm_translation *tr)  
 {
 	unsigned long vaddr = tr->linear_address;
 	gpa_t gpa;
@@ -1992,8 +2006,8 @@ static int kvm_vcpu_ioctl_translate(struct kvm_vcpu *vcpu,
 	return 0;
 }
 
-static int kvm_vcpu_ioctl_interrupt(struct kvm_vcpu *vcpu,
-				    struct kvm_interrupt *irq)
+int kvm_vcpu_ioctl_interrupt(struct kvm_vcpu *vcpu,
+							 struct kvm_interrupt *irq)  
 {
 	if (irq->irq < 0 || irq->irq >= 256)
 		return -EINVAL;
