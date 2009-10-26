@@ -2,7 +2,6 @@
 /* main.c */
 #include <windows.h>
 #include <tchar.h>
-#include "export.h"
 
 /* ƒOƒ[ƒoƒ‹•Ï” */
 static HINSTANCE g_hInst;

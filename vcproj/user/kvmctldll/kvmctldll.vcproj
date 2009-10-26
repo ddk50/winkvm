@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="kvmctldll"
-	ProjectGUID="{8A0BAB34-B614-4554-9395-770B7DDD1492}"
+	ProjectGUID="{515FECAA-8622-4E91-99A3-21C8978E0580}"
 	RootNamespace="kvmctldll"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
