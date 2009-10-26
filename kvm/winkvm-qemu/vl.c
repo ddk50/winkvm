@@ -131,6 +131,10 @@ int inet_aton(const char *cp, struct in_addr *ia);
 
 #include "exec-all.h"
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+#endif
+
 #define DEFAULT_NETWORK_SCRIPT "/etc/qemu-ifup"
 #define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/qemu-ifdown"
 #ifdef __sun__
@@ -6445,6 +6449,11 @@ void cpu_save(QEMUFile *f, void *opaque)
     uint32_t hflags;
     int i;
 
+#ifdef USE_KVM	
+	if (kvm_allowed)		
+		kvm_save_registers(env);	
+#endif	
+
     for(i = 0; i < CPU_NB_REGS; i++)
         qemu_put_betls(f, &env->regs[i]);
     qemu_put_betls(f, &env->eip);
@@ -8926,6 +8935,15 @@ int main(int argc, char **argv)
         signal(SIGTTOU, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
     }
+#endif
+
+#ifdef USE_KVM	
+	if (kvm_allowed) {		
+		if (kvm_qemu_init() < 0) {
+			fprintf(stderr, "Could not initialize KVM, will disable KVM support\n");
+			kvm_allowed = 0;			
+		}		
+	}	
 #endif
 
     if (pid_file && qemu_create_pidfile(pid_file) != 0) {

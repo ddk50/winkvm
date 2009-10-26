@@ -2552,11 +2552,11 @@ static void *set_vram_mapping(unsigned long begin, unsigned long end)
     end = (end + TARGET_PAGE_SIZE -1 ) & TARGET_PAGE_MASK;
 
     vram_pointer = kvm_create_phys_mem(kvm_context, begin, end - begin, 1, 
-				       1, 1);
+									   1, 1);	
 
     if (vram_pointer == NULL) {
         printf("set_vram_mapping: cannot allocate memory: %m\n");
-        return NULL;
+        return NULL;		
     }
 
     memset(vram_pointer, 0, end - begin);

@@ -5180,7 +5180,7 @@ void cpu_save(QEMUFile *f, void *opaque)
 #endif    
 
     for(i = 0; i < CPU_NB_REGS; i++)
-        qemu_put_betls(f, &env->regs[i]);
+        qemu_put_betls(f, &env->regs[i]);	
     qemu_put_betls(f, &env->eip);
     qemu_put_betls(f, &env->eflags);
     hflags = env->hflags; /* XXX: suppress most of the redundant hflags */
