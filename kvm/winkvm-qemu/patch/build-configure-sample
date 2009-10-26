@@ -1,9 +1,0 @@
-gCFLAGS="-O4 -march=i686" LIBUSB_CFLAGS="-I/home/lassauge/MyDocuments/Qemu/libusb-win32-device-bin-0.1.12.1/include"
-LDFLAGS="-L/home/lassauge/MyDocuments/Qemu/libusb-win32-device-bin-0.1.12.1/lib/gcc"
-./configure --target-list="i386-softmmu"
---cc="gcc -mno-cygwin" --host-cc=gcc --audio-drv-list="dsound sdl fmod" --audio-card-list="ac97 es1370 sb16 cs4231a adlib gus"
---prefix="/home/lassauge/MyDocuments/Qemu-0.10.5-windows"
---fmod-lib=/home/lassauge/MyDocuments/Qemu/fmodapi375win/api/lib/libfmod.a
---fmod-inc=/home/lassauge/MyDocuments/Qemu/fmodapi375win/api/inc
---extra-cflags="-I/home/lassauge/MyDocuments/Qemu/libusb-win32-device-bin-0.1.12.1/include"
---extra-ldflags="-L/home/lassauge/MyDocuments/Qemu/libusb-win32-device-bin-0.1.12.1/lib/gcc"
