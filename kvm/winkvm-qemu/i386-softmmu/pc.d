@@ -1,26 +1,28 @@
-pc.o: /home/ddk/programs/qemu-0.9.1-src/hw/pc.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ../qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/pc.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/fdc.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/pci.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/isa.h ../block.h ../sysemu.h \
-  ../audio/audio.h ../config-host.h ../audio/sys-queue.h ../net.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/smbus.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/i2c.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/boards.h
+pc.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pc.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h \
+  ../qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pc.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/fdc.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pci.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h ../block.h \
+  ../sysemu.h ../audio/audio.h ../config-host.h ../audio/sys-queue.h \
+  ../net.h /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/smbus.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/i2c.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/boards.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ../qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -32,11 +34,11 @@ pc.o: /home/ddk/programs/qemu-0.9.1-src/hw/pc.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -44,17 +46,17 @@ pc.o: /home/ddk/programs/qemu-0.9.1-src/hw/pc.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/pc.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pc.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/fdc.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/fdc.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/pci.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pci.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/isa.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h:
 
 ../block.h:
 
@@ -68,8 +70,8 @@ pc.o: /home/ddk/programs/qemu-0.9.1-src/hw/pc.c \
 
 ../net.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/smbus.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/smbus.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/i2c.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/i2c.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/boards.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/boards.h:

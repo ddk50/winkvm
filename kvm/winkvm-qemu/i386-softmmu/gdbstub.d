@@ -1,23 +1,25 @@
-gdbstub.o: /home/ddk/programs/qemu-0.9.1-src/gdbstub.c ./config.h \
-  ./../config-host.h /home/ddk/programs/qemu-0.9.1-src/qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/qemu-char.h \
-  /home/ddk/programs/qemu-0.9.1-src/sysemu.h \
-  /home/ddk/programs/qemu-0.9.1-src/gdbstub.h \
-  /home/ddk/programs/qemu-0.9.1-src/qemu_socket.h
+gdbstub.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/gdbstub.c \
+  ./config.h ./../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-char.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/sysemu.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/gdbstub.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu_socket.h
 
 ./config.h:
 
 ./../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/qemu-common.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -27,11 +29,11 @@ gdbstub.o: /home/ddk/programs/qemu-0.9.1-src/gdbstub.c ./config.h \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -39,12 +41,12 @@ gdbstub.o: /home/ddk/programs/qemu-0.9.1-src/gdbstub.c ./config.h \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/qemu-char.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-char.h:
 
-/home/ddk/programs/qemu-0.9.1-src/sysemu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/sysemu.h:
 
-/home/ddk/programs/qemu-0.9.1-src/gdbstub.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/gdbstub.h:
 
-/home/ddk/programs/qemu-0.9.1-src/qemu_socket.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu_socket.h:

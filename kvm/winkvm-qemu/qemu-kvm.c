@@ -848,12 +848,12 @@ int kvm_get_phys_ram_page_bitmap(unsigned char *bitmap)
     len = BITMAP_SIZE(phys_ram_size);
     memset(bitmap, 0, len);
 
-    r = kvm_get_mem_map(kvm_context, 3, bitmap);
+    r = kvm_get_mem_map(kvm_context, 3, bitmap);	
     if (r)
         goto out;
 
     offset = BITMAP_SIZE(0xc0000);
-    r = kvm_get_mem_map(kvm_context, 0, bitmap + offset);
+    r = kvm_get_mem_map(kvm_context, 0, bitmap + offset);	
 
  out:
     return r;

@@ -1,20 +1,22 @@
-block-raw-win32.o: /home/ddk/programs/qemu-0.9.1-src/block-raw-win32.c \
-  /home/ddk/programs/qemu-0.9.1-src/qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/qemu-timer.h \
-  /home/ddk/programs/qemu-0.9.1-src/exec-all.h \
-  /home/ddk/programs/qemu-0.9.1-src/softmmu_header.h \
-  /home/ddk/programs/qemu-0.9.1-src/block_int.h \
-  /home/ddk/programs/qemu-0.9.1-src/block.h
+block-raw-win32.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/block-raw-win32.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-timer.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/exec-all.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/softmmu_header.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/block_int.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/block.h
 
-/home/ddk/programs/qemu-0.9.1-src/qemu-common.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -26,11 +28,11 @@ block-raw-win32.o: /home/ddk/programs/qemu-0.9.1-src/block-raw-win32.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -38,14 +40,14 @@ block-raw-win32.o: /home/ddk/programs/qemu-0.9.1-src/block-raw-win32.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/qemu-timer.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-timer.h:
 
-/home/ddk/programs/qemu-0.9.1-src/exec-all.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/exec-all.h:
 
-/home/ddk/programs/qemu-0.9.1-src/softmmu_header.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/softmmu_header.h:
 
-/home/ddk/programs/qemu-0.9.1-src/block_int.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/block_int.h:
 
-/home/ddk/programs/qemu-0.9.1-src/block.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/block.h:

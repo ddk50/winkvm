@@ -1,12 +1,12 @@
 stellaris_input.o:  \
- /home/ddk/programs/qemu-0.9.1-src/hw/stellaris_input.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ./qemu-common.h \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/stellaris_input.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h ./qemu-common.h \
   ./config-host.h ./osdep.h ./bswap.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/devices.h ./console.h \
-  ./qemu-char.h
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/devices.h \
+  ./console.h ./qemu-char.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ./qemu-common.h:
 
@@ -16,9 +16,9 @@ stellaris_input.o:  \
 
 ./bswap.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/devices.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/devices.h:
 
 ./console.h:
 

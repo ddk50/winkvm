@@ -1,20 +1,23 @@
-fdc.o: /home/ddk/programs/qemu-0.9.1-src/hw/fdc.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ../qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/fdc.h ../block.h ../qemu-timer.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/isa.h
+fdc.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/fdc.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h \
+  ../qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/fdc.h ../block.h \
+  ../qemu-timer.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ../qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -26,11 +29,11 @@ fdc.o: /home/ddk/programs/qemu-0.9.1-src/hw/fdc.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -38,14 +41,14 @@ fdc.o: /home/ddk/programs/qemu-0.9.1-src/hw/fdc.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/fdc.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/fdc.h:
 
 ../block.h:
 
 ../qemu-timer.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/isa.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h:

@@ -1,19 +1,22 @@
-isa_mmio.o: /home/ddk/programs/qemu-0.9.1-src/hw/isa_mmio.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ../qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/isa.h
+isa_mmio.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa_mmio.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h \
+  ../qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ../qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -25,11 +28,11 @@ isa_mmio.o: /home/ddk/programs/qemu-0.9.1-src/hw/isa_mmio.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -37,8 +40,8 @@ isa_mmio.o: /home/ddk/programs/qemu-0.9.1-src/hw/isa_mmio.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/isa.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h:

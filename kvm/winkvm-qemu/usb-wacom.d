@@ -1,10 +1,11 @@
-usb-wacom.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-wacom.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ./qemu-common.h \
+usb-wacom.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb-wacom.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h ./qemu-common.h \
   ./config-host.h ./osdep.h ./bswap.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h ./console.h ./qemu-char.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/usb.h
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h ./console.h \
+  ./qemu-char.h /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ./qemu-common.h:
 
@@ -14,10 +15,10 @@ usb-wacom.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-wacom.c \
 
 ./bswap.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
 ./console.h:
 
 ./qemu-char.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/usb.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h:

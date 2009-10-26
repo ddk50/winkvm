@@ -1,20 +1,22 @@
-translate-all.o: /home/ddk/programs/qemu-0.9.1-src/translate-all.c \
+translate-all.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/translate-all.c \
   ./config.h ./../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/exec-all.h \
-  /home/ddk/programs/qemu-0.9.1-src/softmmu_header.h \
-  /home/ddk/programs/qemu-0.9.1-src/disas.h ./opc.h
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/exec-all.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/softmmu_header.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/disas.h ./opc.h
 
 ./config.h:
 
 ./../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -24,11 +26,11 @@ translate-all.o: /home/ddk/programs/qemu-0.9.1-src/translate-all.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -36,12 +38,12 @@ translate-all.o: /home/ddk/programs/qemu-0.9.1-src/translate-all.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/exec-all.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/exec-all.h:
 
-/home/ddk/programs/qemu-0.9.1-src/softmmu_header.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/softmmu_header.h:
 
-/home/ddk/programs/qemu-0.9.1-src/disas.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/disas.h:
 
 ./opc.h:

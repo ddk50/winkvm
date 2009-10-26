@@ -1,6 +1,6 @@
-usb-hub.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-hub.c ./qemu-common.h \
-  ./config-host.h ./osdep.h ./bswap.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/usb.h
+usb-hub.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb-hub.c \
+  ./qemu-common.h ./config-host.h ./osdep.h ./bswap.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h
 
 ./qemu-common.h:
 
@@ -10,4 +10,4 @@ usb-hub.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-hub.c ./qemu-common.h \
 
 ./bswap.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/usb.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h:

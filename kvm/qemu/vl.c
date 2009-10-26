@@ -120,6 +120,7 @@
 
 const char *bios_dir = CONFIG_QEMU_SHAREDIR;
 char phys_ram_file[1024];
+const char *bios_name = NULL;
 void *ioport_opaque[MAX_IOPORTS];
 IOPortReadFunc *ioport_read_table[3][MAX_IOPORTS];
 IOPortWriteFunc *ioport_write_table[3][MAX_IOPORTS];
@@ -5268,6 +5269,7 @@ void cpu_save(QEMUFile *f, void *opaque)
     if (kvm_allowed) {
         for (i = 0; i < NR_IRQ_WORDS ; i++) {
             qemu_put_betls(f, &env->kvm_interrupt_bitmap[i]);
+			
         }
         qemu_put_be64s(f, &env->tsc);
     }

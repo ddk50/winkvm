@@ -436,7 +436,7 @@ static void generate_bootsect(uint32_t gpr[8], uint16_t segs[6], uint16_t ip)
 }
 
 static int load_kernel(const char *filename, uint8_t *addr,
-                       uint8_t *real_addr)
+                       uint8_t *real_addr)  
 {
     int fd, size;
     int setup_sects;
@@ -696,6 +696,11 @@ static void pc_init_ne2k_isa(NICInfo *nd, qemu_irq *pic)
     nb_ne2k++;
 }
 
+#ifdef USE_KVM
+extern kvm_context_t kvm_context;
+extern int kvm_allowed;
+#endif
+
 /* PC hardware initialisation */
 static void pc_init1(int ram_size, int vga_ram_size,
                      const char *boot_device, DisplayState *ds,
@@ -706,7 +711,8 @@ static void pc_init1(int ram_size, int vga_ram_size,
     char buf[1024];
     int ret, linux_boot, i;
     ram_addr_t ram_addr, vga_ram_addr, bios_offset, vga_bios_offset;
-    int bios_size, isa_bios_size, vga_bios_size;
+	unsigned long option_rom_offset;	
+    int bios_size, isa_bios_size, vga_bios_size;	
     PCIBus *pci_bus;
     int piix3_devfn = -1;
     CPUState *env;
@@ -793,6 +799,11 @@ static void pc_init1(int ram_size, int vga_ram_size,
     /* setup basic memory access */
     cpu_register_physical_memory(0xc0000, 0x10000,
                                  vga_bios_offset | IO_MEM_ROM);
+#ifdef USE_KVM
+    if (kvm_allowed)
+	    memcpy(phys_ram_base + 0xc0000, phys_ram_base + vga_bios_offset,
+		   0x10000);
+#endif
 
     /* map the last 128KB of the BIOS in ISA space */
     isa_bios_size = bios_size;
@@ -804,32 +815,40 @@ static void pc_init1(int ram_size, int vga_ram_size,
                                  isa_bios_size,
                                  (bios_offset + bios_size - isa_bios_size) | IO_MEM_ROM);
 
-    {
-        ram_addr_t option_rom_offset;
-        int size, offset;
+#ifdef USE_KVM
+    if (kvm_allowed)
+	    memcpy(phys_ram_base + 0x100000 - isa_bios_size,
+		   phys_ram_base + (bios_offset + bios_size - isa_bios_size),
+		   isa_bios_size);
+#endif
 
-        offset = 0;
-        for (i = 0; i < nb_option_roms; i++) {
-            size = get_image_size(option_rom[i]);
-            if (size < 0) {
-                fprintf(stderr, "Could not load option rom '%s'\n",
-                        option_rom[i]);
-                exit(1);
-            }
-            if (size > (0x10000 - offset))
-                goto option_rom_error;
-            option_rom_offset = qemu_ram_alloc(size);
-            ret = load_image(option_rom[i], phys_ram_base + option_rom_offset);
-            if (ret != size) {
-            option_rom_error:
-                fprintf(stderr, "Too many option ROMS\n");
-                exit(1);
-            }
-            size = (size + 4095) & ~4095;
-            cpu_register_physical_memory(0xd0000 + offset,
-                                         size, option_rom_offset | IO_MEM_ROM);
-            offset += size;
-        }
+#ifdef USE_KVM
+    if (kvm_allowed) {
+	    bios_mem = kvm_create_phys_mem(kvm_context, (uint32_t)(-bios_size),
+					   bios_size, 2, 0, 1);
+	    if (!bios_mem)
+		    exit(1);
+	    memcpy(bios_mem, phys_ram_base + bios_offset, bios_size);
+
+	    cpu_register_physical_memory(phys_ram_size - KVM_EXTRA_PAGES * 4096, KVM_EXTRA_PAGES * 4096,
+					 (phys_ram_size - KVM_EXTRA_PAGES * 4096) | IO_MEM_ROM);
+    }
+#endif
+    
+    option_rom_offset = 0;
+    for (i = 0; i < nb_option_roms; i++) {
+	int offset = bios_offset + bios_size + option_rom_offset;
+	int size;
+
+	size = load_image(option_rom[i], phys_ram_base + offset);
+	if ((size + option_rom_offset) > 0x10000) {
+	    fprintf(stderr, "Too many option ROMS\n");
+	    exit(1);
+	}
+	cpu_register_physical_memory(0xd0000 + option_rom_offset,
+				     size, offset | IO_MEM_ROM);
+	option_rom_offset += size + 2047;
+	option_rom_offset -= (option_rom_offset % 2048);
     }
 
     /* map all the bios at the top of memory */

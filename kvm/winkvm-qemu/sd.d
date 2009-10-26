@@ -1,10 +1,10 @@
-sd.o: /home/ddk/programs/qemu-0.9.1-src/hw/sd.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ./qemu-common.h \
+sd.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/sd.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h ./qemu-common.h \
   ./config-host.h ./osdep.h ./bswap.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h ./block.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/sd.h
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h ./block.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/sd.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ./qemu-common.h:
 
@@ -14,8 +14,8 @@ sd.o: /home/ddk/programs/qemu-0.9.1-src/hw/sd.c \
 
 ./bswap.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
 ./block.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/sd.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/sd.h:

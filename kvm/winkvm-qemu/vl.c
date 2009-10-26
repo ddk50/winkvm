@@ -163,6 +163,7 @@ int inet_aton(const char *cp, struct in_addr *ia);
 #define MAX_IOPORTS 65536
 
 const char *bios_dir = CONFIG_QEMU_SHAREDIR;
+char phys_ram_file[1024];
 const char *bios_name = NULL;
 void *ioport_opaque[MAX_IOPORTS];
 IOPortReadFunc *ioport_read_table[3][MAX_IOPORTS];
@@ -6538,6 +6539,15 @@ void cpu_save(QEMUFile *f, void *opaque)
     qemu_put_be64s(f, &env->kernelgsbase);
 #endif
     qemu_put_be32s(f, &env->smbase);
+
+#ifdef USE_KVM
+	if (kvm_allowed) {
+	  for (i = 0; i < NR_IRQ_WORDS ; i++) {
+		qemu_put_betls(f, &env->kvm_interrupt_bitmap[i]);
+	  }
+	  qemu_put_be64s(f, &env->tsc);
+	}
+#endif	
 }
 
 #ifdef USE_X86LDOUBLE
@@ -6680,6 +6690,15 @@ int cpu_load(QEMUFile *f, void *opaque, int version_id)
     /* XXX: compute hflags from scratch, except for CPL and IIF */
     env->hflags = hflags;
     tlb_flush(env, 1);
+#ifdef USE_KVM
+	if (kvm_allowed) {
+	  for (i = 0; i < NR_IRQ_WORDS ; i++) {
+		qemu_get_betls(f, &env->kvm_interrupt_bitmap[i]);
+	  }
+	  qemu_get_be64s(f, &env->tsc);
+	  kvm_load_registers(env);
+	}
+#endif   
     return 0;
 }
 
@@ -7007,6 +7026,10 @@ static int ram_load_v1(QEMUFile *f, void *opaque)
     if (qemu_get_be32(f) != phys_ram_size)
         return -EINVAL;
     for(i = 0; i < phys_ram_size; i+= TARGET_PAGE_SIZE) {
+#ifdef USE_KVM
+        if (kvm_allowed && (i>=0xa0000) && (i<0xc0000)) /* do not access video-addresses */
+            continue;
+#endif
         ret = ram_get_page(f, phys_ram_base + i, TARGET_PAGE_SIZE);
         if (ret)
             return ret;
@@ -7146,6 +7169,10 @@ static void ram_save(QEMUFile *f, void *opaque)
     if (ram_compress_open(s, f) < 0)
         return;
     for(i = 0; i < phys_ram_size; i+= BDRV_HASH_BLOCK_SIZE) {
+#ifdef USE_KVM
+        if (kvm_allowed && (i>=0xa0000) && (i<0xc0000)) /* do not access video-addresses */
+            continue;
+#endif
 #if 0
         if (tight_savevm_enabled) {
             int64_t sector_num;
@@ -7194,6 +7221,10 @@ static int ram_load(QEMUFile *f, void *opaque, int version_id)
     if (ram_decompress_open(s, f) < 0)
         return -EINVAL;
     for(i = 0; i < phys_ram_size; i+= BDRV_HASH_BLOCK_SIZE) {
+#ifdef USE_KVM
+        if (kvm_allowed && (i>=0xa0000) && (i<0xc0000)) /* do not access video-addresses */
+            continue;
+#endif
         if (ram_decompress_buf(s, buf, 1) < 0) {
             fprintf(stderr, "Error while reading ram block header\n");
             goto error;
@@ -7676,6 +7707,10 @@ static int main_loop(void)
             if (reset_requested) {
                 reset_requested = 0;
                 qemu_system_reset();
+#ifdef USE_KVM
+		if (kvm_allowed)
+			kvm_load_registers(env);
+#endif
                 ret = EXCP_INTERRUPT;
             }
             if (powerdown_requested) {
@@ -7821,6 +7856,12 @@ static void help(int exitcode)
            "-kernel-kqemu   enable KQEMU full virtualization (default is user mode only)\n"
            "-no-kqemu       disable KQEMU kernel module usage\n"
 #endif
+#ifdef USE_KVM
+	   "-no-kvm         disable KVM hardware virtualization\n"
+#endif
+#ifdef USE_CODE_COPY
+           "-no-code-copy   disable code copy acceleration\n"
+#endif
 #ifdef TARGET_I386
            "-std-vga        simulate a standard VGA card with VESA Bochs Extensions\n"
            "                (default is CL-GD5446 PCI VGA)\n"
@@ -7930,6 +7971,7 @@ enum {
     QEMU_OPTION_smp,
     QEMU_OPTION_vnc,
     QEMU_OPTION_no_acpi,
+    QEMU_OPTION_no_kvm,
     QEMU_OPTION_no_reboot,
     QEMU_OPTION_show_cursor,
     QEMU_OPTION_daemonize,
@@ -8004,6 +8046,9 @@ const QEMUOption qemu_options[] = {
 #ifdef USE_KQEMU
     { "no-kqemu", 0, QEMU_OPTION_no_kqemu },
     { "kernel-kqemu", 0, QEMU_OPTION_kernel_kqemu },
+#endif
+#ifdef USE_KVM
+    { "no-kvm", 0, QEMU_OPTION_no_kvm },
 #endif
 #if defined(TARGET_PPC) || defined(TARGET_SPARC)
     { "g", 1, QEMU_OPTION_g },
@@ -8779,6 +8824,11 @@ int main(int argc, char **argv)
                 kqemu_allowed = 2;
                 break;
 #endif
+#ifdef USE_KVM
+	    case QEMU_OPTION_no_kvm:
+		kvm_allowed = 0;
+		break;
+#endif
             case QEMU_OPTION_usb:
                 usb_enabled = 1;
                 break;
@@ -9040,11 +9090,29 @@ int main(int argc, char **argv)
     /* init the memory */
     phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE;
 
+#if USE_KVM	
+    /* Initialize kvm */
+    if (kvm_allowed) {
+	    phys_ram_size += KVM_EXTRA_PAGES * 4096;
+	    if (kvm_qemu_create_context() < 0) {
+		    fprintf(stderr, "Could not create KVM context\n");
+		    exit(1);
+	    }
+    } else {
+	    phys_ram_base = qemu_vmalloc(phys_ram_size);
+	    if (!phys_ram_base) {
+		    fprintf(stderr, "Could not allocate physical memory\n");
+		    exit(1);
+	    }
+    }
+#else
     phys_ram_base = qemu_vmalloc(phys_ram_size);
     if (!phys_ram_base) {
         fprintf(stderr, "Could not allocate physical memory\n");
         exit(1);
     }
+
+#endif	
 
     bdrv_init();
 
@@ -9128,7 +9196,7 @@ int main(int argc, char **argv)
                 qemu_chr_printf(serial_hds[i], "serial%d console\r\n", i);
         }
     }
-
+	
     for(i = 0; i < MAX_PARALLEL_PORTS; i++) {
         const char *devname = parallel_devices[i];
         if (devname[0] != '\0' && strcmp(devname, "none")) {

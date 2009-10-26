@@ -1,20 +1,21 @@
-loader.o: /home/ddk/programs/qemu-0.9.1-src/loader.c \
-  /home/ddk/programs/qemu-0.9.1-src/qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/disas.h \
-  /home/ddk/programs/qemu-0.9.1-src/sysemu.h \
-  /home/ddk/programs/qemu-0.9.1-src/uboot_image.h \
-  /home/ddk/programs/qemu-0.9.1-src/elf.h \
-  /home/ddk/programs/qemu-0.9.1-src/elf_ops.h
+loader.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/loader.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/disas.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/sysemu.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/uboot_image.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/elf.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/elf_ops.h
 
-/home/ddk/programs/qemu-0.9.1-src/qemu-common.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -26,11 +27,11 @@ loader.o: /home/ddk/programs/qemu-0.9.1-src/loader.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -38,14 +39,14 @@ loader.o: /home/ddk/programs/qemu-0.9.1-src/loader.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/disas.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/disas.h:
 
-/home/ddk/programs/qemu-0.9.1-src/sysemu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/sysemu.h:
 
-/home/ddk/programs/qemu-0.9.1-src/uboot_image.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/uboot_image.h:
 
-/home/ddk/programs/qemu-0.9.1-src/elf.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/elf.h:
 
-/home/ddk/programs/qemu-0.9.1-src/elf_ops.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/elf_ops.h:

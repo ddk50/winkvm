@@ -1,15 +1,18 @@
-host-utils.o: /home/ddk/programs/qemu-0.9.1-src/host-utils.c \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/exec.h ./config.h \
-  ./../config-host.h ../dyngen-exec.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h ../exec-all.h \
-  ../softmmu_header.h ../softmmu_exec.h \
-  /home/ddk/programs/qemu-0.9.1-src/host-utils.h
+host-utils.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/host-utils.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/exec.h \
+  ./config.h ./../config-host.h ../dyngen-exec.h ../cpu-defs.h ./config.h \
+  ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  ../exec-all.h ../softmmu_header.h ../softmmu_exec.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/host-utils.h
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/exec.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/exec.h:
 
 ./config.h:
 
@@ -23,13 +26,13 @@ host-utils.o: /home/ddk/programs/qemu-0.9.1-src/host-utils.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -37,7 +40,7 @@ host-utils.o: /home/ddk/programs/qemu-0.9.1-src/host-utils.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
 ../exec-all.h:
 
@@ -45,4 +48,4 @@ host-utils.o: /home/ddk/programs/qemu-0.9.1-src/host-utils.c \
 
 ../softmmu_exec.h:
 
-/home/ddk/programs/qemu-0.9.1-src/host-utils.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/host-utils.h:

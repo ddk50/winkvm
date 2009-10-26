@@ -1,22 +1,26 @@
-usb-ohci.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-ohci.c \
-  /home/ddk/programs/qemu-0.9.1-src/hw/hw.h ../qemu-common.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h ./config.h \
-  ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h ./config.h \
-  /home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h ../cpu-all.h \
-  ../bswap.h ../config-host.h \
-  /home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/irq.h ../qemu-timer.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/usb.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/pci.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/isa.h \
-  /home/ddk/programs/qemu-0.9.1-src/hw/pxa.h
+usb-ohci.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb-ohci.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h \
+  ../qemu-common.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h \
+  ./config.h ./../config-host.h ../cpu-defs.h ./config.h ../osdep.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h \
+  ./config.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h \
+  ../cpu-all.h ../bswap.h ../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h \
+  ../qemu-timer.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pci.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pxa.h
 
-/home/ddk/programs/qemu-0.9.1-src/hw/hw.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/hw.h:
 
 ../qemu-common.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/cpu.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/cpu.h:
 
 ./config.h:
 
@@ -28,11 +32,11 @@ usb-ohci.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-ohci.c \
 
 ../osdep.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat.h:
 
 ./config.h:
 
-/home/ddk/programs/qemu-0.9.1-src/fpu/softfloat-native.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/fpu/softfloat-native.h:
 
 ../cpu-all.h:
 
@@ -40,16 +44,16 @@ usb-ohci.o: /home/ddk/programs/qemu-0.9.1-src/hw/usb-ohci.c \
 
 ../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/target-i386/svm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/target-i386/svm.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/irq.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/irq.h:
 
 ../qemu-timer.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/usb.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/usb.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/pci.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pci.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/isa.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/isa.h:
 
-/home/ddk/programs/qemu-0.9.1-src/hw/pxa.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/hw/pxa.h:

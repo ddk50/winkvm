@@ -1,4 +1,4 @@
-i386-dis.o: /home/ddk/programs/qemu-0.9.1-src/i386-dis.c \
-  /home/ddk/programs/qemu-0.9.1-src/dis-asm.h
+i386-dis.o: /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/i386-dis.c \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/dis-asm.h
 
-/home/ddk/programs/qemu-0.9.1-src/dis-asm.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/dis-asm.h:

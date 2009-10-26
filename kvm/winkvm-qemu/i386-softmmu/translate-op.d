@@ -1,15 +1,17 @@
-translate-op.o: /home/ddk/programs/qemu-0.9.1-src/translate-op.c \
-  ./config.h ./../config-host.h /home/ddk/programs/qemu-0.9.1-src/osdep.h \
-  ./opc.h /home/ddk/programs/qemu-0.9.1-src/dyngen.h ./op.h
+translate-op.o:  \
+ /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/translate-op.c \
+  ./config.h ./../config-host.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/osdep.h ./opc.h \
+  /home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/dyngen.h ./op.h
 
 ./config.h:
 
 ./../config-host.h:
 
-/home/ddk/programs/qemu-0.9.1-src/osdep.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/osdep.h:
 
 ./opc.h:
 
-/home/ddk/programs/qemu-0.9.1-src/dyngen.h:
+/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu/dyngen.h:
 
 ./op.h:
