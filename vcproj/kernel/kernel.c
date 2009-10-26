@@ -132,7 +132,6 @@ int atomic_inc_and_test(int *v)
 	};
 	
 	FUNCTION_EXIT();
-
 	return c != 0;
 }
 

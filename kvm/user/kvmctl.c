@@ -49,12 +49,12 @@ struct kvm_context {
 	/// Callbacks that KVM uses to emulate various unvirtualizable functionality
 	struct kvm_callbacks *callbacks;
 	void *opaque;
-	/// A pointer to the memory used as the physical memory for the guest
+	/// A pointer to the memory used as the physical memory for the guest  
 	void *physical_memory;
 	/// is dirty pages logging enabled for all regions or not
 	int dirty_pages_log_all;
 	/// memory regions parameters
-	struct kvm_memory_region mem_regions[KVM_MAX_NUM_MEM_REGIONS];
+	struct kvm_memory_region mem_regions[KVM_MAX_NUM_MEM_REGIONS];  
 };
 
 struct translation_cache {
@@ -285,7 +285,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 		fprintf(stderr, "kvm_create_vcpu: %m\n");
 		return -1;
 	}
-	kvm->vcpu_fd[0] = r;
+	kvm->vcpu_fd[0] = r;	
 	return 0;
 }
 
@@ -651,7 +651,7 @@ void kvm_show_regs(kvm_context_t kvm, int vcpu)
 	fprintf(stderr, "cr0 %llx cr2 %llx cr3 %llx cr4 %llx cr8 %llx"
 		" efer %llx\n",
 		sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8,
-		sregs.efer);
+		sregs.efer);	
 }
 
 static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
@@ -748,7 +748,7 @@ static void post_kvm_run(kvm_context_t kvm, struct kvm_run *kvm_run)
 
 static void pre_kvm_run(kvm_context_t kvm, struct kvm_run *kvm_run)
 {
-	kvm->callbacks->pre_kvm_run(kvm->opaque, kvm_run);
+	kvm->callbacks->pre_kvm_run(kvm->opaque, kvm_run);	
 }
 
 int kvm_run(kvm_context_t kvm, int vcpu)

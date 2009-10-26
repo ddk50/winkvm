@@ -24,7 +24,7 @@
 kvm_context_t kvm;
 
 static int test_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx, 
-		       uint64_t *rcx, uint64_t *rdx)
+					  uint64_t *rcx, uint64_t *rdx)  
 {
     printf("cpuid 0x%lx\n", (uint32_t)*rax);
     return 0;
@@ -32,7 +32,7 @@ static int test_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx,
 
 static int test_inb(void *opaque, uint16_t addr, uint8_t *value)
 {
-    printf("inb 0x%x\n", addr);
+    printf("inb 0x%x\n", addr);	
     return 0;
 }
 
@@ -188,7 +188,7 @@ int main(int ac, char **av)
 	}
 	if (kvm_create(kvm, 128 * 1024 * 1024, &vm_mem) < 0) {
 	    kvm_finalize(kvm);
-	    fprintf(stderr, "kvm_create failed\n");
+	    fprintf(stderr, "kvm_create failed\n");		
 	    return 1;
 	}
 	if (ac > 1)

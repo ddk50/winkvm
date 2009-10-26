@@ -377,9 +377,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			vcpu = get_vcpu(kvm_run.vcpu_fd);
 			SAFE_ASSERT(vcpu);		   
 
-			ret = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
-
-			ntStatus = ConvertRetval(ret);
+			if (vcpu) {
+				ret = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+				ntStatus = ConvertRetval(ret);
+			} else {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
 			break;
 		}
 	case WINKVM_EXECUTE_TEST:
@@ -391,12 +394,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
 			vcpu = get_vcpu(vcpu_fd);
 			SAFE_ASSERT(vcpu != NULL);
+
 			if (vcpu) {
 				ntStatus = __winkvmstab_execute_guestcode(DeviceObject, Irp, vcpu);
 			} else {
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-			}
-			
+			}			
 			break;
 		}
 	case WINKVM_NOPAGE:
@@ -447,9 +450,15 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			RtlCopyMemory(&trans_mem, inBuf, sizeof(trans_mem));
 			vcpu = get_vcpu(trans_mem.vcpu_fd);
 			SAFE_ASSERT(vcpu);
-			ret = kvm_read_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
-			Irp->IoStatus.Information = ret;
-			ntStatus = ConvertRetval(ret);
+
+			if (vcpu) {
+				ret = kvm_read_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
+				Irp->IoStatus.Information = ret;
+				ntStatus = ConvertRetval(ret);
+			} else {
+				Irp->IoStatus.Information = 0;
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
 			break;
 		}
 	case WINKVM_WRITE_GUEST:
@@ -462,13 +471,19 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			p = (unsigned char*)trans_mem = inBuf;
 			p += sizeof(trans_mem);
 
+			SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(trans_mem)));
+
 			vcpu = get_vcpu(trans_mem->vcpu_fd);
 			SAFE_ASSERT(vcpu);
 
-			ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, p);
-
-			Irp->IoStatus.Information = ret;
-			ntStatus = ConvertRetval(ret);	 
+			if (vcpu) {
+				ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, p);
+				Irp->IoStatus.Information = ret;
+				ntStatus = ConvertRetval(ret);	 
+			} else {
+				Irp->IoStatus.Information = 0;
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
 			break;
 		}
 	default:

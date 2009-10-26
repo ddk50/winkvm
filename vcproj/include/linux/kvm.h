@@ -46,10 +46,10 @@
 
 /* for KVM_CREATE_MEMORY_REGION */
 struct kvm_memory_region {
-  __u32 slot;
-  __u32 flags;
-  __u64 guest_phys_addr;
-  __u64 memory_size; /* bytes */
+	__u32 slot;
+	__u32 flags;
+	__u64 guest_phys_addr;
+	__u64 memory_size; /* bytes */
 };
 
 #ifdef __WINKVM__
@@ -59,7 +59,7 @@ struct winkvm_memory_region {
 };
 
 /* vm_fd only is enough ?? */
-struct winkvm_create_vcpu {
+struct winkvm_create_vcpu {	
 	int vm_fd;
 	int vcpu_fd;	
 };

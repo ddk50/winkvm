@@ -7502,7 +7502,7 @@ int main(int argc, char **argv)
     /* open the virtual block devices */
     for(i = 0; i < MAX_DISKS; i++) {
         if (hd_filename[i]) {
-            if (!bs_table[i]) {
+            if (!bs_table[i]) {				
                 char buf[64];
                 snprintf(buf, sizeof(buf), "hd%c", i + 'a');
                 bs_table[i] = bdrv_new(buf);

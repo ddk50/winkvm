@@ -5138,7 +5138,7 @@ int main(int argc, char **argv, char **envp)
 #endif
 #ifdef CONFIG_KVM
             case QEMU_OPTION_enable_kvm:
-                kvm_allowed = 1;
+                kvm_allowed = 1;				
 #ifdef USE_KQEMU
                 kqemu_allowed = 0;
 #endif
@@ -5537,14 +5537,22 @@ int main(int argc, char **argv, char **envp)
     }
 
     if (kvm_enabled()) {
-        int ret;
-
-        ret = kvm_init(smp_cpus);
+        int ret;		
+        ret = kvm_init(smp_cpus);		
         if (ret < 0) {
-            fprintf(stderr, "failed to initialize KVM\n");
+            fprintf(stderr, "failed to initialize KVM\n"); 
             exit(1);
         }
     }
+	
+/* 	if (winkvm_enabled()) { */
+/* 		int ret; */
+/* 		ret = kvm_init(smp_cpus); */
+/* 		if (ret < 0) {			 */
+/* 			fprintf(stderr, "failed to initialize KVM\n"); */
+/* 			exit(1);			 */
+/* 		}		 */
+/* 	} */	
 
     if (monitor_device) {
         monitor_hd = qemu_chr_open("monitor", monitor_device, NULL);

@@ -910,7 +910,7 @@ vga_bios_error:
                                      vga_bios_offset | IO_MEM_ROM);
     }
 
-    /* map the last 128KB of the BIOS in ISA space */
+    /* map the last 128KB of the BIOS in ISA space */	
     isa_bios_size = bios_size;
     if (isa_bios_size > (128 * 1024))
         isa_bios_size = 128 * 1024;
