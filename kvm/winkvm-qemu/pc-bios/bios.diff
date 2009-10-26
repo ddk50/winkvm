@@ -1,0 +1,57 @@
+Index: rombios.c
+===================================================================
+RCS file: /cvsroot/bochs/bochs/bios/rombios.c,v
+retrieving revision 1.174
+diff -u -w -r1.174 rombios.c
+--- rombios.c	17 Oct 2006 16:48:05 -0000	1.174
++++ rombios.c	8 Feb 2007 21:57:48 -0000
+@@ -9472,6 +9472,14 @@
+   mov eax, #0x00040000
+   call eax
+ 
++  ;; reset the memory (some boot loaders such as syslinux suppose 
++  ;; that the memory is set to zero)
++  mov edi, #0x00040000
++  mov ecx, #0x40000 / 4
++  xor eax, eax
++  rep 
++    stosd
++
+   ;; return to 16 bit protected mode first
+   db 0xea
+   dd rombios32_10
+Index: rombios.h
+===================================================================
+RCS file: /cvsroot/bochs/bochs/bios/rombios.h,v
+retrieving revision 1.3
+diff -u -w -r1.3 rombios.h
+--- rombios.h	3 Oct 2006 20:27:30 -0000	1.3
++++ rombios.h	8 Feb 2007 21:57:48 -0000
+@@ -19,7 +19,7 @@
+ //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ 
+ /* define it to include QEMU specific code */
+-//#define BX_QEMU
++#define BX_QEMU
+ 
+ #ifndef LEGACY
+ #  define BX_ROMBIOS32     1
+Index: rombios32.c
+===================================================================
+RCS file: /cvsroot/bochs/bochs/bios/rombios32.c,v
+retrieving revision 1.8
+diff -u -w -r1.8 rombios32.c
+--- rombios32.c	3 Oct 2006 20:27:30 -0000	1.8
++++ rombios32.c	8 Feb 2007 21:57:48 -0000
+@@ -852,6 +852,11 @@
+     int ioapic_id, i, len;
+     int mp_config_table_size;
+ 
++#ifdef BX_QEMU
++    if (smp_cpus <= 1)
++        return;
++#endif
++
+ #ifdef BX_USE_EBDA_TABLES
+     mp_config_table = (uint8_t *)(ram_size - ACPI_DATA_SIZE - MPTABLE_MAX_SIZE);
+ #else
