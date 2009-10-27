@@ -242,6 +242,10 @@ static CPUState *cur_cpu;
 static CPUState *next_cpu;
 static int event_pending = 1;
 
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
 #define TFR(expr) do { if ((expr) != -1) break; } while (errno == EINTR)
 
 /***********************************************************/
@@ -9090,7 +9094,7 @@ int main(int argc, char **argv)
     /* init the memory */
     phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE;
 
-#if USE_KVM	
+#ifdef USE_KVM	
     /* Initialize kvm */
     if (kvm_allowed) {
 	    phys_ram_size += KVM_EXTRA_PAGES * 4096;

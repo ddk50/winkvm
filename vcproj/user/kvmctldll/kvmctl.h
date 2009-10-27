@@ -243,7 +243,8 @@ int __cdecl kvm_guest_debug(kvm_context_t, int vcpu, struct kvm_debug_guest *dbg
  * \param vcpu Which virtual CPU should get dumped
  * \return 0 on success
  */
-int kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
+__declspec(dllexport)
+int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
 
 /*!
  * \brief Dump VCPU registers
@@ -257,13 +258,19 @@ int kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
  * \param vcpu Which virtual CPU should get dumped
  * \return 0 on success
  */
-void kvm_show_regs(kvm_context_t kvm, int vcpu);
+__declspec(dllexport)
+void __cdecl kvm_show_regs(kvm_context_t kvm, int vcpu);
 
-void *kvm_create_phys_mem(kvm_context_t, unsigned long phys_start, 
-			  unsigned long len, int slot, int log, int writable);
-void kvm_destroy_phys_mem(kvm_context_t, unsigned long phys_start, 
-			  unsigned long len);
-int kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
+__declspec(dllexport)
+void* __cdecl kvm_create_phys_mem(kvm_context_t, unsigned long phys_start, 
+								 unsigned long len, int slot, int log, int writable);
+
+__declspec(dllexport)
+void __cdecl kvm_destroy_phys_mem(kvm_context_t, unsigned long phys_start, 
+								  unsigned long len);
+
+__declspec(dllexport)
+int __cdecl kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
 
 /*!
  * \brief get a bitmap of guest ram pages which are allocated to the guest.
@@ -272,14 +279,16 @@ int kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
  * \param slot Memory slot number
  * \param bitmap Long aligned address of a big enough bitmap (one bit per page)
  */
-int kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap);
+__declspec(dllexport)
+int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap);
 
 /*!
  * \brief Enable dirty-pages-logging for all memory regions
  *
  * \param kvm Pointer to the current kvm_context
  */
-int kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
+__declspec(dllexport)
+int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
 
 /*!
  * \brief Disable dirty-page-logging for some memory regions
@@ -289,6 +298,7 @@ int kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
  *
  * \param kvm Pointer to the current kvm_context
  */
-int kvm_dirty_pages_log_reset(kvm_context_t kvm);
+__declspec(dllexport)
+int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm);
 
 #endif

@@ -32,6 +32,12 @@
 #include "smbus.h"
 #include "boards.h"
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern kvm_context_t kvm_context;
+extern int kvm_allowed;
+#endif
+
 /* output Bochs bios info messages */
 //#define DEBUG_BIOS
 
@@ -695,11 +701,6 @@ static void pc_init_ne2k_isa(NICInfo *nd, qemu_irq *pic)
     isa_ne2000_init(ne2000_io[nb_ne2k], pic[ne2000_irq[nb_ne2k]], nd);
     nb_ne2k++;
 }
-
-#ifdef USE_KVM
-extern kvm_context_t kvm_context;
-extern int kvm_allowed;
-#endif
 
 /* PC hardware initialisation */
 static void pc_init1(int ram_size, int vga_ram_size,

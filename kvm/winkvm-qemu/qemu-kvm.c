@@ -7,10 +7,23 @@
 #include "exec.h"
 
 #include "qemu-kvm.h"
-#include <kvmctl.h>
+#include "kvmctl.h"
 #include <string.h>
+/* #include <stdio.h> */
+/* #include <stdlib.h> */
 
 #define MSR_IA32_TSC		0x10
+
+#define CR4_OSFXSR_SHIFT 9
+#define CR4_OSFXSR_MASK (1 << CR4_OSFXSR_SHIFT)
+
+#define HF_VM_SHIFT         17 /* must be same as eflags */
+#define HF_IOPL_SHIFT       12 /* must be same as eflags */
+
+#define CR0_PE_SHIFT         0
+#define CR0_MP_SHIFT         1
+#define HF_VM_MASK           (1 << HF_VM_SHIFT)
+#define HF_IOPL_MASK         (3 << HF_IOPL_SHIFT)
 
 extern void perror(const char *s);
 
@@ -25,7 +38,7 @@ static CPUState *saved_env[NR_CPU];
 static void set_msr_entry(struct kvm_msr_entry *entry, uint32_t index, 
                           uint64_t data)
 {
-    entry->index = index;
+    entry->index = index;	
     entry->data  = data;
 }
 

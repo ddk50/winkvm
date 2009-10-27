@@ -806,6 +806,7 @@ extern int phys_ram_size;
 extern int phys_ram_fd;
 extern uint8_t *phys_ram_base;
 extern uint8_t *phys_ram_dirty;
+extern uint8_t *bios_mem;
 
 /* physical memory access */
 #define TLB_INVALID_MASK   (1 << 3)

@@ -15,6 +15,14 @@ int kvm_physical_memory_set_dirty_tracking(int enable);
 int kvm_update_dirty_pages_log(void);
 int kvm_get_phys_ram_page_bitmap(unsigned char *bitmap);
 
+//#define ALIGN(x, y)  (((x)+(y)-1) & ~((y)-1))
+//#define BITMAP_SIZE(m) (ALIGN(((m)>>TARGET_PAGE_BITS), HOST_LONG_BITS) / 8)
 #define ALIGN(x, y)  (((x)+(y)-1) & ~((y)-1))
 #define BITMAP_SIZE(m) (ALIGN(((m)>>TARGET_PAGE_BITS), HOST_LONG_BITS) / 8)
+#define KVM_EXTRA_PAGES 3
+
 #endif
+
+
+
+

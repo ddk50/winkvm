@@ -87,10 +87,13 @@ spinlock_t tb_lock = SPIN_LOCK_UNLOCKED;
 uint8_t code_gen_buffer[CODE_GEN_BUFFER_SIZE] __attribute__((aligned (32)));
 uint8_t *code_gen_ptr;
 
+
 int phys_ram_size;
 int phys_ram_fd;
 uint8_t *phys_ram_base;
 uint8_t *phys_ram_dirty;
+uint8_t *bios_mem;
+
 static ram_addr_t phys_ram_alloc_offset = 0;
 
 CPUState *first_cpu;

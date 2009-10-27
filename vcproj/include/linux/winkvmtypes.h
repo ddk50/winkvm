@@ -4,6 +4,8 @@
 
 #ifdef __WINKVM__
 
+#ifndef __user
+
 /* campatible header */
 
 /* for IA32 only */
@@ -187,6 +189,8 @@ struct notifier_block {
 	struct notifier_block *next;	
 	int priority;
 };
+
+#endif /* __user */
 
 #endif /* __WINKVM__ */
 #endif /* _WINKVMTYPES_H_ */
