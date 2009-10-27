@@ -81,7 +81,7 @@ struct i387_fxsave_struct {
 typedef struct { unsigned long long pgprot; } pgprot_t;
 
 struct __wait_queue_head {	
-	spinlock_t lock;
+	spinlock_t lock;  
 	struct list_head task_list;	
 };
 

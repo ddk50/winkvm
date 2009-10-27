@@ -871,3 +871,9 @@ static void pre_kvm_run(kvm_context_t kvm, struct kvm_run *kvm_run)
 {
     kvm->callbacks->pre_kvm_run(kvm->opaque, kvm_run);
 }
+
+__declspec(dllexport)
+void __cdecl kvmctl_msgbox(const char *msg)
+{
+	MessageBoxA(NULL, msg, "kvmctl", MB_OK);
+}
