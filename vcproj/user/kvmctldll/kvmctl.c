@@ -320,7 +320,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 	translation_cache_init(&tr);
 
 	if (run->io.string || _in) {
-		kvm_get_regs(kvm, vcpu, &regs);
+		r = kvm_get_regs(kvm, vcpu, &regs);
 //		r = ioctl(kvm->vcpu_fd[vcpu], KVM_GET_REGS, &regs);
 		if (r == -1)
 			return -errno;

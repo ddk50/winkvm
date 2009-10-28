@@ -117,7 +117,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KVMCTLDLL_EXPORTS"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\include&quot;"
+				PreprocessorDefinitions="__WINKVM__;WIN32;NDEBUG;_WINDOWS;_USRDLL;KVMCTLDLL_EXPORTS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -135,6 +136,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\..\..\..\bin\$(ProjectName).dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile="kvmctldll.def"
 				GenerateDebugInformation="true"
