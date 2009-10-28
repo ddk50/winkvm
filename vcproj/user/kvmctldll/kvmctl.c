@@ -9,8 +9,8 @@
 #undef _IO
 #undef _IOWR
 
-#include "kvmctl.h"
 #include "winkvmerrno.h"
+#include "kvmctl.h"
 
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
 
@@ -300,6 +300,13 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
     return ptr;
 }
 
+void __cdecl kvm_destroy_phys_mem(kvm_context_t kvm, unsigned long phys_start, 
+								  unsigned long len)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return;
+}
+
 static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 {
 	uint16_t addr = run->io.port;
@@ -550,7 +557,6 @@ static HANDLE OpenWinkvm(void)
 	return hnd;
 }
 
-__declspec(dllexport) 
 kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 							   void *opaque)
 {
@@ -696,7 +702,6 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
     return r;
 }
 
-__declspec(dllexport)
 int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 {
 	int r;
@@ -871,8 +876,67 @@ static void pre_kvm_run(kvm_context_t kvm, struct kvm_run *kvm_run)
     kvm->callbacks->pre_kvm_run(kvm->opaque, kvm_run);
 }
 
-__declspec(dllexport)
 void __cdecl kvmctl_msgbox(const char *msg)
 {
 	MessageBoxA(NULL, msg, "kvmctl", MB_OK);
+}
+
+int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return 1;
+}
+
+struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return NULL;
+}
+
+int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
+}
+
+int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest *dbg)
+{
+	printf(" %s implement me\n", __FUNCTION__);
+	return -1;
 }

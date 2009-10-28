@@ -63,6 +63,7 @@
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)\..\..\..\bin\$(ProjectName).dll"
 				LinkIncremental="2"
+				ModuleDefinitionFile="kvmctldll.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -135,6 +136,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
+				ModuleDefinitionFile="kvmctldll.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -174,6 +176,10 @@
 			>
 			<File
 				RelativePath=".\kvmctl.c"
+				>
+			</File>
+			<File
+				RelativePath=".\kvmctldll.def"
 				>
 			</File>
 			<File

@@ -574,19 +574,19 @@ SDL_LIBS := $(filter-out -mwindows, $(SDL_LIBS)) -mconsole
 endif
 
 $(QEMU_SYSTEM): $(VL_OBJS) ../libqemu_common.a libqemu.a
-	$(CC) $(VL_LDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS)
+	$(CC) $(VL_LDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS) $(KVMCTL_LIBS)
 
 depend: $(SRCS)
-	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend
+	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend	
 
 vldepend: $(VL_OBJS:.o=.c)
-	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend
+	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend	
 
 # libqemu
 
 libqemu.a: $(LIBOBJS)
 	rm -f $@
-	$(AR) rcs $@ $(LIBOBJS)
+	$(AR) rcs $@ $(LIBOBJS)	
 
 translate.o: translate.c gen-op.h opc.h cpu.h
 

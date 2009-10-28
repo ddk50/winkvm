@@ -17,7 +17,7 @@ VL_OS_LDFLAGS=-mno-cygwin
 ARCH_CFLAGS=-mno-cygwin
 ARCH_LDFLAGS=-mno-cygwin
 CFLAGS= -Wall -O2 -g -fno-strict-aliasing -I../../vcproj/include -I../../../vcproj/include
-LDFLAGS= -g -L../../vcproj/bin -L../../../vcproj/bin -lkvmctldll
+LDFLAGS= -g
 EXESUF=.exe
 AIOLIBS=
 ARCH=i386
@@ -30,5 +30,7 @@ TARGET_DIRS=i386-softmmu
 CONFIG_SDL=yes
 SDL_LIBS=-L/usr/local/mingw32/lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
 SDL_CFLAGS=-I/usr/local/mingw32/include/SDL -I/usr/include/mingw -mno-cygwin -Dmain=SDL_main
+KVMCTL_LIBS=-L../../vcproj/bin -L../../../vcproj/bin -lkvmctldll
+KVMCTL_CFLAGS=
 TOOLS=qemu-img$(EXESUF) 
 HOST_USB=stub

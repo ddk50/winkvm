@@ -79,7 +79,6 @@ struct kvm_callbacks {
  * \param opaque Not used
  * \return NULL on failure
  */
-__declspec(dllexport)
 kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 							   void *opaque);
 
@@ -92,7 +91,6 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
  *
  * \param kvm Pointer to the kvm_context that is to be freed
  */
-__declspec(dllexport)
 void __cdecl kvm_finalize(kvm_context_t kvm);
 
 /*!
@@ -109,7 +107,6 @@ void __cdecl kvm_finalize(kvm_context_t kvm);
  * kvm_create allocates for physical RAM
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_create(kvm_context_t kvm,
 					   unsigned long phys_mem_bytes,
 					   void **phys_mem);
@@ -135,7 +132,6 @@ int __cdecl kvm_create(kvm_context_t kvm,
  * return except for when an error has occured, or when you have sent it
  * an EINTR signal.
  */
-__declspec(dllexport)
 int __cdecl kvm_run(kvm_context_t kvm, int vcpu);
 
 /*!
@@ -153,7 +149,6 @@ int __cdecl kvm_run(kvm_context_t kvm, int vcpu);
  * registers values
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_get_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs);
 
 /*!
@@ -169,7 +164,6 @@ int __cdecl kvm_get_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs);
  * registers values
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_set_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs);
 
 /*!
@@ -188,7 +182,6 @@ int __cdecl kvm_set_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs);
  * registers values
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_get_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *regs);
 
 /*!
@@ -204,15 +197,11 @@ int __cdecl kvm_get_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *regs);
  * registers values
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_set_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *regs);
 
-__declspec(dllexport)
 struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t);
 
-__declspec(dllexport)
 int __cdecl kvm_get_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, int n);
-__declspec(dllexport)
 int __cdecl kvm_set_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, int n);
 
 /*!
@@ -225,10 +214,8 @@ int __cdecl kvm_set_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, in
  * \param irq Vector number
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq);
 
-__declspec(dllexport)
 int __cdecl kvm_guest_debug(kvm_context_t, int vcpu, struct kvm_debug_guest *dbg);
 
 /*!
@@ -245,7 +232,6 @@ int __cdecl kvm_guest_debug(kvm_context_t, int vcpu, struct kvm_debug_guest *dbg
  * \param vcpu Which virtual CPU should get dumped
  * \return 0 on success
  */
-__declspec(dllexport)
 int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
 
 /*!
@@ -260,18 +246,14 @@ int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
  * \param vcpu Which virtual CPU should get dumped
  * \return 0 on success
  */
-__declspec(dllexport)
 void __cdecl kvm_show_regs(kvm_context_t kvm, int vcpu);
 
-__declspec(dllexport)
 void* __cdecl kvm_create_phys_mem(kvm_context_t, unsigned long phys_start, 
 								 unsigned long len, int slot, int log, int writable);
 
-__declspec(dllexport)
 void __cdecl kvm_destroy_phys_mem(kvm_context_t, unsigned long phys_start, 
 								  unsigned long len);
 
-__declspec(dllexport)
 int __cdecl kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
 
 /*!
@@ -281,7 +263,6 @@ int __cdecl kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
  * \param slot Memory slot number
  * \param bitmap Long aligned address of a big enough bitmap (one bit per page)
  */
-__declspec(dllexport)
 int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap);
 
 /*!
@@ -289,7 +270,6 @@ int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap);
  *
  * \param kvm Pointer to the current kvm_context
  */
-__declspec(dllexport)
 int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
 
 /*!
@@ -300,7 +280,6 @@ int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
  *
  * \param kvm Pointer to the current kvm_context
  */
-__declspec(dllexport)
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm);
 
 #endif
