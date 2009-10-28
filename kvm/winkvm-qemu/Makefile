@@ -3,7 +3,7 @@
 include config-host.mak
 
 .PHONY: all clean distclean dvi info install install-doc tar tarbin \
-	speed test html dvi info
+	speed test html dvi info dll
 
 VPATH=$(SRC_PATH):$(SRC_PATH)/hw
 
@@ -294,3 +294,5 @@ endif
 
 # Include automatically generated dependency files
 -include $(wildcard *.d audio/*.d slirp/*.d)
+
+

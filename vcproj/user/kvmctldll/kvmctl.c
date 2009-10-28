@@ -323,7 +323,6 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 
 	while (more_io(run, first_time)) {
 		void *value_addr;
-
 		if (!run->io.string) {
 			if (_in)
 				value_addr = &regs.rax;

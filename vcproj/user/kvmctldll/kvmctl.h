@@ -298,6 +298,7 @@ int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
  *
  * \param kvm Pointer to the current kvm_context
  */
+
 __declspec(dllexport)
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm);
 
