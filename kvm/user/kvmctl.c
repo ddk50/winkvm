@@ -71,7 +71,7 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
 		     unsigned long linear, void **physical)
 {
 	unsigned long page = linear & ~(PAGE_SIZE-1);
-	unsigned long offset = linear & (PAGE_SIZE-1);
+	unsigned long offset = linear & (PAGE_SIZE-1);   
 
 	if (!(tr->physical && tr->linear == page)) {
 		struct kvm_translation kvm_tr;

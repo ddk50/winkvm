@@ -4,6 +4,12 @@
 
 #include <linux/kvm.h>
 
+extern unsigned num_msrs_to_save;
+extern u32 msrs_to_save[];
+extern u32 emulated_msrs[];
+
+extern unsigned long _cdecl get_emulated_msrs_array_size(void);
+
 /* start linux device driver */
 extern int _cdecl vmx_init(void);
 extern void _cdecl vmx_exit(void);

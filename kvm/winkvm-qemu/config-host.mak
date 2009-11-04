@@ -11,13 +11,13 @@ CC=gcc
 HOST_CC=gcc
 AR=ar
 STRIP=strip -s -R .comment -R .note
-OS_CFLAGS=-mno-cygwin
+OS_CFLAGS=-mno-cygwin -I. -I../../vcproj/include -I../../../vcproj/include
 OS_LDFLAGS=-mno-cygwin
 VL_OS_LDFLAGS=-mno-cygwin
-ARCH_CFLAGS=-mno-cygwin
+ARCH_CFLAGS=-mno-cygwin -I. -I../../vcproj/include -I../../../vcproj/include
 ARCH_LDFLAGS=-mno-cygwin
-CFLAGS= -Wall -O2 -g -fno-strict-aliasing -I../../vcproj/include -I../../../vcproj/include
-LDFLAGS= -g
+CFLAGS= -Wall -O2 -g -fno-strict-aliasing -mno-cygwin -I. -I../../vcproj/include -I../../../vcproj/include
+LDFLAGS= -g -mno-cygwin
 EXESUF=.exe
 AIOLIBS=
 ARCH=i386
@@ -30,7 +30,7 @@ TARGET_DIRS=i386-softmmu
 CONFIG_SDL=yes
 SDL_LIBS=-L/usr/local/mingw32/lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
 SDL_CFLAGS=-I/usr/local/mingw32/include/SDL -I/usr/include/mingw -mno-cygwin -Dmain=SDL_main
+TOOLS=qemu-img$(EXESUF)
 KVMCTL_LIBS=-L../../vcproj/bin -L../../../vcproj/bin -lkvmctldll
-KVMCTL_CFLAGS=
-TOOLS=qemu-img$(EXESUF) 
 HOST_USB=stub
+

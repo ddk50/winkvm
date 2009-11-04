@@ -1,0 +1,34 @@
+LIBRARY	"kvmctldll"
+VERSION 0.1
+EXPORTS
+	kvm_init
+	kvm_finalize
+	kvm_create
+	kvm_run
+	kvm_get_regs
+	kvm_set_regs
+	kvm_get_sregs
+	kvm_set_sregs	
+	kvm_get_msr_list
+	kvm_get_msrs
+	kvm_set_msrs
+	kvm_inject_irq
+	kvm_guest_debug
+	kvm_dump_vcpu
+	kvm_show_regs
+	kvm_create_phys_mem
+	kvm_destroy_phys_mem
+	kvm_get_dirty_pages
+	kvm_get_mem_map
+	kvm_dirty_pages_log_enable_all
+	kvm_dirty_pages_log_reset
+	winkvm_cpu_outb
+	winkvm_cpu_outw
+	winkvm_cpu_outl
+	winkvm_cpu_inb
+	winkvm_cpu_inw
+	winkvm_cpu_inl	
+	winkvm_read_guest
+	winkvm_write_guest	
+	kvmctl_msgbox 
+	

@@ -39,9 +39,33 @@ static struct page *get_page_slot(hva_t pageaddr);
 void init_slab_emulater(void)
 {
 	int i;
+	struct page_root *pgr;
+	unsigned long addr;
+	unsigned long cache_size = 0;
 
 	for (i = 0 ; i < page_slot_num ; i++) {
 		page_slot_root[i] = NULL;
+	}
+
+	/* allocate cache slot */
+	cache_size = 1024 * 1024 * 128;
+	for (addr = 0 ; addr < cache_size ; addr += PAGE_SIZE) {
+		pgr = page_slot_root[PAGE_PDE(addr)];
+		if (!pgr) {
+			pgr = (struct page_root*)ExAllocatePoolWithTag(NonPagedPool, 
+				                                           sizeof(struct page_root), 
+														   MEM_TAG);
+			SAFE_ASSERT(pgr);
+			page_slot_root[PAGE_PDE(addr)] = pgr;
+		}
+
+		/* FIX ME: immediate number!  */
+		for (i = 0 ; i < 1024 ; i++) {
+			pgr->page[i].__wpfn = PAGE_NOT_USED;
+			pgr->page[i].__nt_mem = NULL;
+			pgr->page[i].__nt_memsize = 0;
+			pgr->page[i].__ppfn = 0;
+		}
 	}
 
 	ExInitializeFastMutex(&page_emulater_mutex);

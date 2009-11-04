@@ -342,7 +342,7 @@ void cpu_outw(CPUState *env, int addr, int val)
 #endif
 }
 
-void cpu_outl(CPUState *env, int addr, int val)
+void cpu_outl(CPUState *env, int addr, int val)  
 {
 #ifdef DEBUG_IOPORT
     if (loglevel & CPU_LOG_IOPORT)

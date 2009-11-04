@@ -8,10 +8,10 @@
 #define __WINKVM__
 
 #define __user /* temporary, until installed via make headers_install */
-#define __cygwin
-
 #include <linux/winkvmint.h>
 #include <linux/kvm.h>
+
+struct kvm_context;
 
 typedef struct kvm_context *kvm_context_t;
 
@@ -199,10 +199,10 @@ int __cdecl kvm_get_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *regs);
  */
 int __cdecl kvm_set_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *regs);
 
-struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t);
+struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm);
 
-int __cdecl kvm_get_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, int n);
-int __cdecl kvm_set_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, int n);
+int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n);
+int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n);
 
 /*!
  * \brief Simulate an external vectored interrupt
@@ -216,7 +216,7 @@ int __cdecl kvm_set_msrs(kvm_context_t, int vcpu, struct kvm_msr_entry *msrs, in
  */
 int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq);
 
-int __cdecl kvm_guest_debug(kvm_context_t, int vcpu, struct kvm_debug_guest *dbg);
+int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest *dbg);
 
 /*!
  * \brief Dump all VCPU information
@@ -248,13 +248,13 @@ int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu);
  */
 void __cdecl kvm_show_regs(kvm_context_t kvm, int vcpu);
 
-void* __cdecl kvm_create_phys_mem(kvm_context_t, unsigned long phys_start, 
+void* __cdecl kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start, 
 								 unsigned long len, int slot, int log, int writable);
 
-void __cdecl kvm_destroy_phys_mem(kvm_context_t, unsigned long phys_start, 
+void __cdecl kvm_destroy_phys_mem(kvm_context_t kvm, unsigned long phys_start, 
 								  unsigned long len);
 
-int __cdecl kvm_get_dirty_pages(kvm_context_t, int slot, void *buf);
+int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf);
 
 /*!
  * \brief get a bitmap of guest ram pages which are allocated to the guest.
@@ -280,6 +280,28 @@ int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
  *
  * \param kvm Pointer to the current kvm_context
  */
+
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm);
+
+/*
+ * memory writer
+ */
+void __cdecl winkvm_cpu_outb(void *env, int addr, int val);
+void __cdecl winkvm_cpu_outw(void *env, int addr, int val);
+void __cdecl winkvm_cpu_outl(void *env, int addr, int val);
+
+/*
+ * memory reader
+ */
+int __cdecl winkvm_cpu_inb(void *env, int addr);
+int __cdecl winkvm_cpu_inw(void *env, int addr);
+int __cdecl winkvm_cpu_inl(void *env, int addr);
+
+
+int __cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
+							  unsigned long size, void *dest);
+
+int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
+							   unsigned long size, void *data);
 
 #endif

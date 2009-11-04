@@ -1,5 +1,5 @@
-/*
- * QEMU System Emulator
+/* 
+ * QEMU System Emulator 
  *
  * Copyright (c) 2003-2008 Fabrice Bellard
  *
@@ -388,11 +388,12 @@ void cpu_outb(CPUState *env, int addr, int val)
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "outb: %04x %02x\n", addr, val);
 #endif
-    ioport_write_table[0][addr](ioport_opaque[addr], addr, val);
+	//    ioport_write_table[0][addr](ioport_opaque[addr], addr, val);	
+	winkvm_cpu_outb(env, addr, val);	
 #ifdef USE_KQEMU
     if (env)
         env->last_io_time = cpu_get_time_fast();
-#endif
+#endif	
 }
 
 void cpu_outw(CPUState *env, int addr, int val)
@@ -401,10 +402,11 @@ void cpu_outw(CPUState *env, int addr, int val)
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "outw: %04x %04x\n", addr, val);
 #endif
-    ioport_write_table[1][addr](ioport_opaque[addr], addr, val);
+	//    ioport_write_table[1][addr](ioport_opaque[addr], addr, val);
+	winkvm_cpu_outw(env, addr, val);	
 #ifdef USE_KQEMU
     if (env)
-        env->last_io_time = cpu_get_time_fast();
+        env->last_io_time = cpu_get_time_fast();	
 #endif
 }
 
@@ -414,17 +416,19 @@ void cpu_outl(CPUState *env, int addr, int val)
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "outl: %04x %08x\n", addr, val);
 #endif
-    ioport_write_table[2][addr](ioport_opaque[addr], addr, val);
-#ifdef USE_KQEMU
+	//    ioport_write_table[2][addr](ioport_opaque[addr], addr, val);
+	winkvm_cpu_outl(env, addr, val);	
+#ifdef USE_KQEMU	
     if (env)
-        env->last_io_time = cpu_get_time_fast();
+        env->last_io_time = cpu_get_time_fast();	
 #endif
 }
 
-int cpu_inb(CPUState *env, int addr)
-{
+int cpu_inb(CPUState *env, int addr)  
+{	
     int val;
-    val = ioport_read_table[0][addr](ioport_opaque[addr], addr);
+	//    val = ioport_read_table[0][addr](ioport_opaque[addr], addr);
+	val = winkvm_cpu_inb(env, addr);	
 #ifdef DEBUG_IOPORT
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "inb : %04x %02x\n", addr, val);
@@ -439,7 +443,8 @@ int cpu_inb(CPUState *env, int addr)
 int cpu_inw(CPUState *env, int addr)
 {
     int val;
-    val = ioport_read_table[1][addr](ioport_opaque[addr], addr);
+	//    val = ioport_read_table[1][addr](ioport_opaque[addr], addr);
+	val = winkvm_cpu_inw(env, addr);	
 #ifdef DEBUG_IOPORT
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "inw : %04x %04x\n", addr, val);
@@ -454,7 +459,8 @@ int cpu_inw(CPUState *env, int addr)
 int cpu_inl(CPUState *env, int addr)
 {
     int val;
-    val = ioport_read_table[2][addr](ioport_opaque[addr], addr);
+	//    val = ioport_read_table[2][addr](ioport_opaque[addr], addr);
+	val = winkvm_cpu_inl(env, addr);	
 #ifdef DEBUG_IOPORT
     if (loglevel & CPU_LOG_IOPORT)
         fprintf(logfile, "inl : %04x %08x\n", addr, val);

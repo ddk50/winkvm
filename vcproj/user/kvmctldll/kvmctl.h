@@ -281,4 +281,25 @@ int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm);
 
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm);
 
+/*
+ * memory writer
+ */
+void __cdecl winkvm_cpu_outb(void *env, int addr, int val);
+void __cdecl winkvm_cpu_outw(void *env, int addr, int val);
+void __cdecl winkvm_cpu_outl(void *env, int addr, int val);
+
+/*
+ * memory reader
+ */
+int __cdecl winkvm_cpu_inb(void *env, int addr);
+int __cdecl winkvm_cpu_inw(void *env, int addr);
+int __cdecl winkvm_cpu_inl(void *env, int addr);
+
+
+int __cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
+							  unsigned long size, void *dest);
+
+int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
+							   unsigned long size, void *data);
+
 #endif

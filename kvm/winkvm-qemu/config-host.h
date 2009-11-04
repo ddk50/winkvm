@@ -9,4 +9,4 @@
 #define CONFIG_SDL 1
 #define CONFIG_UNAME_RELEASE ""
 #define USE_KVM
-
+#define __WINKVM__

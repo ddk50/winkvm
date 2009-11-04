@@ -318,7 +318,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = STATUS_SUCCESS;
 			break;
 		}
-	case KVM_CREATE_VM: 
+	case KVM_CREATE_VM:
 		{
 			int ret;
 			printk(KERN_ALERT "Call KVM_CREATE_VM\n");
@@ -327,7 +327,32 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = sizeof(ret);	   
 			ntStatus = ConvertRetval(ret);
 			break;
-		}		
+		}
+	case KVM_GET_MSR_INDEX_LIST:
+		{
+			struct kvm_msr_list msr_list;
+			__u32 *indices;
+			ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+
+			RtlCopyMemory(&msr_list, inBuf, sizeof(msr_list));
+
+			if (msr_list.nmsrs <= 0) {				
+				/* call for getting the number of msrlist size */
+				msr_list.nmsrs = num_msrs_to_save + get_emulated_msrs_array_size();
+				RtlCopyMemory(outBuf, &msr_list, sizeof(msr_list));
+				Irp->IoStatus.Information = sizeof(msr_list);
+				ntStatus = STATUS_SUCCESS;
+			} else {
+				indices = (__u32*)((u8*)outBuf + sizeof(msr_list.nmsrs));
+				RtlCopyMemory(indices, &msrs_to_save, num_msrs_to_save * sizeof(u32));
+				indices = (__u32*)((u8*)indices + num_msrs_to_save * sizeof(u32));
+				RtlCopyMemory(indices, &emulated_msrs, get_emulated_msrs_array_size() * sizeof(u32));
+				Irp->IoStatus.Information = sizeof(msr_list.nmsrs) + 
+					(num_msrs_to_save * sizeof(u32)) + (get_emulated_msrs_array_size() * sizeof(u32));
+				ntStatus = STATUS_SUCCESS;
+			}
+			break;
+		}
 	case KVM_CREATE_VCPU:
 		{	
 			int ret;
