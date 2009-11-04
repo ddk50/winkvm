@@ -37,7 +37,7 @@ ifndef TARGET_ABI_DIR
 endif
 CPPFLAGS+=-I$(SRC_PATH)/linux-user -I$(SRC_PATH)/linux-user/$(TARGET_ABI_DIR)
 endif
-BASE_CFLAGS=
+BASE_CFLAGS=-g
 BASE_LDFLAGS=
 #CFLAGS+=-Werror
 LIBS=
@@ -99,6 +99,7 @@ endif
 
 # We require -O2 to avoid the stack setup prologue in EXIT_TB
 OP_CFLAGS := -Wall -O2 -g -fno-strict-aliasing
+#OP_CFLAGS := -Wall -g -fno-strict-aliasing
 
 # cc-option
 # Usage: OP_CFLAGS+=$(call cc-option, -falign-functions=0, -malign-functions=0)

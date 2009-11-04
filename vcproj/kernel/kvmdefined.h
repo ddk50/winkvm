@@ -36,5 +36,6 @@ extern int _cdecl kvm_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu, struct kvm_sre
 extern int _cdecl kvm_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu, struct kvm_sregs *sregs);
 
 extern int _cdecl kvm_vcpu_ioctl_translate(struct kvm_vcpu *vcpu, struct kvm_translation *tr);
+extern int _cdecl kvm_vcpu_ioctl_interrupt(struct kvm_vcpu *vcpu, struct kvm_interrupt *irq);
 
 #endif

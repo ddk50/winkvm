@@ -66,7 +66,7 @@ static int get_msr_entry(struct kvm_msr_entry *entry, CPUState *env)
             printf("Warning unknown msr index 0x%x\n", entry->index);
             return 1;
         }
-        return 0;
+        return 0;		
 }
 
 #ifdef TARGET_X86_64
@@ -130,7 +130,7 @@ static void fix_realmode_dataseg(struct kvm_segment *seg)
 {
 	seg->type = 0x02;
 	seg->present = 1;
-	seg->s = 1;
+	seg->s = 1;	
 }
 
 static void load_regs(CPUState *env)
@@ -166,7 +166,7 @@ static void load_regs(CPUState *env)
     regs.rflags = env->eflags;
     regs.rip = env->eip;
 
-    kvm_set_regs(kvm_context, 0, &regs);
+    kvm_set_regs(kvm_context, 0, &regs);	
 
     memcpy(sregs.interrupt_bitmap, env->kvm_interrupt_bitmap, sizeof(sregs.interrupt_bitmap));
 
@@ -198,7 +198,7 @@ static void load_regs(CPUState *env)
 		    fix_realmode_dataseg(&sregs.fs);
 		    fix_realmode_dataseg(&sregs.gs);
 		    fix_realmode_dataseg(&sregs.ss);
-	    }
+	    }		
     }
 
     set_seg(&sregs.tr, &env->tr);
@@ -386,7 +386,7 @@ static int try_push_interrupts(void *opaque)
     if (env->ready_for_interrupt_injection &&
         (env->interrupt_request & CPU_INTERRUPT_HARD) &&
         (env->eflags & IF_MASK)) {
-            env->interrupt_request &= ~CPU_INTERRUPT_HARD;
+            env->interrupt_request &= ~CPU_INTERRUPT_HARD;			
             // for now using cpu 0
             kvm_inject_irq(kvm_context, 0, cpu_get_pic_interrupt(env));
     }
@@ -539,22 +539,19 @@ static int kvm_debug(void *opaque, int vcpu)
 
 static int kvm_inb(void *opaque, uint16_t addr, uint8_t *data)  
 {   
-/*    *data = cpu_inb(0, addr);	 */
-	*data = winkvm_cpu_inb(0, addr);	
-    return 0;
+    *data = cpu_inb(0, addr);	
+    return 0;	
 }
 
 static int kvm_inw(void *opaque, uint16_t addr, uint16_t *data)
 {
-/*    *data = cpu_inw(0, addr); */
-	*data = winkvm_cpu_inw(0, addr);	
+    *data = cpu_inw(0, addr);
     return 0;
 }
 
 static int kvm_inl(void *opaque, uint16_t addr, uint32_t *data)
 {
-/*    *data = cpu_inl(0, addr); */
-	*data = winkvm_vcpu_inl(0, addr);	
+    *data = cpu_inl(0, addr);   
     return 0;
 }
 
@@ -565,30 +562,25 @@ static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
     if (addr == 0xb2) {
 	switch (data) {
 	case 0: {
-/*	    cpu_outb(0, 0xb3, 0); */
-		winkvm_cpu_outb(0, 0xb3, 0);		
+	    cpu_outb(0, 0xb3, 0);		
 	    break;
 	}
 	case 0xf0: {
 	    unsigned x;
 
 	    /* enable acpi */
-/*	    x = cpu_inw(0, PM_IO_BASE + 4); */
-		x = winkvm_cpu_inw(0, PM_IO_BASE + 4);		
+	    x = cpu_inw(0, PM_IO_BASE + 4);		
 	    x &= ~1;
-/*	    cpu_outw(0, PM_IO_BASE + 4, x); */
-		winkvm_cpu_outw(0, PM_IO_BASE + 4, x);		
+	    cpu_outw(0, PM_IO_BASE + 4, x);		
 	    break;
 	}
 	case 0xf1: {
 	    unsigned x;
 
 	    /* enable acpi */
-/*	    x = cpu_inw(0, PM_IO_BASE + 4);*/
-		x = winkvm_cpu_inw(0, PM_IO_BASE + 4);		
+	    x = cpu_inw(0, PM_IO_BASE + 4);		
 	    x |= 1;
-/*	    cpu_outw(0, PM_IO_BASE + 4, x); */
-		winkvm_cpu_outw(0, PM_IO_BASE + 4, x);		
+	    cpu_outw(0, PM_IO_BASE + 4, x);		
 	    break;
 	}
 	default:
@@ -596,21 +588,20 @@ static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
 	}
 	return 0;
     }
-/*    cpu_outb(0, addr, data); */
-	winkvm_cpu_outb(0, addr, data);	
+    cpu_outb(0, addr, data);
+	/*	winkvm_cpu_outb(0, addr, data);	 */	
     return 0;
 }
 
 static int kvm_outw(void *opaque, uint16_t addr, uint16_t data)
-{	
-/*     cpu_outw(0, addr, data); */
+{ 
 	cpu_outw(0, addr, data);	
     return 0;	
 }
 
 static int kvm_outl(void *opaque, uint16_t addr, uint32_t data)
 {
-    cpu_outl(0, addr, data);
+    cpu_outl(0, addr, data);	
     return 0;
 }
 

@@ -553,19 +553,19 @@ static int kvm_debug(void *opaque, int vcpu)
 
 static int kvm_inb(void *opaque, uint16_t addr, uint8_t *data)
 {
-    *data = winkvm_cpu_inb(0, addr);	
+    *data = cpu_inb(0, addr);	
     return 0;
 }
 
 static int kvm_inw(void *opaque, uint16_t addr, uint16_t *data)
 {
-    *data = winkvm_cpu_inw(0, addr);
+    *data = cpu_inw(0, addr);	
     return 0;
 }
 
 static int kvm_inl(void *opaque, uint16_t addr, uint32_t *data)
 {
-    *data = winkvm_cpu_inl(0, addr);
+    *data = cpu_inl(0, addr);	
     return 0;
 }
 
@@ -576,25 +576,25 @@ static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
     if (addr == 0xb2) {
 	switch (data) {
 	case 0: {
-	    winkvm_cpu_outb(0, 0xb3, 0);
+	    cpu_outb(0, 0xb3, 0);		
 	    break;
 	}
 	case 0xf0: {
 	    unsigned x;
 
 	    /* enable acpi */
-	    x = winkvm_cpu_inw(0, PM_IO_BASE + 4);
+	    x = cpu_inw(0, PM_IO_BASE + 4);
 	    x &= ~1;
-	    winkvm_cpu_outw(0, PM_IO_BASE + 4, x);
+	    cpu_outw(0, PM_IO_BASE + 4, x);		
 	    break;		
 	}
 	case 0xf1: {
 	    unsigned x;
 
 	    /* enable acpi */
-	    x = winkvm_cpu_inw(0, PM_IO_BASE + 4);		
+	    x = cpu_inw(0, PM_IO_BASE + 4);		
 	    x |= 1;
-	    winkvm_cpu_outw(0, PM_IO_BASE + 4, x);		
+	    cpu_outw(0, PM_IO_BASE + 4, x);		
 	    break;
 	}
 	default:
@@ -602,19 +602,19 @@ static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
 	}
 	return 0;
     }
-    winkvm_cpu_outb(0, addr, data);	
+    cpu_outb(0, addr, data);	
     return 0;
 }
 
 static int kvm_outw(void *opaque, uint16_t addr, uint16_t data)
 {
-    winkvm_cpu_outw(0, addr, data);	
+    cpu_outw(0, addr, data);	
     return 0;
 }
 
 static int kvm_outl(void *opaque, uint16_t addr, uint32_t data)
 {
-    winkvm_cpu_outl(0, addr, data);	
+    cpu_outl(0, addr, data);	
     return 0;
 }
 
@@ -644,7 +644,7 @@ static int kvm_readq(void *opaque, uint64_t addr, uint64_t *data)
 
 static int kvm_writeb(void *opaque, uint64_t addr, uint8_t data)
 {
-    stb_phys(addr, data);
+    stb_phys(addr, data);	
     return 0;
 }
 

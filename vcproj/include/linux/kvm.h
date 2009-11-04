@@ -67,7 +67,8 @@ struct winkvm_create_vcpu {
 struct winkvm_transfer_mem {
 	int vcpu_fd;	
 	__u32 gva;
-	__u32 size;	
+	__u32 size;
+	__u8 payload[0];	
 };
 #endif
 
@@ -224,6 +225,9 @@ struct kvm_msr_list {
 
 /* for KVM_TRANSLATE */
 struct kvm_translation {
+#ifdef __WINKVM__
+  int vcpu_fd;	
+#endif
   /* in */
   __u64 linear_address;
 

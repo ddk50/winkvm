@@ -2244,7 +2244,7 @@ long kvm_vcpu_ioctl(struct file *filp,
 		if (copy_from_user(&tr, argp, sizeof tr))
 			goto out;
 		r = kvm_vcpu_ioctl_translate(vcpu, &tr);
-		if (r)
+		if (r)		  
 			goto out;
 		r = -EFAULT;
 		if (copy_to_user(argp, &tr, sizeof tr))

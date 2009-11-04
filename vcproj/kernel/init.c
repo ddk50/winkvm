@@ -394,9 +394,19 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	case KVM_GET_REGS: 
 		{
 			struct kvm_regs kvm_regs;
+			struct kvm_vcpu *vcpu = NULL;
 			int vcpu_fd, r;
+
 			printk(KERN_ALERT "Call KVM_GET_REGS\n");
-			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(int));
+			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
+
+			vcpu = get_vcpu(vcpu_fd);
+			if (!vcpu) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
 			r = kvm_vcpu_ioctl_get_regs(get_vcpu(vcpu_fd), &kvm_regs);
 			RtlCopyMemory(outBuf, &kvm_regs, sizeof(struct kvm_regs));
 			Irp->IoStatus.Information = sizeof(struct kvm_regs);
@@ -406,11 +416,88 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
     case KVM_SET_REGS: 
 		{
 			struct kvm_regs kvm_regs;
+			struct kvm_vcpu *vcpu = NULL;
 			int r;
+
 			printk(KERN_ALERT "Call KVM_SET_REGS\n");
-			RtlZeroMemory(&kvm_regs, sizeof(struct kvm_regs));
-			r = kvm_vcpu_ioctl_set_regs(get_vcpu(kvm_regs.vcpu_fd), &kvm_regs);
+			RtlCopyMemory(&kvm_regs, inBuf, sizeof(kvm_regs));
+
+			vcpu = get_vcpu(kvm_regs.vcpu_fd);
+			if (!vcpu) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
+			r = kvm_vcpu_ioctl_set_regs(vcpu, &kvm_regs);
 			Irp->IoStatus.Information = 0;
+			ntStatus = ConvertRetval(r);
+			break;
+		}
+	case KVM_GET_SREGS:
+		{
+			struct kvm_sregs kvm_sregs;
+			struct kvm_vcpu *vcpu = NULL;
+			int vcpu_fd;
+			int r;
+
+			printk(KERN_ALERT "Call KVM_GET_SREGS\n");
+			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));			
+
+			vcpu = get_vcpu(vcpu_fd);
+			if (!vcpu) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
+			r = kvm_vcpu_ioctl_get_sregs(vcpu, &kvm_sregs);			
+			Irp->IoStatus.Information = sizeof(kvm_sregs);
+			RtlCopyMemory(outBuf, &kvm_sregs, sizeof(kvm_sregs));
+			ntStatus = ConvertRetval(r);
+			break;
+		}
+	case KVM_SET_SREGS:
+		{
+			struct kvm_sregs kvm_sregs;
+			struct kvm_vcpu *vcpu = NULL;
+			int r;
+
+			printk(KERN_ALERT "Call KVM_SET_SREGS\n");
+			RtlCopyMemory(&kvm_sregs, inBuf, sizeof(kvm_sregs));
+
+			vcpu = get_vcpu(kvm_sregs.vcpu_fd);
+			if (!vcpu) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+			
+			r = kvm_vcpu_ioctl_set_sregs(vcpu, &kvm_sregs);
+			Irp->IoStatus.Information = 0;
+			ntStatus = ConvertRetval(r);
+			break;
+		}
+	case KVM_TRANSLATE:
+		{
+			struct kvm_translation tr;
+			struct kvm_vcpu *vcpu = NULL;
+			int r;
+
+			printk(KERN_ALERT "Call KVM_TRANSLATE\n");
+			RtlCopyMemory(&tr, inBuf, sizeof(tr));
+
+			vcpu = get_vcpu(tr.vcpu_fd);
+			if (!vcpu) {
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
+			r = kvm_vcpu_ioctl_translate(vcpu, &tr);
+
+			Irp->IoStatus.Information = sizeof(tr);
+			RtlCopyMemory(outBuf, &tr, sizeof(tr));
 			ntStatus = ConvertRetval(r);
 			break;
 		}
@@ -501,8 +588,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			if (vcpu) {
 				ret = kvm_read_guest(vcpu, trans_mem.gva, trans_mem.size, outBuf);
-				Irp->IoStatus.Information = ret;
 				ntStatus = ConvertRetval(ret);
+				Irp->IoStatus.Information = ret;
 			} else {
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
@@ -513,21 +600,18 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		{
 			struct winkvm_transfer_mem *trans_mem;
 			struct kvm_vcpu *vcpu;
-			unsigned char *p;
 			int ret;
 
-			p = (unsigned char*)trans_mem = inBuf;
-			p += sizeof(trans_mem);
-
-			SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(trans_mem)));
-
+			trans_mem = (struct winkvm_transfer_mem*)inBuf;
 			vcpu = get_vcpu(trans_mem->vcpu_fd);
-			SAFE_ASSERT(vcpu);
+
+			SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(struct winkvm_transfer_mem)));
 
 			if (vcpu) {
-				ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, p);
+				ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, trans_mem->payload);
+				RtlCopyMemory(outBuf, &ret, sizeof(ret));
 				Irp->IoStatus.Information = ret;
-				ntStatus = ConvertRetval(ret);	 
+				ntStatus = ConvertRetval(ret);
 			} else {
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;

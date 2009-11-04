@@ -22,12 +22,6 @@ EXPORTS
 	kvm_get_mem_map
 	kvm_dirty_pages_log_enable_all
 	kvm_dirty_pages_log_reset
-	winkvm_cpu_outb
-	winkvm_cpu_outw
-	winkvm_cpu_outl
-	winkvm_cpu_inb
-	winkvm_cpu_inw
-	winkvm_cpu_inl	
 	winkvm_read_guest
 	winkvm_write_guest	
 	kvmctl_msgbox 

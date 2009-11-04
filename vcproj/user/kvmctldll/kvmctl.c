@@ -67,6 +67,7 @@ static void translation_cache_init(struct translation_cache *tr)
 static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
 					 unsigned long linear, void **physical)
 {	
+/*
     unsigned long page = linear & ~(PAGE_SIZE-1);
     unsigned long offset = linear & (PAGE_SIZE-1);
 	unsigned long retlen;
@@ -102,6 +103,8 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
     }
     *physical = (void*)((unsigned long)tr->physical + offset);
 	return 0;	
+	*/
+	return -1;
 }
 
 void kvm_finalize(kvm_context_t kvm)
@@ -311,7 +314,7 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 //        prot |= PROT_WRITE;
 
 //    ptr = mmap(0, len, prot, MAP_SHARED, fd, phys_start);
-	ptr = VirtualAlloc(NULL, len, MEM_RESERVE, PAGE_NOACCESS);	
+	ptr = VirtualAlloc(NULL, len, MEM_RESERVE, PAGE_READWRITE);	
     if (ptr == NULL)
         return 0;
 
@@ -355,6 +358,8 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 				value_addr = &run->io.value;
 		} else {
 			r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
+			fprintf(stderr, "translating I/O address %llx\n", 
+				run->io.address);
 			if (r) {
 				fprintf(stderr, "failed translating I/O address %llx\n",
 					run->io.address);
@@ -1061,116 +1066,81 @@ int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest 
 	return -1;
 }
 
-#pragma pack(1)
-
-struct winkvm_outb {
-	struct winkvm_transfer_mem t_mem;
-	unsigned char val;
-};
-
-struct winkvm_outw {
-	struct winkvm_transfer_mem t_mem;
-	unsigned short val;
-};
-
-struct winkvm_outl {
-	struct winkvm_transfer_mem t_mem;
-	unsigned long val;
-};
-
-#pragma pack()
-
-#define OUT_COMMON(s, v) \
-	do { \
-        struct winkvm_##s data; \
-		unsigned long retlen; \
-		BOOL ret; \
-		data.t_mem.size    = (v); \
-		data.t_mem.gva     = addr; \
-		data.t_mem.vcpu_fd = kvm_context->vcpu_fd[0]; \
-		data.val = val; \
-		ret = DeviceIoControl(kvm_context->hnd, \
-		                      WINKVM_WRITE_GUEST, \
-							  &data,\
-							  sizeof(data),\
-							  NULL,\
-							  0,\
-							  &retlen,\
-							  NULL);\
-		if (!ret) { \
-			fprintf(stderr, "BUG: %s:\n", \
-			        __FUNCTION__);\
-		}\
-	} while(0)
-
-/*
- * memory writer
- */
-void __cdecl winkvm_cpu_outb(void *env, int addr, int val)
-{
-	OUT_COMMON(outb, 1);
-}
-
-void __cdecl winkvm_cpu_outw(void *env, int addr, int val)
-{	
-	OUT_COMMON(outw, 2);
-}
-
-void __cdecl winkvm_cpu_outl(void *env, int addr, int val)
-{
-	OUT_COMMON(outl, 4);
-}
-
-#define COMMON_IN() \
-	do { \
-		struct winkvm_transfer_mem t_mem; \
-		unsigned long retlen = 0; \
-		int retval = 0; \
-		BOOL ret; \
-		t_mem.size    = 1; \
-		t_mem.gva     = addr; \
-		t_mem.vcpu_fd = kvm_context->vcpu_fd[0]; \
-		ret = DeviceIoControl(kvm_context->hnd, \
-		                      WINKVM_READ_GUEST, \
-							  &t_mem,\
-							  sizeof(t_mem),\
-							  &retval,\
-							  sizeof(retval),\
-							  &retlen,\
-							  NULL);\
-		if (!ret) { \
-			fprintf(stderr, "BUG: %s:\n", \
-			        __FUNCTION__);\
-		}\
-		return ret; \
-	} while(0)
-
-/*
- * memory reader
- */
-int __cdecl winkvm_cpu_inb(void *env, int addr)
-{
-	COMMON_IN();
-}
-
-int __cdecl winkvm_cpu_inw(void *env, int addr)
-{
-	COMMON_IN();
-}
-
-int __cdecl winkvm_cpu_inl(void *env, int addr)
-{
-	COMMON_IN();
-}
+static struct winkvm_transfer_mem *trans_mem = NULL;
+static unsigned long tbuf_size = 0;
 
 int __cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr, 
-						   unsigned long size, void *dest)
+							  unsigned long size, void *dest)
 {
-	return 1;
+	int copyed_bytes = 0;
+	BOOL ret;
+
+	if (size > tbuf_size) {
+		/* 512 bytes buffer */
+		trans_mem = realloc(trans_mem, 
+			                sizeof(struct winkvm_transfer_mem) + size);
+		if (!trans_mem) {
+			fprintf(stderr, "Could not allocate read buffer\n");
+			return 0;
+		}
+		tbuf_size = size;
+	}
+
+	trans_mem->vcpu_fd = kvm->vcpu_fd[0];
+	trans_mem->size    = size;
+	trans_mem->gva     = addr;
+
+	ret = DeviceIoControl(kvm->hnd,
+		                  WINKVM_READ_GUEST,
+						  trans_mem,
+						  sizeof(struct winkvm_transfer_mem),
+						  trans_mem->payload,
+						  size,
+						  &copyed_bytes,
+						  NULL);
+
+	if (!ret) {
+		fprintf(stderr, "Could not copy to guest area\n");
+	}
+
+	return copyed_bytes;
 }
 
 int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
 							   unsigned long size, void *data)
 {
-	return 1;
+	unsigned long retlen = 0;
+	int copyed_bytes = 0;
+	BOOL ret;
+
+	if (size > tbuf_size) {
+		/* 512 bytes buffer */
+		trans_mem = realloc(trans_mem, 
+			                sizeof(struct winkvm_transfer_mem) + size);
+		if (!trans_mem) {
+			fprintf(stderr, "Could not allocate read buffer\n");
+			return 0;
+		}
+	    tbuf_size = size;
+	}
+
+	trans_mem->vcpu_fd = kvm->vcpu_fd[0];
+	trans_mem->size    = size;
+	trans_mem->gva     = addr;
+	memcpy(trans_mem->payload, data, size);
+
+	ret = DeviceIoControl(kvm->hnd,
+		                  WINKVM_WRITE_GUEST,
+						  trans_mem,
+						  sizeof(struct winkvm_transfer_mem) + size,
+						  &copyed_bytes,
+						  sizeof(int),
+						  &retlen,
+						  NULL);
+
+	if (!ret) {
+		fprintf(stderr, "Could not copy to guest area\n");
+	}
+
+	return copyed_bytes;
 }
