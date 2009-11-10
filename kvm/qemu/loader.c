@@ -40,10 +40,13 @@ int get_image_size(const char *filename)
 int load_image(const char *filename, uint8_t *addr)
 {
     int fd, size;
-    fd = open(filename, O_RDONLY | O_BINARY);
-    if (fd < 0)
+
+	fprintf(stderr, "open bios file: %s\n", filename);	
+	
+    fd = open(filename, O_RDONLY | O_BINARY);	
+    if (fd < 0)	  
         return -1;
-    size = lseek(fd, 0, SEEK_END);
+    size = lseek(fd, 0, SEEK_END);	
     lseek(fd, 0, SEEK_SET);
     if (read(fd, addr, size) != size) {
         close(fd);

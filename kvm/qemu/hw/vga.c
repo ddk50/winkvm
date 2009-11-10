@@ -1830,7 +1830,7 @@ void vga_common_init(VGAState *s, DisplayState *ds, uint8_t *vga_ram_base,
     s->vram_ptr = vga_ram_base;
 #else
     if (kvm_allowed)
-	    s->vram_ptr = qemu_malloc(vga_ram_size);
+	    s->vram_ptr = qemu_malloc(vga_ram_size);	
     else
 	    s->vram_ptr = vga_ram_base;
 #endif

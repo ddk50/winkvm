@@ -765,14 +765,16 @@ static void pc_init1(int ram_size, int vga_ram_size,
     /* BIOS load */
     if (bios_name == NULL)
         bios_name = BIOS_FILENAME;
-    snprintf(buf, sizeof(buf), "%s/%s", bios_dir, bios_name);
+    snprintf(buf, sizeof(buf), "%s/%s", bios_dir, bios_name);	
     bios_size = get_image_size(buf);
     if (bios_size <= 0 ||
         (bios_size % 65536) != 0) {
+		fprintf(stderr, "Illegal BIOS size '%s'\n", buf);		
         goto bios_error;
     }
     bios_offset = qemu_ram_alloc(bios_size);
-    ret = load_image(buf, phys_ram_base + bios_offset);
+	fprintf(stderr, "qemu: bios offset: 0x%08lx\n", bios_offset);	
+    ret = load_image(buf, phys_ram_base + bios_offset);	
     if (ret != bios_size) {
     bios_error:
         fprintf(stderr, "qemu: could not load PC BIOS '%s'\n", buf);
@@ -790,7 +792,7 @@ static void pc_init1(int ram_size, int vga_ram_size,
         goto vga_bios_error;
     vga_bios_offset = qemu_ram_alloc(65536);
 
-    ret = load_image(buf, phys_ram_base + vga_bios_offset);
+    ret = load_image(buf, phys_ram_base + vga_bios_offset);	
     if (ret != vga_bios_size) {
     vga_bios_error:
         fprintf(stderr, "qemu: could not load VGA BIOS '%s'\n", buf);
@@ -801,9 +803,14 @@ static void pc_init1(int ram_size, int vga_ram_size,
     cpu_register_physical_memory(0xc0000, 0x10000,
                                  vga_bios_offset | IO_MEM_ROM);
 #ifdef USE_KVM
-    if (kvm_allowed)
-	    memcpy(phys_ram_base + 0xc0000, phys_ram_base + vga_bios_offset,
-		   0x10000);
+    if (kvm_allowed) {		
+	    memcpy(phys_ram_base + 0xc0000, phys_ram_base + vga_bios_offset,			   
+			   0x10000);
+		winkvm_write_guest(kvm_context,
+						   0xc0000,
+						   0x10000,
+						   phys_ram_base + vga_bios_offset);		
+	}
 #endif
 
     /* map the last 128KB of the BIOS in ISA space */
@@ -817,19 +824,36 @@ static void pc_init1(int ram_size, int vga_ram_size,
                                  (bios_offset + bios_size - isa_bios_size) | IO_MEM_ROM);
 
 #ifdef USE_KVM
-    if (kvm_allowed)
+    if (kvm_allowed) {
+		
 	    memcpy(phys_ram_base + 0x100000 - isa_bios_size,
 		   phys_ram_base + (bios_offset + bios_size - isa_bios_size),
 		   isa_bios_size);
+		
+		winkvm_write_guest(kvm_context,
+						   0x100000 - isa_bios_size,					   
+						   isa_bios_size,					   
+						   phys_ram_base + (bios_offset + bios_size - isa_bios_size));		
+	}   
 #endif
 
 #ifdef USE_KVM
     if (kvm_allowed) {
-	    bios_mem = kvm_create_phys_mem(kvm_context, (uint32_t)(-bios_size),
-					   bios_size, 2, 0, 1);
-	    if (!bios_mem)
-		    exit(1);
+		/* ddk checked */
+		/* !!!!!!!!!FIXME!!!!!!!!! */		
+//	    bios_mem = kvm_create_phys_mem(kvm_context, (uint32_t)(-bios_size),
+//					   bios_size, 2, 0, 1);		
+		bios_mem = phys_ram_base + ((uint32_t)(-bios_size));		
+	    if (!bios_mem) {
+			fprintf(stderr, "Could not allocate bios mem\n");			
+		    exit(1);			
+		}		
 	    memcpy(bios_mem, phys_ram_base + bios_offset, bios_size);
+
+		winkvm_write_guest(kvm_context,
+						   ((uint32_t)(-bios_size)),
+						   bios_size,
+						   phys_ram_base + bios_offset);		
 
 	    cpu_register_physical_memory(phys_ram_size - KVM_EXTRA_PAGES * 4096, KVM_EXTRA_PAGES * 4096,
 					 (phys_ram_size - KVM_EXTRA_PAGES * 4096) | IO_MEM_ROM);

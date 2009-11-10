@@ -32,6 +32,8 @@ PDRIVER_OBJECT DriverObject;
 static void *maptest_page = NULL;
 /* this buffer should be take in DriverObject->DriverExtension */
 static int current_vcpu = -1;
+static FAST_MUTEX writer_mutex;
+static FAST_MUTEX reader_mutex;
 
 NTSTATUS 
 DriverEntry(IN OUT PDRIVER_OBJECT  DriverObjaect,
@@ -116,6 +118,9 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	init_smp_emulater();
 	init_slab_emulater();
 	init_file_emulater();
+
+	ExInitializeFastMutex(&writer_mutex);
+	ExInitializeFastMutex(&reader_mutex);
 
 	printk(KERN_ALERT "All initialized!\n");
 	printk("call vmx_init()\n");
@@ -332,6 +337,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		{
 			struct kvm_msr_list msr_list;
 			__u32 *indices;
+			printk(KERN_ALERT "Call KVM_GET_MSR_INDEX_LIST\n");
+
 			ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 
 			RtlCopyMemory(&msr_list, inBuf, sizeof(msr_list));
@@ -507,6 +514,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_run kvm_run;
 			struct kvm_vcpu *vcpu;
 
+			printk(KERN_ALERT "Call WINKVM_EXECUTE_TEST\n");
+
 			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
 
 			vcpu = get_vcpu(kvm_run.vcpu_fd);
@@ -577,10 +586,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			break;
 		}
 	case WINKVM_READ_GUEST:
-		{
+		{			
 			struct winkvm_transfer_mem trans_mem;
 			struct kvm_vcpu *vcpu;
 			int ret;
+
+			ExAcquireFastMutex(&reader_mutex);
 
 			RtlCopyMemory(&trans_mem, inBuf, sizeof(trans_mem));
 			vcpu = get_vcpu(trans_mem.vcpu_fd);
@@ -594,6 +605,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
+
+			ExReleaseFastMutex(&reader_mutex);
+
 			break;
 		}
 	case WINKVM_WRITE_GUEST:
@@ -601,6 +615,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct winkvm_transfer_mem *trans_mem;
 			struct kvm_vcpu *vcpu;
 			int ret;
+
+			ExAcquireFastMutex(&writer_mutex);
 
 			trans_mem = (struct winkvm_transfer_mem*)inBuf;
 			vcpu = get_vcpu(trans_mem->vcpu_fd);
@@ -616,6 +632,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
+
+			ExReleaseFastMutex(&writer_mutex);
+
 			break;
 		}
 	default:

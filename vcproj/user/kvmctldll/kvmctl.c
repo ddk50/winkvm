@@ -67,7 +67,6 @@ static void translation_cache_init(struct translation_cache *tr)
 static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
 					 unsigned long linear, void **physical)
 {	
-/*
     unsigned long page = linear & ~(PAGE_SIZE-1);
     unsigned long offset = linear & (PAGE_SIZE-1);
 	unsigned long retlen;
@@ -97,14 +96,15 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
         if (!kvm_tr.valid)
 			return -1;
 //            return -WINKVM_EFAULT;
+		printf("translate: 0x%08lx -> 0x%08lx\n", 
+			kvm_tr.linear_address,
+			kvm_tr.physical_address);
 
         tr->linear = page;
         tr->physical = (void*)((unsigned long)kvm->physical_memory + kvm_tr.physical_address);
     }
     *physical = (void*)((unsigned long)tr->physical + offset);
-	return 0;	
-	*/
-	return -1;
+	return 0;
 }
 
 void kvm_finalize(kvm_context_t kvm)
@@ -148,7 +148,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
     unsigned long dosmem = 0xa0000;
     unsigned long exmem = 0xc0000;
     HANDLE hnd = kvm->hnd;
-	int fd, vcpufd, retlen;
+	int fd, retlen, vcpufd;
 //    int zfd;	
 //    int r;
 	struct winkvm_memory_region low_memory;
@@ -242,6 +242,13 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	kvm_memory_region_save_params(kvm, &low_memory.kvm_memory_region);
 	kvm_memory_region_save_params(kvm, &extended_memory.kvm_memory_region);
 
+	*vm_mem = VirtualAlloc(NULL, memory, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (*vm_mem == NULL) {
+		fprintf(stderr, "VirtualAlloc error\n");
+		return -1;
+	}
+	kvm->physical_memory = *vm_mem;
+
 	create_vcpu.vm_fd    = fd;
 	create_vcpu.vcpu_fd  = 0;
 
@@ -261,7 +268,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
      }
 	 printf(" vcpu fd : %d\n", vcpufd);
 	 printf(" Done\n");
-     kvm->vcpu_fd[0] = vcpufd;
+	 kvm->vcpu_fd[0] = vcpufd;
+
 	 return 0;
 }
 
@@ -314,9 +322,11 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 //        prot |= PROT_WRITE;
 
 //    ptr = mmap(0, len, prot, MAP_SHARED, fd, phys_start);
-	ptr = VirtualAlloc(NULL, len, MEM_RESERVE, PAGE_READWRITE);	
+	ptr = VirtualAlloc(NULL, len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);	
     if (ptr == NULL)
         return 0;
+
+	fprintf(stderr, "Reserve memory: 0x%p\n", ptr);
 
     return ptr;
 }
@@ -337,6 +347,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 	struct translation_cache tr;
 	int _in = (run->io.direction == KVM_EXIT_IO_IN);
 	int r;
+	int gm_access = 0;
 
 	translation_cache_init(&tr);
 
@@ -352,17 +363,19 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 	while (more_io(run, first_time)) {
 		void *value_addr;
 		if (!run->io.string) {
+			gm_access = 0;
 			if (_in)
 				value_addr = &regs.rax;
 			else
 				value_addr = &run->io.value;
 		} else {
 			r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
+			gm_access = 1;
 			fprintf(stderr, "translating I/O address %llx\n", 
 				run->io.address);
 			if (r) {
 				fprintf(stderr, "failed translating I/O address %llx\n",
-					run->io.address);
+					    run->io.address);
 				return r;
 			}
 		}
@@ -374,18 +387,27 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 				uint8_t value;
 				r = kvm->callbacks->inb(kvm->opaque, addr, &value);
 				*(uint8_t *)value_addr = value;
+				if (gm_access) {
+					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint8_t), &value);
+				}
 				break;
 			}
 			case 2: {
 				uint16_t value;
 				r = kvm->callbacks->inw(kvm->opaque, addr, &value);
 				*(uint16_t *)value_addr = value;
+				if (gm_access) {
+					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &value);
+				}
 				break;
 			}
 			case 4: {
 				uint32_t value;
 				r = kvm->callbacks->inl(kvm->opaque, addr, &value);
 				*(uint32_t *)value_addr = value;
+				if (gm_access) {
+					winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &value);
+				}
 				break;
 			}
 			default:
@@ -395,19 +417,34 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			break;
 		}
 		case KVM_EXIT_IO_OUT:
-			switch (run->io.size) {
-			case 1:
-				r = kvm->callbacks->outb(kvm->opaque, addr,
-						     *(uint8_t *)value_addr);
-				break;
+			switch (run->io.size) {				
+			case 1: 
+				{
+					uint8_t data = *(uint8_t *)value_addr;
+					if (gm_access) {
+						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint8_t), &data);
+					}
+					r = kvm->callbacks->outb(kvm->opaque, addr, data);
+					break;
+				}
 			case 2:
-				r = kvm->callbacks->outw(kvm->opaque, addr,
-						     *(uint16_t *)value_addr);
+				{
+					uint16_t data = *(uint16_t *)value_addr;
+					if (gm_access) {
+						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &data);
+					}
+					r = kvm->callbacks->outw(kvm->opaque, addr, data);
 				break;
+				}
 			case 4:
-				r = kvm->callbacks->outl(kvm->opaque, addr,
-						     *(uint32_t *)value_addr);
-				break;
+				{
+					uint32_t data = *(uint32_t *)value_addr;
+					if (gm_access) {
+						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &data);
+					}
+					r = kvm->callbacks->outl(kvm->opaque, addr, data);
+					break;
+				}
 			default:
 				fprintf(stderr, "bad I/O size %d\n", run->io.size);
 				return -WINKVM_EMSGSIZE;
@@ -734,6 +771,8 @@ int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 	int retlen;
 	BOOL ret = FALSE;
 
+	fprintf(stderr, "%s\n", __FUNCTION__);
+
 	kvm_run.emulated = 0;
 	kvm_run.mmio_completed = 0;
 	kvm_run.vcpu_fd = fd;
@@ -966,6 +1005,7 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
     }
 
 	fprintf(stderr, "msr list size %d [bytes] was returned\n", retlen);
+	fprintf(stdout, "ret: 0x%p\n", msrs);
 
     return msrs;
 }
@@ -1075,6 +1115,10 @@ int __cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
 	int copyed_bytes = 0;
 	BOOL ret;
 
+	if (kvm == NULL) {
+		kvm = kvm_context;
+	}
+
 	if (size > tbuf_size) {
 		/* 512 bytes buffer */
 		trans_mem = realloc(trans_mem, 
@@ -1113,12 +1157,15 @@ int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	int copyed_bytes = 0;
 	BOOL ret;
 
+	fprintf(stderr, "winkvm_write_guest start\n");	
+
 	if (size > tbuf_size) {
 		/* 512 bytes buffer */
 		trans_mem = realloc(trans_mem, 
 			                sizeof(struct winkvm_transfer_mem) + size);
 		if (!trans_mem) {
 			fprintf(stderr, "Could not allocate read buffer\n");
+			fprintf(stderr, "winkvm_write_guest end\n");	
 			return 0;
 		}
 	    tbuf_size = size;
@@ -1141,6 +1188,8 @@ int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	if (!ret) {
 		fprintf(stderr, "Could not copy to guest area\n");
 	}
+
+	fprintf(stderr, "winkvm_write_guest end\n");	
 
 	return copyed_bytes;
 }

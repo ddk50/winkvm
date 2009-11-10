@@ -9085,7 +9085,7 @@ int main(int argc, char **argv)
             }
 	}
 	if (netroms == 0) {
-	    fprintf(stderr, "No valid PXE rom found for network device\n");
+	    fprintf(stderr, "No valid PXE rom found for network device\n");		
 	    exit(1);
 	}
     }
@@ -9097,20 +9097,20 @@ int main(int argc, char **argv)
 #ifdef USE_KVM	
     /* Initialize kvm */
     if (kvm_allowed) {
-	    phys_ram_size += KVM_EXTRA_PAGES * 4096;
-	    if (kvm_qemu_create_context() < 0) {
-		    fprintf(stderr, "Could not create KVM context\n");
+	    phys_ram_size += KVM_EXTRA_PAGES * 4096;		
+	    if (kvm_qemu_create_context() < 0) {		  
+		    fprintf(stderr, "Could not create KVM context\n");			
 		    exit(1);
 	    }
     } else {
-	    phys_ram_base = qemu_vmalloc(phys_ram_size);
+	    phys_ram_base = qemu_vmalloc(phys_ram_size);		
 	    if (!phys_ram_base) {
 		    fprintf(stderr, "Could not allocate physical memory\n");
 		    exit(1);
 	    }
     }
 #else
-    phys_ram_base = qemu_vmalloc(phys_ram_size);
+    phys_ram_base = qemu_vmalloc(phys_ram_size);	
     if (!phys_ram_base) {
         fprintf(stderr, "Could not allocate physical memory\n");
         exit(1);

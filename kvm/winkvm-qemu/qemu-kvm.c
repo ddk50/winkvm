@@ -718,7 +718,8 @@ static struct kvm_callbacks qemu_kvm_ops = {
 
 int kvm_qemu_init()
 {
-    /* Try to initialize kvm */
+    /* Try to initialize kvm */  
+	printf("Call %s\n", __FUNCTION__);	
     kvm_context = kvm_init(&qemu_kvm_ops, saved_env);
     if (!kvm_context) {
       	return -1;
@@ -731,11 +732,16 @@ int kvm_qemu_create_context(void)
 {
     int i;
 
+	printf("Call %s\n", __FUNCTION__);	
+
     if (kvm_create(kvm_context, phys_ram_size, (void**)&phys_ram_base) < 0) {
 	kvm_qemu_destroy();
 	return -1;
-    }	
-    kvm_msr_list = kvm_get_msr_list(kvm_context);
+    }
+
+	printf("phys_ram_base: 0x%p\n", phys_ram_base);	
+	
+    kvm_msr_list = kvm_get_msr_list(kvm_context);	
     if (!kvm_msr_list) {
 	kvm_qemu_destroy();
 	return -1;

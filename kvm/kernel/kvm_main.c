@@ -2688,7 +2688,7 @@ int kvm_init_arch(struct kvm_arch_ops *ops, struct module *module)
 
 	r = misc_register(&kvm_dev);
 	if (r) {
-		printk (KERN_ERR "kvm: misc device register failed\n");
+		printk (KERN_ERR "kvm: misc device register failed\n");		
 		goto out_free;
 	}
 

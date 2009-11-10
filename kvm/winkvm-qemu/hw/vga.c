@@ -34,6 +34,10 @@
 
 //#define DEBUG_BOCHS_VBE
 
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
 /* force some bits to zero */
 const uint8_t sr_mask[8] = {
     (uint8_t)~0xfc,
@@ -1795,6 +1799,8 @@ void vga_common_init(VGAState *s, DisplayState *ds, uint8_t *vga_ram_base,
 {
     int i, j, v, b;
 
+	printf("vga init\n");	
+
     for(i = 0;i < 256; i++) {
         v = 0;
         for(j = 0; j < 8; j++) {
@@ -1818,9 +1824,20 @@ void vga_common_init(VGAState *s, DisplayState *ds, uint8_t *vga_ram_base,
         expand4to8[i] = v;
     }
 
+	
+
     vga_reset(s);
 
-    s->vram_ptr = vga_ram_base;
+#ifndef USE_KVM
+	s->vram_ptr = vga_ram_base;	
+#else	
+	if (kvm_allowed) {		
+		s->vram_ptr = qemu_malloc(vga_ram_size);
+		fprintf(stderr, "kvm allowd: vram allocation\n");		
+	} else {		
+		s->vram_ptr = vga_ram_base;
+	}
+#endif  
     s->vram_offset = vga_ram_offset;
     s->vram_size = vga_ram_size;
     s->ds = ds;

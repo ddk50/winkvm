@@ -26,14 +26,20 @@
 #include "sysemu.h"
 #include "uboot_image.h"
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern kvm_context_t kvm_context;
+extern int kvm_allowed;
+#endif
+
 /* return the size or -1 if error */
 int get_image_size(const char *filename)
 {
     int fd, size;
-    fd = open(filename, O_RDONLY | O_BINARY);
+    fd = open(filename, O_RDONLY | O_BINARY);	
     if (fd < 0)
         return -1;
-    size = lseek(fd, 0, SEEK_END);
+    size = lseek(fd, 0, SEEK_END);	
     close(fd);
     return size;
 }
@@ -41,18 +47,21 @@ int get_image_size(const char *filename)
 /* return the size or -1 if error */
 int load_image(const char *filename, uint8_t *addr)
 {
-    int fd, size;
-    fd = open(filename, O_RDONLY | O_BINARY);
-    if (fd < 0)
+	int fd, size;	
+
+	fprintf(stderr, "open bios file: %s\n", filename);	
+	
+    fd = open(filename, O_RDONLY | O_BINARY);	
+    if (fd < 0)	  
         return -1;
-    size = lseek(fd, 0, SEEK_END);
+    size = lseek(fd, 0, SEEK_END);	
     lseek(fd, 0, SEEK_SET);
     if (read(fd, addr, size) != size) {
         close(fd);
         return -1;
     }
     close(fd);
-    return size;
+    return size;	
 }
 
 /* A.OUT loader */

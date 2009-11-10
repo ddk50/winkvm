@@ -35,6 +35,11 @@
 #include <sys/ucontext.h>
 #endif
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern int kvm_allowed;
+#endif
+
 int tb_invalidated_flag;
 
 //#define DEBUG_EXEC
@@ -286,6 +291,7 @@ static inline TranslationBlock *tb_find_fast(void)
 
 int cpu_exec(CPUState *env1)
 {
+	printf("Call %s\n", __FUNCTION__);	
 #define DECLARE_HOST_REGS 1
 #include "hostregs_helper.h"
 #if defined(TARGET_SPARC)
@@ -413,6 +419,13 @@ int cpu_exec(CPUState *env1)
                     }
                 }
             }
+#endif
+
+#ifdef USE_KVM
+			if (kvm_allowed) {				
+				kvm_cpu_exec(env);
+				longjmp(env->jmp_env, 1);				
+			}
 #endif
 
             T0 = 0; /* force lookup of first TB */

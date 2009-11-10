@@ -3075,9 +3075,12 @@ static int cirrus_vga_load(QEMUFile *f, void *opaque, int version_id)
 static void cirrus_init_common(CirrusVGAState * s, int device_id, int is_pci)
 {
     int vga_io_memory, i;
-    static int inited;
+    static int inited;	
 
     if (!inited) {
+
+		printf("cirrus init\n");		
+	  
         inited = 1;
         for(i = 0;i < 256; i++)
             rop_to_index[i] = CIRRUS_ROP_NOP_INDEX; /* nop rop */
