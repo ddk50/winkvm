@@ -508,6 +508,29 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ntStatus = ConvertRetval(r);
 			break;
 		}
+
+	case KVM_INTERRUPT: 
+		{
+			struct kvm_interrupt irq;
+			struct kvm_vcpu *vcpu = NULL;
+			int r = 0;
+
+			printk(KERN_ALERT "Call KVM_INTERRUPT");
+
+			RtlCopyMemory(&irq, inBuf, sizeof(irq));
+
+			vcpu = get_vcpu(irq.vcpu_fd);
+			if (vcpu) {
+				r = kvm_vcpu_ioctl_interrupt(vcpu, &irq);
+				Irp->IoStatus.Information = 0;
+				ntStatus = ConvertRetval(r);
+			} else {
+				Irp->IoStatus.Information = 0;
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
+			break;
+		}
+
 	case KVM_RUN:
 		{		
 			int ret;

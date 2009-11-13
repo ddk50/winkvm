@@ -242,6 +242,9 @@ struct kvm_translation {
 /* for KVM_INTERRUPT */
 struct kvm_interrupt {
   /* in */
+#ifdef __WINKVM__  
+  int vcpu_fd;  
+#endif  
   __u32 irq;
 };
 
