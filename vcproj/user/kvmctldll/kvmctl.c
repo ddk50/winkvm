@@ -764,7 +764,7 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 
 int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 {
-	int r;
+	int r = 1;
 	int fd = kvm->vcpu_fd[vcpu];
 	struct kvm_run kvm_run;
 	int retlen;
@@ -1098,8 +1098,9 @@ int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 
 int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq)
 {
-	printf(" %s implement me\n", __FUNCTION__);
-	return -1;
+	struct kvm_interrupt intr;
+	intr.irq = irq;
+	return ioctl(kvm->vcpu_fd[vcpu], KVM_INTERRUPT, &intr);
 }
 
 int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest *dbg)
@@ -1165,12 +1166,16 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	int copyed_bytes = 0;
 	BOOL ret = FALSE;
 
+	if (kvm == NULL) {
+		kvm = kvm_context;
+	}
+
 	fprintf(stderr, "winkvm_write_guest start\n");
 	fprintf(stderr, "kara\n");
 
 	if (size > tbuf_size) {
 		/* 512 bytes buffer */	
-		trans_mem = realloc(trans_mem, 
+		trans_mem = realloc(trans_mem,
 			                sizeof(struct winkvm_transfer_mem) + size);
 		if (!trans_mem) {
 			fprintf(stderr, "Could not allocate read buffer\n");
@@ -1183,22 +1188,11 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	trans_mem->vcpu_fd = kvm->vcpu_fd[0];
 	trans_mem->size    = size;
 	trans_mem->gva     = addr;
-	memcpy(trans_mem + sizeof(struct winkvm_transfer_mem), data, size);
+	memcpy(trans_mem->payload, data, size);
 
 	printf("write guest: gva: 0x%08lx, size: %d\n", 
 		trans_mem->gva, trans_mem->size);
 
-	/* this is bug point */
-	/*
-	ret = DeviceIoControl(kvm->hnd,
-		                  WINKVM_WRITE_GUEST,
-						  trans_mem,
-						  sizeof(struct winkvm_transfer_mem) + size,
-						  &copyed_bytes,
-						  sizeof(int),
-						  &retlen,
-						  NULL);
-  */
 	ret = DeviceIoControl(kvm->hnd,
 		                  WINKVM_WRITE_GUEST,
 						  trans_mem,
