@@ -1099,8 +1099,26 @@ int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq)
 {
 	struct kvm_interrupt intr;
+	BOOL ret;
+	DWORD retlen;
+
 	intr.irq = irq;
-	return ioctl(kvm->vcpu_fd[vcpu], KVM_INTERRUPT, &intr);
+	intr.vcpu_fd = kvm->vcpu_fd[vcpu];
+
+	ret = DeviceIoControl(kvm->hnd,
+		                  KVM_INTERRUPT,
+						  &intr,
+						  sizeof(intr),
+						  NULL,
+						  0,
+						  &retlen,
+						  NULL);
+//	return ioctl(kvm->vcpu_fd[vcpu], KVM_INTERRUPT, &intr);
+	
+	if (ret)
+		return 1;
+	else
+		return -1;
 }
 
 int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest *dbg)
