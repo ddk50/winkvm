@@ -622,11 +622,13 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			vcpu = get_vcpu(trans_mem->vcpu_fd);
 
 			SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(struct winkvm_transfer_mem)));
+			printk(KERN_ALERT "write guest: gva: 0x%08lx, size: %d\n", 
+				trans_mem->gva, trans_mem->size);
 
 			if (vcpu) {
 				ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, trans_mem->payload);
 				RtlCopyMemory(outBuf, &ret, sizeof(ret));
-				Irp->IoStatus.Information = ret;
+				Irp->IoStatus.Information = sizeof(ret);
 				ntStatus = ConvertRetval(ret);
 			} else {
 				Irp->IoStatus.Information = 0;
