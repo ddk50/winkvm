@@ -7,3 +7,5 @@
 #define CONFIG_SLIRP 1
 #define QEMU_VERSION "0.9.0"
 #define CONFIG_UNAME_RELEASE ""
+#define USE_KVM
+#define __WINKVM__

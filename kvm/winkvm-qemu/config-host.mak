@@ -16,8 +16,8 @@ OS_LDFLAGS=-mno-cygwin -g
 VL_OS_LDFLAGS=-mno-cygwin -g
 ARCH_CFLAGS=-mno-cygwin -g -I. -I../../vcproj/include -I../../../vcproj/include
 ARCH_LDFLAGS=-mno-cygwin -g
-CFLAGS= -Wall -O2 -g -fno-strict-aliasing -mno-cygwin -I. -I../../vcproj/include -I../../../vcproj/include
-LDFLAGS= -g -mno-cygwin
+CFLAGS=-Wall -O2 -g -fno-strict-aliasing -mno-cygwin -I. -I../../vcproj/include -I../../../vcproj/include
+LDFLAGS=-mno-cygwin -g
 EXESUF=.exe
 AIOLIBS=
 ARCH=i386
@@ -25,12 +25,11 @@ CONFIG_WIN32=yes
 CONFIG_GDBSTUB=yes
 CONFIG_SLIRP=yes
 VERSION=0.9.1
-SRC_PATH=/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu
+SRC_PATH=/home/t2ladmin/gitrep/winkvm/kvm/winkvm-qemu
 TARGET_DIRS=i386-softmmu
 CONFIG_SDL=yes
-SDL_LIBS=-L/usr/local/mingw32/lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
+SDL_LIBS=-L/usr/local/mingw32//lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
 SDL_CFLAGS=-I/usr/local/mingw32/include/SDL -I/usr/include/mingw -mno-cygwin -Dmain=SDL_main
-TOOLS=qemu-img$(EXESUF)
+TOOLS=qemu-img$(EXESUF) 
 KVMCTL_LIBS=-L../../vcproj/bin -L../../../vcproj/bin -lkvmctldll
 HOST_USB=stub
-

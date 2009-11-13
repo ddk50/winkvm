@@ -802,6 +802,9 @@ static void pc_init1(int ram_size, int vga_ram_size,
     /* setup basic memory access */
     cpu_register_physical_memory(0xc0000, 0x10000,
                                  vga_bios_offset | IO_MEM_ROM);
+
+    kvmctl_msgbox("Continue?");
+
 #ifdef USE_KVM
     if (kvm_allowed) {		
 	    memcpy(phys_ram_base + 0xc0000, phys_ram_base + vga_bios_offset,			   
@@ -843,17 +846,19 @@ static void pc_init1(int ram_size, int vga_ram_size,
 		/* !!!!!!!!!FIXME!!!!!!!!! */		
 //	    bios_mem = kvm_create_phys_mem(kvm_context, (uint32_t)(-bios_size),
 //					   bios_size, 2, 0, 1);		
-		bios_mem = phys_ram_base + ((uint32_t)(-bios_size));		
+            
+            bios_mem = phys_ram_base + ((uint32_t)(-bios_size));		
 	    if (!bios_mem) {
-			fprintf(stderr, "Could not allocate bios mem\n");			
-		    exit(1);			
-		}		
+                   fprintf(stderr, "Could not allocate bios mem\n");			
+		   exit(1);
+	    }		
+	    /* here is bug!! */
 	    memcpy(bios_mem, phys_ram_base + bios_offset, bios_size);
 
-		winkvm_write_guest(kvm_context,
-						   ((uint32_t)(-bios_size)),
-						   bios_size,
-						   phys_ram_base + bios_offset);		
+	    winkvm_write_guest(kvm_context,
+			       ((uint32_t)(-bios_size)),
+			       bios_size,
+			       phys_ram_base + bios_offset);
 
 	    cpu_register_physical_memory(phys_ram_size - KVM_EXTRA_PAGES * 4096, KVM_EXTRA_PAGES * 4096,
 					 (phys_ram_size - KVM_EXTRA_PAGES * 4096) | IO_MEM_ROM);

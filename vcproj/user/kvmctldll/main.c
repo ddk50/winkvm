@@ -30,7 +30,7 @@ DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	return TRUE;
 }
 
-__declspec(dllexport) void __cdecl test(const char *str)
+void __cdecl test(const char *str)
 {
 	MessageBoxA(NULL, str, "message", MB_OK);
 }

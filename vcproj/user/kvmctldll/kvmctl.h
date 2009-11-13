@@ -296,10 +296,10 @@ int __cdecl winkvm_cpu_inw(void *env, int addr);
 int __cdecl winkvm_cpu_inl(void *env, int addr);
 
 
-int __cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
-							  unsigned long size, void *dest);
+int _cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
+							 unsigned long size, void *dest);
 
-int __cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
-							   unsigned long size, void *data);
+int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
+							  unsigned long size, void *data);
 
 #endif
