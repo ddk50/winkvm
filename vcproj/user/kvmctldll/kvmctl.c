@@ -583,18 +583,6 @@ static int more_io(struct kvm_run *run, int first_time)
         return run->io.count != 0;
 }
 
-static int test_try_push_interrupts(void *opaque)
-{
-}
-
-static void test_post_kvm_run(void *opaque, struct kvm_run *kvm_run)
-{
-}
-
-static void test_pre_kvm_run(void *opaque, struct kvm_run *kvm_run)
-{
-}
-
 static HANDLE OpenWinkvm(void)
 {
 	HANDLE hnd;
@@ -764,7 +752,7 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 
 int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 {
-	int r = 1;
+	int r;
 	int fd = kvm->vcpu_fd[vcpu];
 	struct kvm_run kvm_run;
 	int retlen;
@@ -784,30 +772,23 @@ again:
 	ret = DeviceIoControl(kvm->hnd,
 						  KVM_RUN,
 						  &kvm_run,
-						  sizeof(struct kvm_run),
-						  NULL,
-						  0,
+						  sizeof(kvm_run),
+						  &r,
+						  sizeof(r),
 						  &retlen,
 						  NULL);
-	if (ret) {
-		printf("KVM_RUN: success\n");
-	} else {
-		printf("KVM_RUN: failed\n");
-		return 0;
-	}
 
 	post_kvm_run(kvm, &kvm_run);
 	kvm_run.emulated = 0;
 	kvm_run.mmio_completed = 0;
-//	if (r == -1 && errno != EINTR) {
-//	if (!ret) {
-//		r = -errno;
-//		printf("kvm_run: %m\n");
-//		return r;
-//		return -1;
-//	}
+
+	if (r == -1 && !ret) {
+		printf("KVM_RUN: failed\n");
+		return r;
+	}
+
 	/* fixme!! */
-	if (!ret) {
+	if (r == -1) {
 		r = handle_io_window(kvm, &kvm_run);
 		goto more;
 	}

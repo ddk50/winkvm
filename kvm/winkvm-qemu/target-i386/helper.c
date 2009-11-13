@@ -22,6 +22,10 @@
 
 //#define DEBUG_PCALL
 
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
 #if 0
 #define raise_exception_err(a, b)\
 do {\
@@ -844,6 +848,13 @@ static void do_interrupt64(int intno, int is_int, int error_code,
     target_ulong old_eip, esp, offset;
     int svm_should_check = 1;
 
+#ifdef USE_KVM
+    if (kvm_allowed) {
+        printf("%s: unexpect\n", __FUNCTION__);
+	exit(-1);
+    }
+#endif
+
     if ((env->intercept & INTERCEPT_SVM_MASK) && !is_int && next_eip==-1) {
         next_eip = EIP;
         svm_should_check = 0;
@@ -1155,6 +1166,13 @@ void do_interrupt_user(int intno, int is_int, int error_code,
     int dpl, cpl, shift;
     uint32_t e2;
 
+#ifdef USE_KVM
+    if (kvm_allowed) {
+        printf("%s: unexpect\n", __FUNCTION__);
+        exit(-1);
+    }
+#endif
+
     dt = &env->idt;
     if (env->hflags & HF_LMA_MASK) {
         shift = 4;
@@ -1185,6 +1203,12 @@ void do_interrupt_user(int intno, int is_int, int error_code,
 void do_interrupt(int intno, int is_int, int error_code,
                   target_ulong next_eip, int is_hw)
 {
+#ifdef USE_KVM
+  if (kvm_allowed) {
+    printf("%s: unexpect\n", __FUNCTION__);
+    exit(-1);
+  }
+#endif
     if (loglevel & CPU_LOG_INT) {
         if ((env->cr[0] & CR0_PE_MASK)) {
             static int count;
@@ -2052,6 +2076,12 @@ void helper_ljmp_protected_T0_T1(int next_eip_addend)
         cpu_x86_load_seg_cache(env, R_CS, (new_cs & 0xfffc) | cpl,
                        get_seg_base(e1, e2), limit, e2);
         EIP = new_eip;
+#ifdef USE_KVM
+	if (kvm_allowed && (e2 & DESC_L_MASK)) {
+	  env->exception_index = -1;
+	  cpu_loop_exit();
+	}
+#endif
     } else {
         /* jump to call or task gate */
         dpl = (e2 >> DESC_DPL_SHIFT) & 3;

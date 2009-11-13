@@ -218,10 +218,20 @@ static void sdl_process_key(SDL_KeyboardEvent *ev)
         kbd_put_keycode(keycode & 0x7f);
 }
 
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
 static void sdl_update_caption(void)
 {
     char buf[1024];
     const char *status = "";
+
+#ifdef USE_KVM
+    if (kvm_allowed) {
+      strcat(buf, "/ WinKVM");
+    }
+#endif
 
     if (!vm_running)
         status = " [Stopped]";

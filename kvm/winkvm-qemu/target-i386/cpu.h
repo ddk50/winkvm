@@ -550,8 +550,8 @@ typedef struct CPUX86State {
 #endif
 
 #ifdef USE_KVM
-	uint64_t tsc; /* time stamp counter */
-	uint8_t ready_for_interrupt_injection;
+    uint64_t tsc; /* time stamp counter */
+    uint8_t ready_for_interrupt_injection;
 #endif	
 
     uint64_t pat;

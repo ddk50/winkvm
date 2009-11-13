@@ -422,10 +422,10 @@ int cpu_exec(CPUState *env1)
 #endif
 
 #ifdef USE_KVM
-			if (kvm_allowed) {				
-				kvm_cpu_exec(env);
-				longjmp(env->jmp_env, 1);				
-			}
+	    if (kvm_allowed) {				
+	      kvm_cpu_exec(env);
+	      longjmp(env->jmp_env, 1);
+	    }
 #endif
 
             T0 = 0; /* force lookup of first TB */
