@@ -15,7 +15,6 @@
 #define PAGE_SIZE 
 
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
-
 #define KVM_MAX_NUM_MEM_REGIONS 4u
 
 static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run);
@@ -625,7 +624,7 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 
 	hnd = OpenWinkvm();
 
-	kvm = malloc(sizeof(*kvm));
+	kvm = malloc(sizeof(struct kvm_context));
 	kvm->hnd = hnd;
 	kvm->vm_fd = -1;
 	kvm->callbacks = callbacks;
@@ -1153,24 +1152,24 @@ int _cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
 	return copyed_bytes;
 }
 
+int _cdecl test_write_guest(kvm_context_t kvm, unsigned long addr,
+							unsigned long size, void *data)
+{
+	return 1;
+}
+
 int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
 							  unsigned long size, void *data)
 {
-	kvmctl_msgbox("winkvm_write_guest");
-	/*
-	unsigned long retlen = 0;
+	DWORD retlen = 0;
 	int copyed_bytes = 0;
-	BOOL ret;
-	*/
+	BOOL ret = FALSE;
 
-	/*
 	fprintf(stderr, "winkvm_write_guest start\n");
 	fprintf(stderr, "kara\n");
-	*/
 
-//	if (size > tbuf_size) {
+	if (size > tbuf_size) {
 		/* 512 bytes buffer */	
-		/*
 		trans_mem = realloc(trans_mem, 
 			                sizeof(struct winkvm_transfer_mem) + size);
 		if (!trans_mem) {
@@ -1179,10 +1178,8 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 			return 0;
 		}
 	    tbuf_size = size;
-		*/
-//	}
+	}
 
-	/*
 	trans_mem->vcpu_fd = kvm->vcpu_fd[0];
 	trans_mem->size    = size;
 	trans_mem->gva     = addr;
@@ -1190,9 +1187,10 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 
 	printf("write guest: gva: 0x%08lx, size: %d\n", 
 		trans_mem->gva, trans_mem->size);
-		*/
 
-/*	ret = DeviceIoControl(kvm->hnd,
+	/* this is bug point */
+	/*
+	ret = DeviceIoControl(kvm->hnd,
 		                  WINKVM_WRITE_GUEST,
 						  trans_mem,
 						  sizeof(struct winkvm_transfer_mem) + size,
@@ -1200,9 +1198,16 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 						  sizeof(int),
 						  &retlen,
 						  NULL);
-						  */
+  */
+	ret = DeviceIoControl(kvm->hnd,
+		                  WINKVM_WRITE_GUEST,
+						  trans_mem,
+						  sizeof(struct winkvm_transfer_mem) + size,
+						  &copyed_bytes,
+						  sizeof(copyed_bytes),
+						  &retlen,
+						  NULL);
 
-	/*
 	if (!ret) {
 		fprintf(stderr, "Could not copy to guest area\n");
 	}
@@ -1210,6 +1215,4 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	fprintf(stderr, "winkvm_write_guest end\n");	
 
 	return copyed_bytes;
-	*/
-	return 0;
 }

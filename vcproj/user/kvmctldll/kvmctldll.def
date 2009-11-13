@@ -22,7 +22,8 @@ EXPORTS
 	kvm_get_mem_map
 	kvm_dirty_pages_log_enable_all
 	kvm_dirty_pages_log_reset
+	test_write_guest	
 	winkvm_read_guest
-	winkvm_write_guest	
+	winkvm_write_guest
 	kvmctl_msgbox 
 	
