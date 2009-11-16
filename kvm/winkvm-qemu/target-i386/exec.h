@@ -30,7 +30,8 @@
 #include "cpu-defs.h"
 
 /* at least 4 register variables are defined */
-register struct CPUX86State *env asm(AREG0);
+//register struct CPUX86State *env asm(AREG0);
+struct CPUX86State *env;
 
 #if TARGET_LONG_BITS > HOST_LONG_BITS
 

@@ -465,6 +465,17 @@ int kvm_cpu_exec(CPUState *env)
     return 0;
 }
 
+static int __cdecl kvm_cpuid_test(void *opaque, uint64_t *rax, uint64_t *rbx,
+				  uint64_t *rcx, uint64_t *rdx)
+{
+  printf("opaque: 0x%p\n", opaque);
+  printf("rax: 0x%p\n", rax);
+  printf("rbx: 0x%p\n", rbx);
+  printf("rcx: 0x%p\n", rcx);
+  printf("rdx: 0x%p\n", rdx);
+  exit(1);
+  return 1;
+}
 
 static int __cdecl kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx, 
 			     uint64_t *rcx, uint64_t *rdx)
@@ -474,18 +485,7 @@ static int __cdecl kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx,
     uint32_t eax = *rax;
 
     saved_env = env;
-    env = envs[0];
-
-    printf("env: 0x%p\n", env);
-    printf("rax: 0x%p\n", rax);
-    printf("rbx: 0x%p\n", rbx);
-    printf("rcx: 0x%p\n", rcx);
-    printf("rdx: 0x%p\n", rdx);
-
-    printf("env->regs[R_EAX]: 0x%p\n", &env->regs[R_EAX]);
-    printf("env->regs[R_EBX]: 0x%p\n", &env->regs[R_EBX]);
-    printf("env->regs[R_ECX]: 0x%p\n", &env->regs[R_ECX]);
-    printf("env->regs[R_EDX]: 0x%p\n", &env->regs[R_EDX]);
+    env = envs[0];   
 
     env->regs[R_EAX] = *rax;
     env->regs[R_EBX] = *rbx;
@@ -552,6 +552,7 @@ static int __cdecl kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx,
 	*rdx = bcd[2];
     }
     env = saved_env;
+    printf("cpuid exit\n");
     return 0;
 }
 

@@ -24,7 +24,7 @@ typedef struct kvm_context *kvm_context_t;
 #pragma pack(1)
 
 struct kvm_callbacks {
-    int (__cdecl *cpuid)(void *opaque, 
+	int (__cdecl *cpuid)(void *opaque, 
 		uint64_t *rax, uint64_t *rbx, uint64_t *rcx, uint64_t *rdx);
 	/// For 8bit IO reads from the guest (Usually when executing 'inb')
     int (__cdecl *inb)(void *opaque, uint16_t addr, uint8_t *data);
