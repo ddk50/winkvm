@@ -25,6 +25,8 @@
 #define HF_VM_MASK           (1 << HF_VM_SHIFT)
 #define HF_IOPL_MASK         (3 << HF_IOPL_SHIFT)
 
+#define FUNC_CDECL(x) __attribute__ ((cdecl))
+
 extern void perror(const char *s);
 
 int kvm_allowed = 1;
@@ -464,8 +466,8 @@ int kvm_cpu_exec(CPUState *env)
 }
 
 
-static int kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx, 
-		      uint64_t *rcx, uint64_t *rdx)
+static int __cdecl kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx, 
+			     uint64_t *rcx, uint64_t *rdx)
 {
     CPUState **envs = opaque;
     CPUState *saved_env;
@@ -473,6 +475,17 @@ static int kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx,
 
     saved_env = env;
     env = envs[0];
+
+    printf("env: 0x%p\n", env);
+    printf("rax: 0x%p\n", rax);
+    printf("rbx: 0x%p\n", rbx);
+    printf("rcx: 0x%p\n", rcx);
+    printf("rdx: 0x%p\n", rdx);
+
+    printf("env->regs[R_EAX]: 0x%p\n", &env->regs[R_EAX]);
+    printf("env->regs[R_EBX]: 0x%p\n", &env->regs[R_EBX]);
+    printf("env->regs[R_ECX]: 0x%p\n", &env->regs[R_ECX]);
+    printf("env->regs[R_EDX]: 0x%p\n", &env->regs[R_EDX]);
 
     env->regs[R_EAX] = *rax;
     env->regs[R_EBX] = *rbx;
@@ -542,7 +555,7 @@ static int kvm_cpuid(void *opaque, uint64_t *rax, uint64_t *rbx,
     return 0;
 }
 
-static int kvm_debug(void *opaque, int vcpu)
+static int __cdecl kvm_debug(void *opaque, int vcpu)
 {
     CPUState **envs = opaque;
 
@@ -551,19 +564,19 @@ static int kvm_debug(void *opaque, int vcpu)
     return 1;
 }
 
-static int kvm_inb(void *opaque, uint16_t addr, uint8_t *data)
+static int __cdecl kvm_inb(void *opaque, uint16_t addr, uint8_t *data)
 {
     *data = cpu_inb(0, addr);	
     return 0;
 }
 
-static int kvm_inw(void *opaque, uint16_t addr, uint16_t *data)
+static int __cdecl kvm_inw(void *opaque, uint16_t addr, uint16_t *data)
 {
     *data = cpu_inw(0, addr);	
     return 0;
 }
 
-static int kvm_inl(void *opaque, uint16_t addr, uint32_t *data)
+static int __cdecl kvm_inl(void *opaque, uint16_t addr, uint32_t *data)
 {
     *data = cpu_inl(0, addr);	
     return 0;
@@ -571,7 +584,7 @@ static int kvm_inl(void *opaque, uint16_t addr, uint32_t *data)
 
 #define PM_IO_BASE 0xb000
 
-static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
+static int __cdecl kvm_outb(void *opaque, uint16_t addr, uint8_t data)
 {
     if (addr == 0xb2) {
 	switch (data) {
@@ -606,72 +619,72 @@ static int kvm_outb(void *opaque, uint16_t addr, uint8_t data)
     return 0;
 }
 
-static int kvm_outw(void *opaque, uint16_t addr, uint16_t data)
+static int __cdecl kvm_outw(void *opaque, uint16_t addr, uint16_t data)
 {
     cpu_outw(0, addr, data);	
     return 0;
 }
 
-static int kvm_outl(void *opaque, uint16_t addr, uint32_t data)
+static int __cdecl kvm_outl(void *opaque, uint16_t addr, uint32_t data)
 {
     cpu_outl(0, addr, data);	
     return 0;
 }
 
-static int kvm_readb(void *opaque, uint64_t addr, uint8_t *data)
+static int __cdecl kvm_readb(void *opaque, uint64_t addr, uint8_t *data)
 {
     *data = ldub_phys(addr);	
     return 0;
 }
  
-static int kvm_readw(void *opaque, uint64_t addr, uint16_t *data)
+static int __cdecl kvm_readw(void *opaque, uint64_t addr, uint16_t *data)
 {
     *data = lduw_phys(addr);
     return 0;
 }
 
-static int kvm_readl(void *opaque, uint64_t addr, uint32_t *data)
+static int __cdecl kvm_readl(void *opaque, uint64_t addr, uint32_t *data)
 {
     *data = ldl_phys(addr);
     return 0;
 }
 
-static int kvm_readq(void *opaque, uint64_t addr, uint64_t *data)
+static int __cdecl kvm_readq(void *opaque, uint64_t addr, uint64_t *data)
 {
     *data = ldq_phys(addr);
     return 0;
 }
 
-static int kvm_writeb(void *opaque, uint64_t addr, uint8_t data)
+static int __cdecl kvm_writeb(void *opaque, uint64_t addr, uint8_t data)
 {
     stb_phys(addr, data);	
     return 0;
 }
 
-static int kvm_writew(void *opaque, uint64_t addr, uint16_t data)
+static int __cdecl kvm_writew(void *opaque, uint64_t addr, uint16_t data)
 {
     stw_phys(addr, data);
     return 0;
 }
 
-static int kvm_writel(void *opaque, uint64_t addr, uint32_t data)
+static int __cdecl kvm_writel(void *opaque, uint64_t addr, uint32_t data)
 {
     stl_phys(addr, data);
     return 0;
 }
 
-static int kvm_writeq(void *opaque, uint64_t addr, uint64_t data)
+static int __cdecl kvm_writeq(void *opaque, uint64_t addr, uint64_t data)
 {
     stq_phys(addr, data);
     return 0;
 }
 
-static int kvm_io_window(void *opaque)
+static int __cdecl kvm_io_window(void *opaque)
 {
     return 1;
 }
  
-static int kvm_halt(void *opaque, int vcpu)
+static int __cdecl kvm_halt(void *opaque, int vcpu)
 {
     CPUState **envs = opaque, *env;
 
@@ -685,7 +698,7 @@ static int kvm_halt(void *opaque, int vcpu)
     return 1;
 }
 
-static int kvm_shutdown(void *opaque, int vcpu)
+static int __cdecl kvm_shutdown(void *opaque, int vcpu)
 {
     qemu_system_reset_request();
     return 1;

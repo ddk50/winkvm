@@ -219,7 +219,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 
 		printf("Set Another memory region ... \n");
 		printf(" MEMORY REGION (flag) : 0x%08x\n", extended_memory.kvm_memory_region.flags);
-		printf(" MEMORY REGION (memory_size) : %d\n", extended_memory.kvm_memory_region.memory_size);		   
+		printf(" MEMORY REGION (memory_size) : %d [bytes]\n", extended_memory.kvm_memory_region.memory_size);		   
 		printf(" MEMORY REGION (slot) : %d\n", extended_memory.kvm_memory_region.slot);
 		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.kvm_memory_region.guest_phys_addr);
 
@@ -348,13 +348,17 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 	int r;
 	int gm_access = 0;
 
+	fprintf(stderr, "handle io\n");
+
 	translation_cache_init(&tr);
 
 	if (run->io.string || _in) {
 		r = kvm_get_regs(kvm, vcpu, &regs);
 //		r = ioctl(kvm->vcpu_fd[vcpu], KVM_GET_REGS, &regs);
-		if (r == -1)
+		if (r == -1) {
+			fprintf(stderr, "Can not get reginfo\n");
 			return -errno;
+		}
 	}
 
 	delta = run->io.string_down ? -run->io.size : run->io.size;
@@ -732,13 +736,19 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
     uint64_t rax, rbx, rcx, rdx;
     int r;
 
+	fprintf(stderr, "call cpuid\n");
+
     kvm_get_regs(kvm, vcpu, &regs);
     orig_eax = (uint32_t)regs.rax;
     rax = regs.rax;
     rbx = regs.rbx;
     rcx = regs.rcx;
     rdx = regs.rdx;
-    r = kvm->callbacks->cpuid(kvm->opaque, &rax, &rbx, &rcx, &rdx);
+	printf("rax: 0x%p\n", &rax);
+	printf("rbx: 0x%p\n", &rbx);
+	printf("rcx: 0x%p\n", &rcx);
+	printf("rdx: 0x%p\n", &rdx);
+	r = kvm->callbacks->cpuid(kvm->opaque, &rax, &rbx, &rcx, &rdx);
     regs.rax = rax;
     regs.rbx = rbx;
     regs.rcx = rcx;
@@ -752,7 +762,7 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 
 int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 {
-	int r;
+	int r = 0;
 	int fd = kvm->vcpu_fd[vcpu];
 	struct kvm_run kvm_run;
 	int retlen;
@@ -773,25 +783,31 @@ again:
 						  KVM_RUN,
 						  &kvm_run,
 						  sizeof(kvm_run),
-						  &r,
-						  sizeof(r),
+						  &kvm_run,
+						  sizeof(kvm_run),
 						  &retlen,
 						  NULL);
 
-	post_kvm_run(kvm, &kvm_run);
-	kvm_run.emulated = 0;
-	kvm_run.mmio_completed = 0;
-
-	if (r == -1 && !ret) {
-		printf("KVM_RUN: failed\n");
+	if (retlen != sizeof(kvm_run)) {
+		printf("kvm_run: invalid return value\n");
 		return r;
 	}
 
-	/* fixme!! */
-	if (r == -1) {
+	post_kvm_run(kvm, &kvm_run);
+	kvm_run.emulated = 0;
+	kvm_run.mmio_completed = 0;	
+	if (!ret) {
+		printf("kvm_run: failed\n");
+		return r;
+	} else {
+		r = -1;
+	}
+	/*
+	if (!ret) {
 		r = handle_io_window(kvm, &kvm_run);
 		goto more;
 	}
+	*/
 	switch (kvm_run.exit_type) {
 	case KVM_EXIT_TYPE_FAIL_ENTRY:
 		fprintf(stderr, "kvm_run: failed entry, reason %u\n", 
@@ -852,6 +868,8 @@ static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run)
     unsigned long addr = (unsigned long)(kvm_run->mmio.phys_addr);
     void *data = kvm_run->mmio.data;
     int r = -1;
+
+	printf("handle mmio\n");
 
     if (kvm_run->mmio.is_write) {
         switch (kvm_run->mmio.len) {

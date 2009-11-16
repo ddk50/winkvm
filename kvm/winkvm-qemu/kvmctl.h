@@ -20,51 +20,56 @@ typedef struct kvm_context *kvm_context_t;
  * when it encounters something that cannot be virtualized, such as
  * accessing hardware devices via MMIO or regular IO.
  */
+
+#pragma pack(1)
+
 struct kvm_callbacks {
-    int (*cpuid)(void *opaque, 
-		  uint64_t *rax, uint64_t *rbx, uint64_t *rcx, uint64_t *rdx);
+    int (__cdecl *cpuid)(void *opaque, 
+			 uint64_t *rax, uint64_t *rbx, uint64_t *rcx, uint64_t *rdx);
 	/// For 8bit IO reads from the guest (Usually when executing 'inb')
-    int (*inb)(void *opaque, uint16_t addr, uint8_t *data);
+    int (__cdecl *inb)(void *opaque, uint16_t addr, uint8_t *data);
 	/// For 16bit IO reads from the guest (Usually when executing 'inw')
-    int (*inw)(void *opaque, uint16_t addr, uint16_t *data);
+    int (__cdecl *inw)(void *opaque, uint16_t addr, uint16_t *data);
 	/// For 32bit IO reads from the guest (Usually when executing 'inl')
-    int (*inl)(void *opaque, uint16_t addr, uint32_t *data);
+    int (__cdecl *inl)(void *opaque, uint16_t addr, uint32_t *data);
 	/// For 8bit IO writes from the guest (Usually when executing 'outb')
-    int (*outb)(void *opaque, uint16_t addr, uint8_t data);
+    int (__cdecl *outb)(void *opaque, uint16_t addr, uint8_t data);
 	/// For 16bit IO writes from the guest (Usually when executing 'outw')
-    int (*outw)(void *opaque, uint16_t addr, uint16_t data);
+    int (__cdecl *outw)(void *opaque, uint16_t addr, uint16_t data);
 	/// For 32bit IO writes from the guest (Usually when executing 'outl')
-    int (*outl)(void *opaque, uint16_t addr, uint32_t data);
+    int (__cdecl *outl)(void *opaque, uint16_t addr, uint32_t data);
 	/// For 8bit memory reads from unmapped memory (For MMIO devices)
-    int (*readb)(void *opaque, uint64_t addr, uint8_t *data);
+    int (__cdecl *readb)(void *opaque, uint64_t addr, uint8_t *data);
 	/// For 16bit memory reads from unmapped memory (For MMIO devices)
-    int (*readw)(void *opaque, uint64_t addr, uint16_t *data);
+    int (__cdecl *readw)(void *opaque, uint64_t addr, uint16_t *data);
 	/// For 32bit memory reads from unmapped memory (For MMIO devices)
-    int (*readl)(void *opaque, uint64_t addr, uint32_t *data);
+    int (__cdecl *readl)(void *opaque, uint64_t addr, uint32_t *data);
 	/// For 64bit memory reads from unmapped memory (For MMIO devices)
-    int (*readq)(void *opaque, uint64_t addr, uint64_t *data);
+    int (__cdecl *readq)(void *opaque, uint64_t addr, uint64_t *data);
 	/// For 8bit memory writes to unmapped memory (For MMIO devices)
-    int (*writeb)(void *opaque, uint64_t addr, uint8_t data);
+    int (__cdecl *writeb)(void *opaque, uint64_t addr, uint8_t data);
 	/// For 16bit memory writes to unmapped memory (For MMIO devices)
-    int (*writew)(void *opaque, uint64_t addr, uint16_t data);
+    int (__cdecl *writew)(void *opaque, uint64_t addr, uint16_t data);
 	/// For 32bit memory writes to unmapped memory (For MMIO devices)
-    int (*writel)(void *opaque, uint64_t addr, uint32_t data);
+    int (__cdecl *writel)(void *opaque, uint64_t addr, uint32_t data);
 	/// For 64bit memory writes to unmapped memory (For MMIO devices)
-    int (*writeq)(void *opaque, uint64_t addr, uint64_t data);
-    int (*debug)(void *opaque, int vcpu);
+    int (__cdecl *writeq)(void *opaque, uint64_t addr, uint64_t data);
+    int (__cdecl *debug)(void *opaque, int vcpu);
 	/*!
 	 * \brief Called when the VCPU issues an 'hlt' instruction.
 	 *
 	 * Typically, you should yeild here to prevent 100% CPU utilization
 	 * on the host CPU.
 	 */
-    int (*halt)(void *opaque, int vcpu);
-    int (*shutdown)(void *opaque, int vcpu);
-    int (*io_window)(void *opaque);
-    int (*try_push_interrupts)(void *opaque);
-    void (*post_kvm_run)(void *opaque, struct kvm_run *kvm_run);
-    void (*pre_kvm_run)(void *opaque, struct kvm_run *kvm_run);
+    int (__cdecl *halt)(void *opaque, int vcpu);
+    int (__cdecl *shutdown)(void *opaque, int vcpu);
+    int (__cdecl *io_window)(void *opaque);
+    int (__cdecl *try_push_interrupts)(void *opaque);
+    void (__cdecl *post_kvm_run)(void *opaque, struct kvm_run *kvm_run);
+    void (__cdecl *pre_kvm_run)(void *opaque, struct kvm_run *kvm_run);
 };
+
+#pragma pack()
 
 /*!
  * \brief Create new KVM context
@@ -78,7 +83,7 @@ struct kvm_callbacks {
  * \return NULL on failure
  */
 kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
-							   void *opaque);
+			       void *opaque);
 
 /*!
  * \brief Cleanup the KVM context
@@ -106,8 +111,8 @@ void __cdecl kvm_finalize(kvm_context_t kvm);
  * \return 0 on success
  */
 int __cdecl kvm_create(kvm_context_t kvm,
-					   unsigned long phys_mem_bytes,
-					   void **phys_mem);
+		       unsigned long phys_mem_bytes,
+		       void **phys_mem);
 
 /*!
  * \brief Start the VCPU
