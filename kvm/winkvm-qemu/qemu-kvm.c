@@ -634,7 +634,7 @@ static int __cdecl kvm_outl(void *opaque, uint16_t addr, uint32_t data)
 
 static int __cdecl kvm_readb(void *opaque, uint64_t addr, uint8_t *data)
 {
-    *data = ldub_phys(addr);	
+    *data = ldub_phys(addr);
     return 0;
 }
  

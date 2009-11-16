@@ -76,6 +76,7 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
 //        int r;
 
         kvm_tr.linear_address = page;
+		kvm_tr.vcpu_fd = kvm->vcpu_fd[vcpu];
 
 //        r = ioctl(kvm->vcpu_fd[vcpu], KVM_TRANSLATE, &kvm_tr);
 		ret = DeviceIoControl(kvm->hnd,
@@ -437,7 +438,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &data);
 					}
 					r = kvm->callbacks->outw(kvm->opaque, addr, data);
-				break;
+					break;
 				}
 			case 4:
 				{
@@ -797,10 +798,12 @@ again:
 	kvm_run.emulated = 0;
 	kvm_run.mmio_completed = 0;	
 	if (!ret) {
-		printf("kvm_run: failed\n");
-		return r;
+		//printf("kvm_run: failed\n");
+		r = handle_io_window(kvm, &kvm_run);
+		goto more;
+//		return r;
 	} else {
-		r = -1;
+		r = 0;
 	}
 	/*
 	if (!ret) {
@@ -874,32 +877,48 @@ static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run)
     if (kvm_run->mmio.is_write) {
         switch (kvm_run->mmio.len) {
         case 1:
-            r = kvm->callbacks->writeb(kvm->opaque, addr, *(uint8_t *)data);
-            break;
+			{
+				r = kvm->callbacks->writeb(kvm->opaque, addr, *(uint8_t *)data);
+				break;
+			}
         case 2:
-            r = kvm->callbacks->writew(kvm->opaque, addr, *(uint16_t *)data);
-            break;
+			{
+				r = kvm->callbacks->writew(kvm->opaque, addr, *(uint16_t *)data);
+				break;
+			}
         case 4:
-            r = kvm->callbacks->writel(kvm->opaque, addr, *(uint32_t *)data);
-            break;
+			{
+				r = kvm->callbacks->writel(kvm->opaque, addr, *(uint32_t *)data);
+				break;
+			}
         case 8:
-            r = kvm->callbacks->writeq(kvm->opaque, addr, *(uint64_t *)data);
-            break;
+			{
+				r = kvm->callbacks->writeq(kvm->opaque, addr, *(uint64_t *)data);
+				break;
+			}
         }
     } else {
         switch (kvm_run->mmio.len) {
         case 1:
-            r = kvm->callbacks->readb(kvm->opaque, addr, (uint8_t *)data);
-            break;
+			{
+				r = kvm->callbacks->readb(kvm->opaque, addr, (uint8_t *)data);
+				break;
+			}
         case 2:
-            r = kvm->callbacks->readw(kvm->opaque, addr, (uint16_t *)data);
-            break;
+			{
+				r = kvm->callbacks->readw(kvm->opaque, addr, (uint16_t *)data);
+				break;
+			}			
         case 4:
-            r = kvm->callbacks->readl(kvm->opaque, addr, (uint32_t *)data);
-            break;
+			{
+				r = kvm->callbacks->readl(kvm->opaque, addr, (uint32_t *)data);
+				break;
+			}
         case 8:
-            r = kvm->callbacks->readq(kvm->opaque, addr, (uint64_t *)data);
-            break;
+			{
+				r = kvm->callbacks->readq(kvm->opaque, addr, (uint64_t *)data);
+				break;
+			}
         }
         kvm_run->mmio_completed = 1;
     }
