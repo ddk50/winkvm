@@ -1482,10 +1482,8 @@ static int handle_exception(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 			return 1;
 		}
 
-		printk(KERN_ALERT "enter emulate instruction\n");		
-
 		er = emulate_instruction(vcpu, kvm_run, cr2, error_code);
-		spin_unlock(&vcpu->kvm->lock);
+		spin_unlock(&vcpu->kvm->lock);		
 
 		switch (er) {
 		case EMULATE_DONE:
@@ -1930,18 +1928,14 @@ again:
 	save_msrs(vcpu->host_msrs, vcpu->nmsrs);
 	load_msrs(vcpu->guest_msrs, NR_BAD_MSRS);	
 
-	vm_entry_test(vcpu);
+	//	vm_entry_test(vcpu);	
 
 #ifndef __WINKVM
 	vmcs_writel(HOST_CR0, read_cr0());  /* 22.2.3 */
 	vmcs_writel(HOST_CR4, read_cr4());  /* 22.2.3, 22.2.5 */
 	vmcs_writel(HOST_CR3, read_cr3());  /* 22.2.3  FIXME: shadow tables */	
 #endif	
-
-	printk(KERN_ALERT "host_cr0: 0x%08lx\n", vmcs_readl(HOST_CR0));
-	printk(KERN_ALERT "RIP: 0x%08lx\n", vmcs_readl(HOST_RIP));
-	printk(KERN_ALERT "vcpu->launched: %d\n", vcpu->launched);
-
+	
 	asm (
 		/* Store host registers */
 		"pushf \n\t"
@@ -2072,6 +2066,7 @@ again:
 		[cr2]"i"(offsetof(struct kvm_vcpu, cr2))
 	      : "cc", "memory" );	
 
+#undef __WINKVM__	
 #ifdef __WINKVM__
 	printk(KERN_ALERT "return to guest OS\n");
 
@@ -2098,9 +2093,9 @@ again:
 	REG_DUMP(RSI);
 	REG_DUMP(RDI);
 #endif
+#define __WINKVM__   
 
-	printk(KERN_ALERT "VM-exit immediate aftermath\n");	
-	//	DbgBreakPoint();	
+	//printk(KERN_ALERT "VM-exit immediate aftermath\n");	
 	
 	/*
 	 * Reload segment selectors ASAP. (it's needed for a functional
@@ -2138,7 +2133,7 @@ again:
 	asm ("mov %0, %%ds; mov %1, %%es" : : "r"(read_ds()), "r"(read_es()));	
 #endif
 	
-	dump_context(&vcpu->mmu);	
+	//	dump_context(&vcpu->mmu);	
 
 	kvm_run->exit_type = 0;
 	if (fail) {
@@ -2147,7 +2142,7 @@ again:
 		r = 0;
 		printk(KERN_ALERT "VM-exit failed: 0x%08lx\n", kvm_run->exit_reason);		
 	} else {
-		printk(KERN_ALERT "VM-exit is sccuess\n");		
+	  //		printk(KERN_ALERT "VM-exit is sccuess\n");	  
 	  
 		/*
 		 * Profile KVM exit RIPs:

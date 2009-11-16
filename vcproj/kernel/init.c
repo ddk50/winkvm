@@ -17,6 +17,7 @@
 
 #include <linux/winkvmint.h>
 #include <linux/winkvmgfp.h>
+#include <asm-generic/errno-base.h>
 
 #include "slab.h"
 #include "smp.h"
@@ -387,7 +388,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			printk(KERN_ALERT "VM_FD : 0x%08x\n", winkvm_mem.vm_fd);
 			printk(KERN_ALERT "MEMORY REGION (flag) : 0x%08x\n", kvm_mem->flags);
-			printk(KERN_ALERT "MEMORY REGION (memory_size) : %d\n", kvm_mem->memory_size);		   
+			printk(KERN_ALERT "MEMORY REGION (memory_size) : %d [bytes]\n", kvm_mem->memory_size);
 			printk(KERN_ALERT "MEMORY REGION (slot) : %d\n", kvm_mem->slot);
 			printk(KERN_ALERT "MEMORY REGION (guest_phys_addr) : 0x%08lx\n", kvm_mem->guest_phys_addr);
 
@@ -404,7 +405,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int vcpu_fd, r;
 
-			printk(KERN_ALERT "Call KVM_GET_REGS\n");
+			//printk(KERN_ALERT "Call KVM_GET_REGS\n");
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
 
 			vcpu = get_vcpu(vcpu_fd);
@@ -426,7 +427,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			printk(KERN_ALERT "Call KVM_SET_REGS\n");
+			//printk(KERN_ALERT "Call KVM_SET_REGS\n
 			RtlCopyMemory(&kvm_regs, inBuf, sizeof(kvm_regs));
 
 			vcpu = get_vcpu(kvm_regs.vcpu_fd);
@@ -448,7 +449,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			int vcpu_fd;
 			int r;
 
-			printk(KERN_ALERT "Call KVM_GET_SREGS\n");
+			//printk(KERN_ALERT "Call KVM_GET_SREGS\n");
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));			
 
 			vcpu = get_vcpu(vcpu_fd);
@@ -470,7 +471,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			printk(KERN_ALERT "Call KVM_SET_SREGS\n");
+			//printk(KERN_ALERT "Call KVM_SET_SREGS\n");
 			RtlCopyMemory(&kvm_sregs, inBuf, sizeof(kvm_sregs));
 
 			vcpu = get_vcpu(kvm_sregs.vcpu_fd);
@@ -491,7 +492,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			printk(KERN_ALERT "Call KVM_TRANSLATE\n");
+			//printk(KERN_ALERT "Call KVM_TRANSLATE\n");
 			RtlCopyMemory(&tr, inBuf, sizeof(tr));
 
 			vcpu = get_vcpu(tr.vcpu_fd);
@@ -515,7 +516,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r = 0;
 
-			printk(KERN_ALERT "Call KVM_INTERRUPT");
+			printk(KERN_ALERT "Call KVM_INTERRUPT\n");
+
+			ASSERT(0);
 
 			RtlCopyMemory(&irq, inBuf, sizeof(irq));
 
@@ -537,17 +540,24 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_run kvm_run;
 			struct kvm_vcpu *vcpu;
 
-			printk(KERN_ALERT "Call WINKVM_EXECUTE_TEST\n");
+			//printk(KERN_ALERT "Call KVM_RUN\n");
 
 			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
 
 			vcpu = get_vcpu(kvm_run.vcpu_fd);
-			SAFE_ASSERT(vcpu);		   
+			SAFE_ASSERT(vcpu);
 
 			if (vcpu) {
 				ret = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
-				ntStatus = ConvertRetval(ret);
+				RtlCopyMemory(outBuf, &kvm_run, sizeof(kvm_run));
+				Irp->IoStatus.Information = sizeof(kvm_run);
+				if (ret == -EINTR) {
+					ntStatus = STATUS_SUCCESS;
+				} else {
+					ntStatus = ConvertRetval(ret);				
+				}
 			} else {
+				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
 			break;

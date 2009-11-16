@@ -56,7 +56,7 @@ static FAST_MUTEX emulater_spinlock;
  * per cpu;
  */
 struct smpf_data {
-	void (*func)(void *info);
+	void (_cdecl *func)(void *info);
 	void *info;
 	int mycpu_num;
 } *smpf_data_slot = NULL;

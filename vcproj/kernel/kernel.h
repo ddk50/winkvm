@@ -46,8 +46,11 @@ int atomic_inc_and_test(int *v);
 #define MEM_TAG 'HmmV'
 
 /* for DEBUG */
-#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
-#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
+//#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
+//#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
+
+#define FUNCTION_ENTER()
+#define FUNCTION_EXIT()
 
 #define PAGE_MASK (~(PAGE_SIZE-1))
 

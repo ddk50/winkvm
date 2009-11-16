@@ -506,18 +506,18 @@ extern __stdcall void DbgBreakPoint(void);
 /* for debugging (by ddk) */
 static inline void dump_context(struct kvm_mmu *context)	
 {
-	printk("context->new_cr3: 0x%08lx\n"		   
-		   "context->page_fault: 0x%08lx\n"		   
-		   "context->gva_to_gpa: 0x%08lx\n"
-		   "context->free: 0x%08lx\n"
-		   "context->root_level: 0x%08lx\n"
-		   "context->shadow_root_level: 0x%08lx\n",		   
-		   context->new_cr3,
-		   context->page_fault,
-		   context->gva_to_gpa,
-		   context->free,
-		   context->root_level,		   
-		   context->shadow_root_level);
+/* 	printk("context->new_cr3: 0x%08lx\n"		   */
+/* 		   "context->page_fault: 0x%08lx\n"		    */
+/* 		   "context->gva_to_gpa: 0x%08lx\n" */
+/* 		   "context->free: 0x%08lx\n" */
+/* 		   "context->root_level: 0x%08lx\n" */
+/* 		   "context->shadow_root_level: 0x%08lx\n",		    */
+/* 		   context->new_cr3, */
+/* 		   context->page_fault, */
+/* 		   context->gva_to_gpa, */
+/* 		   context->free, */
+/* 		   context->root_level,		    */
+/* 		   context->shadow_root_level); */	
 	return;	
 }
 

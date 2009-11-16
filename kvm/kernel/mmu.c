@@ -33,8 +33,8 @@
 #include "vmx.h"
 #include "kvm.h"
 
-//#undef MMU_DEBUG
-#define MMU_DEBUG
+#undef MMU_DEBUG
+//#define MMU_DEBUG
 
 #undef AUDIT
 

@@ -72,7 +72,7 @@ struct kvm *get_kvm(int fd)
 {
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].file->__private_data_type == WINKVM_KVM);
-	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
+//	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
 	return (struct kvm*)(fd_slot[fd].file->private_data);
 }
 
@@ -80,7 +80,7 @@ struct kvm_vcpu *get_vcpu(int fd)
 {
 	SAFE_ASSERT(VALID_FD(fd));
 	SAFE_ASSERT(fd_slot[fd].file->__private_data_type == WINKVM_VCPU);
-	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
+//	printk(KERN_ALERT "%s: fd: %d\n", __FUNCTION__, fd);
 	return (struct kvm_vcpu*)(fd_slot[fd].file->private_data);
 }
 

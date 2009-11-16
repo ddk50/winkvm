@@ -1274,7 +1274,7 @@ int emulate_instruction(struct kvm_vcpu *vcpu,
 			FUNCTION_EXIT();			
 			return EMULATE_DONE;
 		}		
-		if (!vcpu->mmio_needed) {
+		if (!vcpu->mmio_needed) { /* ground zero */		  
 			report_emulation_failure(&emulate_ctxt);
 			FUNCTION_EXIT();			
 			return EMULATE_FAIL;
