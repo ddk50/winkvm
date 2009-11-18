@@ -22,7 +22,7 @@ pmode:
 	mov %ax, %gs
 	mov %ax, %ss
 	mov $0xa0000, %esp
-##	ljmp $8, $0x100000
+	ljmp $8, $0x100000
 	jmp main_loop		
 
 main_loop:

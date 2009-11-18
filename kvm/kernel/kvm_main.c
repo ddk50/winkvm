@@ -1204,7 +1204,7 @@ static void report_emulation_failure(struct x86_emulate_ctxt *ctxt)
 	emulator_read_std(rip_linear, (void *)opcodes, 4, ctxt);
 
 	printk(KERN_ERR "emulation failed but !mmio_needed?"
-	       " rip %lx %02x %02x %02x %02x\n",
+	       " rip %lx %02x %02x %02x %02x\n",		  
 	       rip, opcodes[0], opcodes[1], opcodes[2], opcodes[3]);
 	reported = 1;
 }
@@ -1275,7 +1275,7 @@ int emulate_instruction(struct kvm_vcpu *vcpu,
 			return EMULATE_DONE;
 		}		
 		if (!vcpu->mmio_needed) { /* ground zero */		  
-			report_emulation_failure(&emulate_ctxt);
+			report_emulation_failure(&emulate_ctxt);			
 			FUNCTION_EXIT();			
 			return EMULATE_FAIL;
 		}
