@@ -2614,14 +2614,15 @@ static void *set_vram_mapping(unsigned long begin, unsigned long end)
     /* align begin and end address */
     begin = begin & TARGET_PAGE_MASK;
     end = begin + VGA_RAM_SIZE;
-    end = (end + TARGET_PAGE_SIZE -1 ) & TARGET_PAGE_MASK;
+    end = (end + TARGET_PAGE_SIZE -1 ) & TARGET_PAGE_MASK;    
 
-    vram_pointer = kvm_create_phys_mem(kvm_context, begin, end - begin, 1, 
-									   1, 1);	
-
+    /* winkivm */
+    //    vram_pointer = kvm_create_phys_mem(kvm_context, begin, end - begin, 1, 
+    //				       1, 1);
+    vram_pointer = qemu_malloc(end - begin);
     if (vram_pointer == NULL) {
         printf("set_vram_mapping: cannot allocate memory: %m\n");
-        return NULL;		
+        return NULL;
     }
 
     memset(vram_pointer, 0, end - begin);
@@ -2636,7 +2637,7 @@ static int unset_vram_mapping(unsigned long begin, unsigned long end)
     begin = begin & TARGET_PAGE_MASK;
     end = (end + TARGET_PAGE_SIZE -1 ) & TARGET_PAGE_MASK;
 
-    kvm_destroy_phys_mem(kvm_context, begin, end - begin);
+    //    kvm_destroy_phys_mem(kvm_context, begin, end - begin);
 
     return 0;
 }
@@ -2695,8 +2696,10 @@ static void cirrus_update_memory_access(CirrusVGAState *s)
 		if (!error)
 		    old_vram = vga_update_vram((VGAState *)s, NULL,
                                                VGA_RAM_SIZE);
-                if (old_vram)
-                    munmap(old_vram, s->map_addr - s->map_end);
+                if (old_vram) {
+		  // munmap(old_vram, s->map_addr - s->map_end);		    
+		  printf("cirrus vga: munmap: 0x%p\n", old_vram);
+		}
                 s->map_addr = s->map_end = 0;
             }
 #endif
