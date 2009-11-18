@@ -800,7 +800,6 @@ again:
 	if (kvm_run._errno == EINTR) {
 		r = handle_io_window(kvm, &kvm_run);
 		r = 1;
-		printf("handle io window\n");
 		goto more;
 	}
 
@@ -863,8 +862,6 @@ static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run)
     unsigned long addr = (unsigned long)(kvm_run->mmio.phys_addr);
     void *data = kvm_run->mmio.data;
     int r = -1;
-
-	printf("handle mmio\n");
 
     if (kvm_run->mmio.is_write) {
         switch (kvm_run->mmio.len) {
@@ -1198,8 +1195,8 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 		kvm = kvm_context;
 	}
 
-	fprintf(stderr, "winkvm_write_guest start\n");
-	fprintf(stderr, "kara\n");
+//	fprintf(stderr, "winkvm_write_guest start\n");
+//	fprintf(stderr, "kara\n");
 
 	if (size > tbuf_size) {
 		/* 512 bytes buffer */	
@@ -1218,8 +1215,8 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	trans_mem->gva     = addr;
 	memcpy(trans_mem->payload, data, size);
 
-	printf("write guest: gva: 0x%08lx, size: %d\n", 
-		trans_mem->gva, trans_mem->size);
+//	printf("write guest: gva: 0x%08lx, size: %d\n", 
+//		trans_mem->gva, trans_mem->size);
 
 	ret = DeviceIoControl(kvm->hnd,
 		                  WINKVM_WRITE_GUEST,
@@ -1234,7 +1231,7 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 		fprintf(stderr, "Could not copy to guest area\n");
 	}
 
-	fprintf(stderr, "winkvm_write_guest end\n");	
+//	fprintf(stderr, "winkvm_write_guest end\n");	
 
 	return copyed_bytes;
 }
