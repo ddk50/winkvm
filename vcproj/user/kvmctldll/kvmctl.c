@@ -349,8 +349,6 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 	int r;
 	int gm_access = 0;
 
-	fprintf(stderr, "handle io\n");
-
 	translation_cache_init(&tr);
 
 	if (run->io.string || _in) {
@@ -373,8 +371,9 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			else
 				value_addr = &run->io.value;
 		} else {
-			r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
 			gm_access = 1;
+			//r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
+			/*
 			fprintf(stderr, "translating I/O address %llx\n", 
 				run->io.address);
 			if (r) {
@@ -382,6 +381,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 					    run->io.address);
 				return r;
 			}
+			*/
 		}
 
 		switch (run->io.direction) {		  
@@ -390,28 +390,28 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			case 1: {
 				uint8_t value;
 				r = kvm->callbacks->inb(kvm->opaque, addr, &value);
-				*(uint8_t *)value_addr = value;
-				if (gm_access) {
+				if (gm_access)
 					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint8_t), &value);
-				}
+				else
+					*(uint8_t *)value_addr = value;
 				break;
 			}
 			case 2: {
 				uint16_t value;
 				r = kvm->callbacks->inw(kvm->opaque, addr, &value);
-				*(uint16_t *)value_addr = value;
-				if (gm_access) {
+				if (gm_access)
 					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &value);
-				}
+				else
+					*(uint16_t *)value_addr = value;
 				break;
 			}
 			case 4: {
 				uint32_t value;
 				r = kvm->callbacks->inl(kvm->opaque, addr, &value);
-				*(uint32_t *)value_addr = value;
-				if (gm_access) {
-					winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &value);
-				}
+				if (gm_access)
+					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &value);
+				else
+					*(uint16_t *)value_addr = value;
 				break;
 			}
 			default:
@@ -424,28 +424,31 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			switch (run->io.size) {				
 			case 1: 
 				{
-					uint8_t data = *(uint8_t *)value_addr;
-					if (gm_access) {
+					uint8_t data;
+					if (gm_access)
 						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint8_t), &data);
-					}
+					else
+						data = *(uint8_t *)value_addr;
 					r = kvm->callbacks->outb(kvm->opaque, addr, data);
 					break;
 				}
 			case 2:
 				{
-					uint16_t data = *(uint16_t *)value_addr;
-					if (gm_access) {
+					uint16_t data;
+					if (gm_access)
 						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &data);
-					}
+					else
+						data = *(uint8_t *)value_addr;
 					r = kvm->callbacks->outw(kvm->opaque, addr, data);
 					break;
 				}
 			case 4:
 				{
-					uint32_t data = *(uint32_t *)value_addr;
-					if (gm_access) {
+					uint32_t data;
+					if (gm_access)
 						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &data);
-					}
+					else
+						data = *(uint32_t *)value_addr;
 					r = kvm->callbacks->outl(kvm->opaque, addr, data);
 					break;
 				}
@@ -737,18 +740,12 @@ static int handle_cpuid(kvm_context_t kvm, struct kvm_run *run, int vcpu)
     uint64_t rax, rbx, rcx, rdx;
     int r;
 
-	fprintf(stderr, "call cpuid\n");
-
     kvm_get_regs(kvm, vcpu, &regs);
     orig_eax = (uint32_t)regs.rax;
     rax = regs.rax;
     rbx = regs.rbx;
     rcx = regs.rcx;
     rdx = regs.rdx;
-	printf("rax: 0x%p\n", &rax);
-	printf("rbx: 0x%p\n", &rbx);
-	printf("rcx: 0x%p\n", &rcx);
-	printf("rdx: 0x%p\n", &rdx);
 	r = kvm->callbacks->cpuid(kvm->opaque, &rax, &rbx, &rcx, &rdx);
     regs.rax = rax;
     regs.rbx = rbx;
@@ -768,8 +765,6 @@ int __cdecl kvm_run(kvm_context_t kvm, int vcpu)
 	struct kvm_run kvm_run;
 	int retlen;
 	BOOL ret = FALSE;
-
-	fprintf(stderr, "%s\n", __FUNCTION__);
 
 	kvm_run.emulated = 0;
 	kvm_run.mmio_completed = 0;
@@ -861,7 +856,7 @@ again:
 		}
 	}
 more:
-	if (!r)
+	if (!r) /* r‚ª•‰‚¾‚Á‚½‚ç */
 		goto again;
 	return r;
 }

@@ -291,7 +291,6 @@ static inline TranslationBlock *tb_find_fast(void)
 
 int cpu_exec(CPUState *env1)
 {
-	printf("Call %s\n", __FUNCTION__);	
 #define DECLARE_HOST_REGS 1
 #include "hostregs_helper.h"
 #if defined(TARGET_SPARC)
