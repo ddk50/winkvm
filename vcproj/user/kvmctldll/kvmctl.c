@@ -3,6 +3,7 @@
 #include <winioctl.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <asm-generic/errno.h> /* !FIXME! */
 
 #undef _IOW
 #undef _IOR

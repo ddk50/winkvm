@@ -17,7 +17,7 @@
 
 #include <linux/winkvmint.h>
 #include <linux/winkvmgfp.h>
-#include <asm-generic/errno-base.h>
+#include <asm-generic/errno.h> /* fix me!! */
 
 #include "slab.h"
 #include "smp.h"
