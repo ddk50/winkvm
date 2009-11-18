@@ -1416,7 +1416,27 @@ void vga_invalidate_scanlines(VGAState *s, int y1, int y2)
     }
 }
 
-/*
+#ifdef USE_KVM
+
+#include "kvmctl.h"
+extern kvm_context_t kvm_context;
+
+static int bitmap_get_dirty(unsigned long *bitmap, unsigned nr)
+{
+    unsigned word = nr / ((sizeof bitmap[0]) * 8);
+    unsigned bit = nr % ((sizeof bitmap[0]) * 8);
+
+    //printf("%x -> %ld\n", nr, (bitmap[word] >> bit) & 1);
+    return (bitmap[word] >> bit) & 1;
+}
+
+#endif
+
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
+/* 
  * graphic modes
  */
 static void vga_draw_graphic(VGAState *s, int full_update)
@@ -1427,6 +1447,20 @@ static void vga_draw_graphic(VGAState *s, int full_update)
     uint8_t *d;
     uint32_t v, addr1, addr;
     vga_draw_line_func *vga_draw_line;
+    
+#ifdef USE_KVM
+
+    /* HACK ALERT */
+#define BITMAP_SIZE ((8*1024*1024) / 4096 / 8 / sizeof(long))
+    unsigned long bitmap[BITMAP_SIZE];
+    int r;
+
+    if (kvm_allowed) {
+	    r = kvm_get_dirty_pages(kvm_context, 1, &bitmap);
+	    if (r < 0)
+		    fprintf(stderr, "kvm: get_dirty_pages returned %d\n", r);
+    }
+#endif
 
     full_update |= update_basic_params(s);
 
@@ -1534,10 +1568,20 @@ static void vga_draw_graphic(VGAState *s, int full_update)
         update = full_update |
             cpu_physical_memory_get_dirty(page0, VGA_DIRTY_FLAG) |
             cpu_physical_memory_get_dirty(page1, VGA_DIRTY_FLAG);
+#ifdef USE_KVM
+	if (kvm_allowed) {
+		update |= bitmap_get_dirty(bitmap, (page0 - s->vram_offset) >> TARGET_PAGE_BITS);
+		update |= bitmap_get_dirty(bitmap, (page1 - s->vram_offset) >> TARGET_PAGE_BITS);
+	}
+#endif
         if ((page1 - page0) > TARGET_PAGE_SIZE) {
             /* if wide line, can use another page */
             update |= cpu_physical_memory_get_dirty(page0 + TARGET_PAGE_SIZE,
                                                     VGA_DIRTY_FLAG);
+#ifdef USE_KVM
+	    if (kvm_allowed)
+		    update |= bitmap_get_dirty(bitmap, (page0 - s->vram_offset) >> TARGET_PAGE_BITS);
+#endif
         }
         /* explicit invalidation for the hardware cursor */
         update |= (s->invalidated_y_table[y >> 5] >> (y & 0x1f)) & 1;
@@ -1829,15 +1873,13 @@ void vga_common_init(VGAState *s, DisplayState *ds, uint8_t *vga_ram_base,
     vga_reset(s);
 
 #ifndef USE_KVM
-	s->vram_ptr = vga_ram_base;	
-#else	
-	if (kvm_allowed) {		
-		s->vram_ptr = qemu_malloc(vga_ram_size);
-		fprintf(stderr, "kvm allowd: vram allocation\n");		
-	} else {		
-		s->vram_ptr = vga_ram_base;
-	}
-#endif  
+    s->vram_ptr = vga_ram_base;
+#else
+    if (kvm_allowed)
+	    s->vram_ptr = qemu_malloc(vga_ram_size);	
+    else
+	    s->vram_ptr = vga_ram_base;
+#endif
     s->vram_offset = vga_ram_offset;
     s->vram_size = vga_ram_size;
     s->ds = ds;
@@ -2068,6 +2110,31 @@ int pci_vga_init(PCIBus *bus, DisplayState *ds, uint8_t *vga_ram_base,
                                PCI_ADDRESS_SPACE_MEM_PREFETCH, vga_map);
     }
     return 0;
+}
+
+void *vga_update_vram(VGAState *s, void *vga_ram_base, int vga_ram_size)
+{
+    uint8_t *old_pointer;
+
+    if (s->vram_size != vga_ram_size) {
+        fprintf(stderr, "No support to change vga_ram_size\n");
+        return NULL;
+    }
+
+    if (!vga_ram_base) {
+        vga_ram_base = qemu_malloc(vga_ram_size);
+        if (!vga_ram_base) {
+            fprintf(stderr, "reallocate error\n");
+            return NULL;
+        }
+    }
+
+    /* XXX lock needed? */
+    memcpy(vga_ram_base, s->vram_ptr, vga_ram_size);
+    old_pointer = s->vram_ptr;
+    s->vram_ptr = vga_ram_base;
+
+    return old_pointer;
 }
 
 /********************************************************/
