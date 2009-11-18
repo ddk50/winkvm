@@ -2173,9 +2173,10 @@ again:
 				FUNCTION_EXIT();				
 				return -EINTR;
 			}
-
-			kvm_resched(vcpu);
-			//			goto again;			
+			printk(KERN_ALERT "goto again: %d\n", -EINTR);			
+			post_kvm_run_save(vcpu, kvm_run);			
+			return -EINTR;			
+			//goto again;			
 		}		
 	}	
 	

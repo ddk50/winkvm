@@ -518,8 +518,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			printk(KERN_ALERT "Call KVM_INTERRUPT\n");
 
-			ASSERT(0);
-
 			RtlCopyMemory(&irq, inBuf, sizeof(irq));
 
 			vcpu = get_vcpu(irq.vcpu_fd);
@@ -550,6 +548,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			if (vcpu) {
 				r = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+				kvm_run._errno = -r;
+				kvm_run.ioctl_r = r;
 				RtlCopyMemory(outBuf, &kvm_run, sizeof(kvm_run));
 				Irp->IoStatus.Information = sizeof(kvm_run);
 				ntStatus = STATUS_SUCCESS;
@@ -557,8 +557,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
-			kvm_run._errno = -r;
-			kvm_run.ioctl_r = r;
 			break;
 		}
 	case WINKVM_EXECUTE_TEST:
@@ -654,8 +652,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			vcpu = get_vcpu(trans_mem->vcpu_fd);
 
 			SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(struct winkvm_transfer_mem)));
-			printk(KERN_ALERT "write guest: gva: 0x%08lx, size: %d\n", 
-				trans_mem->gva, trans_mem->size);
+//			printk(KERN_ALERT "write guest: gva: 0x%08lx, size: %d\n", 
+//				trans_mem->gva, trans_mem->size);
 
 			if (vcpu) {
 				ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, trans_mem->payload);
