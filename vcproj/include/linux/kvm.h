@@ -99,7 +99,7 @@ enum kvm_exit_reason {
 struct kvm_run {
 #ifdef __WINKVM__  
   int vcpu_fd;
-  int errno;
+  int _errno;  
   int ioctl_r;  
 #endif   
   /* in */

@@ -540,7 +540,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_run kvm_run;
 			struct kvm_vcpu *vcpu;
 
-			kvm_run.errno = 0;
+			kvm_run._errno = 0;
 			kvm_run.ioctl_r = -EINVAL;
 
 			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
@@ -557,7 +557,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
-			kvm_run.errno = -r;
+			kvm_run._errno = -r;
 			kvm_run.ioctl_r = r;
 			break;
 		}
