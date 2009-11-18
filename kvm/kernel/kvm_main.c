@@ -2172,7 +2172,7 @@ long kvm_vcpu_ioctl(struct file *filp,
 	int r = -EINVAL;
 
 	switch (ioctl) {
-	case KVM_RUN: {
+	case KVM_RUN: {	  
 		struct kvm_run kvm_run;
 
 		r = -EFAULT;

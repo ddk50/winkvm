@@ -536,11 +536,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 	case KVM_RUN:
 		{		
-			int ret;
+			int r;
 			struct kvm_run kvm_run;
 			struct kvm_vcpu *vcpu;
 
-			//printk(KERN_ALERT "Call KVM_RUN\n");
+			kvm_run.errno = 0;
+			kvm_run.ioctl_r = -EINVAL;
 
 			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
 
@@ -548,18 +549,16 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			SAFE_ASSERT(vcpu);
 
 			if (vcpu) {
-				ret = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+				r = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
 				RtlCopyMemory(outBuf, &kvm_run, sizeof(kvm_run));
 				Irp->IoStatus.Information = sizeof(kvm_run);
-				if (ret == -EINTR) {
-					ntStatus = STATUS_SUCCESS;
-				} else {
-					ntStatus = ConvertRetval(ret);				
-				}
+				ntStatus = STATUS_SUCCESS;
 			} else {
 				Irp->IoStatus.Information = 0;
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
+			kvm_run.errno = -r;
+			kvm_run.ioctl_r = r;
 			break;
 		}
 	case WINKVM_EXECUTE_TEST:

@@ -2175,9 +2175,9 @@ again:
 			}
 
 			kvm_resched(vcpu);
-			goto again;			
-		}
-	}
+			//			goto again;			
+		}		
+	}	
 	
 	post_kvm_run_save(vcpu, kvm_run);	
 	FUNCTION_EXIT();	

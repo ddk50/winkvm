@@ -97,8 +97,10 @@ enum kvm_exit_reason {
 
 /* for KVM_RUN */
 struct kvm_run {
-#ifdef __WINKVM__
-  int vcpu_fd;  
+#ifdef __WINKVM__  
+  int vcpu_fd;
+  int errno;
+  int ioctl_r;  
 #endif   
   /* in */
   __u32 emulated;  /* skip current instruction */
