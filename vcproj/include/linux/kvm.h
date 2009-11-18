@@ -100,7 +100,7 @@ struct kvm_run {
 #ifdef __WINKVM__  
   int vcpu_fd;
   int _errno;  
-  int ioctl_r;  
+  int ioctl_r;
 #endif   
   /* in */
   __u32 emulated;  /* skip current instruction */

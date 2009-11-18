@@ -357,7 +357,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 //		r = ioctl(kvm->vcpu_fd[vcpu], KVM_GET_REGS, &regs);
 		if (r == -1) {
 			fprintf(stderr, "Can not get reginfo\n");
-			return -errno;
+			return -1;
 		}
 	}
 
@@ -417,7 +417,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			}
 			default:
 				fprintf(stderr, "bad I/O size %d\n", run->io.size);
-				return -WINKVM_EMSGSIZE;
+				return -1;
 			}
 			break;
 		}
@@ -455,12 +455,12 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 				}
 			default:
 				fprintf(stderr, "bad I/O size %d\n", run->io.size);
-				return -WINKVM_EMSGSIZE;
+				return -1;
 			}
 			break;
 		default:
 			fprintf(stderr, "bad I/O direction %d\n", run->io.direction);
-			return -WINKVM_EPROTO;
+			return -1;
 		}
 		if (run->io.string) {
 			run->io.address += delta;
@@ -479,7 +479,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 //			r = ioctl(kvm->vcpu_fd[vcpu], KVM_SET_REGS, &regs);
 			r = kvm_set_regs(kvm, vcpu, &regs);
 			if (r == -1)
-				return -errno;
+				return -1;
 
 			return savedret;
 		}
@@ -489,7 +489,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 		//r = ioctl(kvm->vcpu_fd[vcpu], KVM_SET_REGS, &regs);
 		r = kvm_set_regs(kvm, vcpu, &regs);
 		if (r == -1)
-			return -errno;
+			return -1;
 
 	}
 
@@ -794,25 +794,21 @@ again:
 	kvm_run.emulated = 0;
 	kvm_run.mmio_completed = 0;	
 	if (!ret) {
-		//printf("kvm_run: failed\n");
-		r = handle_io_window(kvm, &kvm_run);
-		goto more;
-//		return r;
-	} else {
-		r = 0;
+		printf("kvm_run: failed\n");
+		return -1;
 	}
-	/*
-	if (!ret) {
+	if (kvm_run._errno == EINTR) {
 		r = handle_io_window(kvm, &kvm_run);
+		r = 1;
+		printf("handle io window\n");
 		goto more;
 	}
-	*/
+
 	switch (kvm_run.exit_type) {
 	case KVM_EXIT_TYPE_FAIL_ENTRY:
 		fprintf(stderr, "kvm_run: failed entry, reason %u\n", 
 			kvm_run.exit_reason & 0xffff);
-//		return -ENOEXEC;
-		return -1;
+		return -ENOEXEC;
 		break;
 	case KVM_EXIT_TYPE_VM_EXIT:
 		switch (kvm_run.exit_reason) {
