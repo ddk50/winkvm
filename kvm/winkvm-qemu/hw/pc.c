@@ -851,8 +851,8 @@ static void pc_init1(int ram_size, int vga_ram_size,
 //            bios_mem = phys_ram_base + ((uint32_t)(-bios_size));		
 //            bios_mem = qemu_mallocz(bios_size);
 	    if (!bios_mem) {
-                   fprintf(stderr, "Could not allocate bios mem\n");			
-		   exit(1);
+	      fprintf(stderr, "Could not allocate bios mem\n");			
+	      exit(1);
 	    }	  	   
 	    /* here is bug!! */
 	    memcpy(bios_mem, phys_ram_base + bios_offset, bios_size);
@@ -877,6 +877,12 @@ static void pc_init1(int ram_size, int vga_ram_size,
 	    fprintf(stderr, "Too many option ROMS\n");
 	    exit(1);
 	}
+	
+	winkvm_write_guest(kvm_context,
+			   offset,
+			   size,
+			   phys_ram_base + offset);
+
 	cpu_register_physical_memory(0xd0000 + option_rom_offset,
 				     size, offset | IO_MEM_ROM);
 	option_rom_offset += size + 2047;
@@ -932,6 +938,13 @@ static void pc_init1(int ram_size, int vga_ram_size,
                          vga_ram_addr, vga_ram_size);
         }
     }
+
+    /* need for winkvm */
+    /*
+    winkvm_write_guest(kvm_context, 
+		       vga_ram_addr, 
+		       vga_ram_size, phys_ram_base + vga_ram_addr);
+    */
 
     rtc_state = rtc_init(0x70, i8259[8]);
 

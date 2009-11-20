@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 	return 1;	
 }
 
-void MemmapAndTest(unsigned long dwPageSize)
+void __cdecl MemmapAndTest(unsigned long dwPageSize)
 {
 	void *memspace;	
 	BYTE *ptr;

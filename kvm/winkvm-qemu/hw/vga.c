@@ -1456,9 +1456,9 @@ static void vga_draw_graphic(VGAState *s, int full_update)
     int r;
 
     if (kvm_allowed) {
-	    r = kvm_get_dirty_pages(kvm_context, 1, &bitmap);
-	    if (r < 0)
-		    fprintf(stderr, "kvm: get_dirty_pages returned %d\n", r);
+      r = kvm_get_dirty_pages(kvm_context, 1, &bitmap);
+      if (r < 0)
+	fprintf(stderr, "kvm: get_dirty_pages returned %d\n", r);
     }
 #endif
 

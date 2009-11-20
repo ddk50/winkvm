@@ -13,7 +13,9 @@
 #include "winkvmerrno.h"
 #include "kvmctl.h"
 
-#define PAGE_SIZE 
+#define PAGE_SHIFT  12
+#define PAGE_SIZE   (1UL << PAGE_SHIFT)
+#define PAGE_MASK   (~(PAGE_SIZE-1))
 
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
 #define KVM_MAX_NUM_MEM_REGIONS 4u
@@ -138,6 +140,8 @@ void kvm_finalize(kvm_context_t kvm)
 	*/
 	kvm_context = NULL;
 	CloseHandle(kvm->hnd);
+
+	ResetSEHhandler();
 }
 
 /*
@@ -322,6 +326,12 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 	memory.kvm_memory_region.guest_phys_addr = phys_start;
 	memory.kvm_memory_region.flags           = log ? KVM_MEM_LOG_DIRTY_PAGES : 0;
 
+	printf(" VM_FD : %d\n", memory.vm_fd);
+	printf(" MEMORY REGION (flag) : 0x%08x\n", memory.kvm_memory_region.flags);
+	printf(" MEMORY REGION (memory_size) : %d [bytes]\n", memory.kvm_memory_region.memory_size); 
+	printf(" MEMORY REGION (slot) : %d\n", memory.kvm_memory_region.slot);
+	printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", memory.kvm_memory_region.guest_phys_addr);
+
 	ret = DeviceIoControl(kvm->hnd,
 		                  KVM_SET_MEMORY_REGION,
 						  &memory,
@@ -340,7 +350,7 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 //        prot |= PROT_WRITE;
 
 //    ptr = mmap(0, len, prot, MAP_SHARED, fd, phys_start);
-	ptr = VirtualAlloc(NULL, len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);	
+	ptr = VirtualAlloc(NULL, len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     if (ptr == NULL)
         return 0;
 
@@ -630,9 +640,51 @@ static HANDLE OpenWinkvm(void)
 	return hnd;
 }
 
+/* This Handler shows how SEH can modify global variables
+   and/or registers of the faulting routine to "fix" an error
+   It also shows that more than one error can be handled in a single
+   exception handler */
+int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord, 
+			   void *EstablisherFrame, struct _CONTEXT *ContextRecord, 
+			   void *DispatcherContext)
+{
+	void *fault_addr;
+	unsigned long fault_pfn;
+	int ret = EXCEPTION_EXECUTE_HANDLER;
+
+	printf("You've raised exception number #%x\n", ExceptionRecord->ExceptionCode);
+
+	if (ExceptionRecord->ExceptionFlags & 1) {
+		printf("non-continuable error\n");
+		exit(1);
+	}
+
+	switch (ExceptionRecord->ExceptionCode) {
+		case STATUS_INTEGER_DIVIDE_BY_ZERO:
+			fault_addr = (void*)(ExceptionRecord->ExceptionInformation[1]);
+			printf("Divide by zero at addr = 0x%08x\n", (unsigned long)fault_addr);
+			ret = EXCEPTION_CONTINUE_SEARCH;
+			break;
+		case EXCEPTION_ACCESS_VIOLATION:
+			fault_addr = (void*)(ExceptionRecord->ExceptionInformation[1]);
+			fault_pfn = ((unsigned long)fault_addr) >> PAGE_SHIFT;
+			printf("ACCESS VIOLATION at addr = 0x%08x (pfn: 0x%08lx)\n", fault_addr, fault_pfn);
+//			MapPageToPhys(g_hnd, (PVOID)(fault_pfn << PAGE_SHIFT), PAGE_SHIFT);
+			ret = EXCEPTION_CONTINUE_SEARCH;
+			break;
+		default:
+			ret = EXCEPTION_EXECUTE_HANDLER;
+			break;
+	}
+
+	return ret;
+}
+
 kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 							   void *opaque)
 {
+	unsigned long dwPageSize, pageshift, pagemask;
+	SYSTEM_INFO SysInfo;
 	HANDLE hnd;
 	kvm_context_t kvm;
 
@@ -645,10 +697,28 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 	kvm->opaque = opaque;	
 	kvm->dirty_pages_log_all = 1;
 	memset(&kvm->mem_regions, 0, sizeof(kvm->mem_regions));
-
 	kvm_context = kvm;
 
-	return kvm;	
+	GetSystemInfo(&SysInfo);
+
+	pageshift  = 12;
+	dwPageSize = SysInfo.dwPageSize;
+	pagemask   = ~(pageshift - 1);
+
+	if (dwPageSize != PAGE_SIZE) {
+		printf("invalid system page size\n");
+		exit(1);
+	}
+
+	/*
+	printf("Systen info:\n");
+	printf(" page size: %d\n page shift: %d\n", dwPageSize, pageshift);
+	printf(" installing SEH handler ... ");
+	SetSEHhandler(SEHHandler);
+	printf(" Done\n");
+	*/
+
+	return kvm;
 }
 
 static BOOL winkvm_test_run(HANDLE hnd, int vcpu_fd)	

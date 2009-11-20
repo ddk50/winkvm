@@ -45,7 +45,7 @@
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\include&quot;"
 				PreprocessorDefinitions="__WINKVM__;WIN32;_DEBUG;_WINDOWS;_USRDLL;KVMCTLDLL_EXPORTS"
 				MinimalRebuild="true"
-				ExceptionHandling="0"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				StructMemberAlignment="1"
