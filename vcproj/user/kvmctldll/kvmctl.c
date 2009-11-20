@@ -18,6 +18,23 @@
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
 #define KVM_MAX_NUM_MEM_REGIONS 4u
 
+/* install SEH handler */
+#define SetSEHhandler(handler) \
+	do { \
+	   __asm mov eax, handler \
+	   __asm push eax \
+	   __asm push fs:[0] \
+	   __asm mov fs:[0], esp \
+	} while(0);\
+
+/* uninstall SEH handler */
+#define ResetSEHhandler() \
+	do { \
+	   __asm mov eax, [esp] \
+	   __asm mov fs:[0], eax \
+	   __asm add esp, 8 \
+	} while(0);\
+
 static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run);
 static int handle_io_window(kvm_context_t kvm, struct kvm_run *kvm_run);
 static int handle_halt(kvm_context_t kvm, struct kvm_run *kvm_run, int vcpu);
@@ -792,17 +809,28 @@ again:
 
 	post_kvm_run(kvm, &kvm_run);
 	kvm_run.emulated = 0;
-	kvm_run.mmio_completed = 0;	
+	kvm_run.mmio_completed = 0;
+
 	if (!ret) {
 		printf("kvm_run: failed\n");
 		return -1;
 	}
-	if (kvm_run._errno == EINTR) {
+/*
+	if (kvm_run.ioctl_r == -1 && kvm_run._errno != EINTR) {
+		r = -(kvm_run._errno);
+		printf("kvm_run: %d\n", kvm_run._errno);
+		return r;
+	}
+	if (kvm_run.ioctl_r == -1) {
+		r = handle_io_window(kvm, &kvm_run);
+		goto more;
+	}
+	*/
+	if (kvm_run.ioctl_r == -EINTR) {
 		r = handle_io_window(kvm, &kvm_run);
 		r = 1;
 		goto more;
 	}
-
 	switch (kvm_run.exit_type) {
 	case KVM_EXIT_TYPE_FAIL_ENTRY:
 		fprintf(stderr, "kvm_run: failed entry, reason %u\n", 
@@ -852,7 +880,7 @@ again:
 		}
 	}
 more:
-	if (!r) /* r‚ª•‰‚¾‚Á‚½‚ç */
+	if (!r)
 		goto again;
 	return r;
 }
