@@ -50,8 +50,7 @@ int load_image(const char *filename, uint8_t *addr)
 
   int fd, size;	
   
-  fprintf(stderr, "open bios file: %s\n", filename);
-  
+  fprintf(stderr, "open bios file: %s\n", filename);  
   
   fd = open(filename, O_RDONLY | O_BINARY);	
   if (fd < 0)	  

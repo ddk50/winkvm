@@ -6456,7 +6456,7 @@ void cpu_save(QEMUFile *f, void *opaque)
 
 #ifdef USE_KVM	
     if (kvm_allowed)		
-      kvm_save_registers(env);	
+		kvm_save_registers(env);
 #endif	
 
     for(i = 0; i < CPU_NB_REGS; i++)
@@ -6546,10 +6546,10 @@ void cpu_save(QEMUFile *f, void *opaque)
 
 #ifdef USE_KVM
 	if (kvm_allowed) {
-	  for (i = 0; i < NR_IRQ_WORDS ; i++) {
-		qemu_put_betls(f, &env->kvm_interrupt_bitmap[i]);
-	  }
-	  qemu_put_be64s(f, &env->tsc);
+		for (i = 0; i < NR_IRQ_WORDS ; i++) {
+			qemu_put_betls(f, &env->kvm_interrupt_bitmap[i]);
+		}
+		qemu_put_be64s(f, &env->tsc);
 	}
 #endif	
 }
@@ -6696,11 +6696,11 @@ int cpu_load(QEMUFile *f, void *opaque, int version_id)
     tlb_flush(env, 1);
 #ifdef USE_KVM
 	if (kvm_allowed) {
-	  for (i = 0; i < NR_IRQ_WORDS ; i++) {
-		qemu_get_betls(f, &env->kvm_interrupt_bitmap[i]);
-	  }
-	  qemu_get_be64s(f, &env->tsc);
-	  kvm_load_registers(env);
+		for (i = 0; i < NR_IRQ_WORDS ; i++) {
+			qemu_get_betls(f, &env->kvm_interrupt_bitmap[i]);
+		}
+		qemu_get_be64s(f, &env->tsc);
+		kvm_load_registers(env);
 	}
 #endif   
     return 0;
@@ -7029,7 +7029,7 @@ static int ram_load_v1(QEMUFile *f, void *opaque)
 
     if (qemu_get_be32(f) != phys_ram_size)
         return -EINVAL;
-    for(i = 0; i < phys_ram_size; i+= TARGET_PAGE_SIZE) {
+    for (i = 0; i < phys_ram_size; i+= TARGET_PAGE_SIZE) {
 #ifdef USE_KVM
         if (kvm_allowed && (i>=0xa0000) && (i<0xc0000)) /* do not access video-addresses */
             continue;
@@ -7712,14 +7712,14 @@ static int main_loop(void)
                 reset_requested = 0;
                 qemu_system_reset();
 #ifdef USE_KVM
-		if (kvm_allowed)
-			kvm_load_registers(env);
+				if (kvm_allowed)
+					kvm_load_registers(env);
 #endif
                 ret = EXCP_INTERRUPT;
             }
             if (powerdown_requested) {
                 powerdown_requested = 0;
-		qemu_system_powerdown();
+				qemu_system_powerdown();
                 ret = EXCP_INTERRUPT;
             }
             if (ret == EXCP_DEBUG) {
@@ -8829,9 +8829,9 @@ int main(int argc, char **argv)
                 break;
 #endif
 #ifdef USE_KVM
-	    case QEMU_OPTION_no_kvm:
-		kvm_allowed = 0;
-		break;
+			case QEMU_OPTION_no_kvm:
+				kvm_allowed = 0;
+				break;
 #endif
             case QEMU_OPTION_usb:
                 usb_enabled = 1;
@@ -8992,12 +8992,12 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef USE_KVM	
-	if (kvm_allowed) {		
+	if (kvm_allowed) {
 		if (kvm_qemu_init() < 0) {
 			fprintf(stderr, "Could not initialize KVM, will disable KVM support\n");
-			kvm_allowed = 0;			
-		}		
-	}	
+			kvm_allowed = 0;
+		}
+	}
 #endif
 
     if (pid_file && qemu_create_pidfile(pid_file) != 0) {
@@ -9097,13 +9097,13 @@ int main(int argc, char **argv)
 #ifdef USE_KVM	
     /* Initialize kvm */
     if (kvm_allowed) {
-	    phys_ram_size += KVM_EXTRA_PAGES * 4096;		
+	    phys_ram_size += KVM_EXTRA_PAGES * 4096;
 	    if (kvm_qemu_create_context() < 0) {		  
-		    fprintf(stderr, "Could not create KVM context\n");			
+		    fprintf(stderr, "Could not create KVM context\n");
 		    exit(1);
 	    }
     } else {
-	    phys_ram_base = qemu_vmalloc(phys_ram_size);		
+	    phys_ram_base = qemu_vmalloc(phys_ram_size);
 	    if (!phys_ram_base) {
 		    fprintf(stderr, "Could not allocate physical memory\n");
 		    exit(1);

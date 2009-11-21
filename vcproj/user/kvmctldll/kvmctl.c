@@ -141,7 +141,7 @@ void kvm_finalize(kvm_context_t kvm)
 	kvm_context = NULL;
 	CloseHandle(kvm->hnd);
 
-	ResetSEHhandler();
+/*	ResetSEHhandler(); */
 }
 
 /*
@@ -204,7 +204,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 						  NULL); 
 	
 	//    fd = ioctl(fd, KVM_CREATE_VM, 0);	
-    if (!ret && fd == -1) {	  
+    if (!ret && fd == -1) {
         fprintf(stderr, "winkvm_create_vm: %m\n");		
         return -1;		
     }
@@ -264,7 +264,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	kvm_memory_region_save_params(kvm, &low_memory.kvm_memory_region);
 	kvm_memory_region_save_params(kvm, &extended_memory.kvm_memory_region);
 
-	*vm_mem = VirtualAlloc(NULL, memory, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+/*	*vm_mem = VirtualAlloc(NULL, memory, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE); */
+	*vm_mem = VirtualAlloc(NULL, memory, MEM_COMMIT, PAGE_READWRITE);
 	if (*vm_mem == NULL) {
 		fprintf(stderr, "VirtualAlloc error\n");
 		return -1;
@@ -350,7 +351,7 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 //        prot |= PROT_WRITE;
 
 //    ptr = mmap(0, len, prot, MAP_SHARED, fd, phys_start);
-	ptr = VirtualAlloc(NULL, len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	ptr = VirtualAlloc(NULL, len, MEM_COMMIT, PAGE_READWRITE);
     if (ptr == NULL)
         return 0;
 
@@ -400,16 +401,12 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 				value_addr = &run->io.value;
 		} else {
 			gm_access = 1;
-			//r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
-			/*
-			fprintf(stderr, "translating I/O address %llx\n", 
-				run->io.address);
+			r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
 			if (r) {
 				fprintf(stderr, "failed translating I/O address %llx\n",
 					    run->io.address);
 				return r;
 			}
-			*/
 		}
 
 		switch (run->io.direction) {		  
@@ -418,28 +415,28 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			case 1: {
 				uint8_t value;
 				r = kvm->callbacks->inb(kvm->opaque, addr, &value);
-				if (gm_access)
+				if (gm_access) {
 					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint8_t), &value);
-				else
-					*(uint8_t *)value_addr = value;
+				}
+				*(uint8_t *)value_addr = value;
 				break;
 			}
 			case 2: {
 				uint16_t value;
 				r = kvm->callbacks->inw(kvm->opaque, addr, &value);
-				if (gm_access)
+				if (gm_access) {
 					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &value);
-				else
-					*(uint16_t *)value_addr = value;
+				}
+				*(uint16_t *)value_addr = value;
 				break;
 			}
 			case 4: {
 				uint32_t value;
 				r = kvm->callbacks->inl(kvm->opaque, addr, &value);
-				if (gm_access)
+				if (gm_access) {
 					winkvm_write_guest(kvm, (__u32)run->io.address, sizeof(uint32_t), &value);
-				else
-					*(uint16_t *)value_addr = value;
+				}
+				*(uint32_t *)value_addr = value;
 				break;
 			}
 			default:
@@ -466,7 +463,7 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 					if (gm_access)
 						winkvm_read_guest(kvm, (__u32)run->io.address, sizeof(uint16_t), &data);
 					else
-						data = *(uint8_t *)value_addr;
+						data = *(uint16_t *)value_addr;
 					r = kvm->callbacks->outw(kvm->opaque, addr, data);
 					break;
 				}
@@ -885,7 +882,7 @@ again:
 		printf("kvm_run: failed\n");
 		return -1;
 	}
-/*
+	/*
 	if (kvm_run.ioctl_r == -1 && kvm_run._errno != EINTR) {
 		r = -(kvm_run._errno);
 		printf("kvm_run: %d\n", kvm_run._errno);
@@ -964,7 +961,7 @@ static int handle_mmio(kvm_context_t kvm, struct kvm_run *kvm_run)
     if (kvm_run->mmio.is_write) {
         switch (kvm_run->mmio.len) {
         case 1:
-			{
+			{				
 				r = kvm->callbacks->writeb(kvm->opaque, addr, *(uint8_t *)data);
 				break;
 			}
