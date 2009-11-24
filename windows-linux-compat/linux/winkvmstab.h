@@ -101,6 +101,10 @@ extern int copy_from_user(void *to, const void *from, int n);
 
 extern void get_page(struct page *page);
 
+extern struct task_struct *current;
+
+extern int signal_pending(struct task_struct *p);
+
 /* temporary */
 #define __WINKVM_CPUNUMS__ 1
 

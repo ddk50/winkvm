@@ -98,10 +98,6 @@ struct module {
 	void *__module;	
 };
 
-struct task_struct {
-	int __test;	
-};
-
 struct hrtimer {
 	int test;   
 };

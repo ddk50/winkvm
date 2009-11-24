@@ -246,6 +246,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\task.c"
+				>
+			</File>
+			<File
 				RelativePath=".\test.c"
 				>
 			</File>

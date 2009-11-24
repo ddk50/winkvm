@@ -6273,14 +6273,14 @@ int main_loop(void)
                 reset_requested = 0;
                 qemu_system_reset();
 #ifdef USE_KVM
-		if (kvm_allowed)
-			kvm_load_registers(env);
+				if (kvm_allowed)
+				  kvm_load_registers(env);
 #endif
                 ret = EXCP_INTERRUPT;
             }
             if (powerdown_requested) {
                 powerdown_requested = 0;
-		qemu_system_powerdown();
+				qemu_system_powerdown();
                 ret = EXCP_INTERRUPT;
             }
             if (ret == EXCP_DEBUG) {

@@ -800,12 +800,6 @@ static int nonpaging_map(struct kvm_vcpu *vcpu, gva_t v, hpa_t p)
 
 		ASSERT(VALID_PAGE(table_addr));
 		table = __va(table_addr);		
-		printk(KERN_ALERT "*** test begin ***\n");
-		printk(KERN_ALERT "vcpu->mmu.root_hpa: 0x%08lx\n", vcpu->mmu.root_hpa);		
-		printk(KERN_ALERT "table: 0x%08lx\n", (unsigned long)table);
-		printk(KERN_ALERT "table[1]: 0x%08lx\n", (unsigned long)table[1]);
-		printk(KERN_ALERT "table[index]: 0x%08lx\n", (unsigned long)table[index]);		
-		printk(KERN_ALERT "*** test end ***\n");		
 
 		if (level == 1) {
 			pte = table[index];

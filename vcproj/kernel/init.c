@@ -405,7 +405,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int vcpu_fd, r;
 
-			//printk(KERN_ALERT "Call KVM_GET_REGS\n");
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
 
 			vcpu = get_vcpu(vcpu_fd);
@@ -427,7 +426,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			//printk(KERN_ALERT "Call KVM_SET_REGS\n
 			RtlCopyMemory(&kvm_regs, inBuf, sizeof(kvm_regs));
 
 			vcpu = get_vcpu(kvm_regs.vcpu_fd);
@@ -449,7 +447,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			int vcpu_fd;
 			int r;
 
-			//printk(KERN_ALERT "Call KVM_GET_SREGS\n");
 			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));			
 
 			vcpu = get_vcpu(vcpu_fd);
@@ -471,7 +468,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			//printk(KERN_ALERT "Call KVM_SET_SREGS\n");
 			RtlCopyMemory(&kvm_sregs, inBuf, sizeof(kvm_sregs));
 
 			vcpu = get_vcpu(kvm_sregs.vcpu_fd);
@@ -492,7 +488,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r;
 
-			//printk(KERN_ALERT "Call KVM_TRANSLATE\n");
 			RtlCopyMemory(&tr, inBuf, sizeof(tr));
 
 			vcpu = get_vcpu(tr.vcpu_fd);
@@ -516,8 +511,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			struct kvm_vcpu *vcpu = NULL;
 			int r = 0;
 
-			printk(KERN_ALERT "Call KVM_INTERRUPT\n");
-
 			RtlCopyMemory(&irq, inBuf, sizeof(irq));
 
 			vcpu = get_vcpu(irq.vcpu_fd);
@@ -531,25 +524,25 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			}
 			break;
 		}
-
 	case KVM_RUN:
 		{		
-			int r;
+			unsigned int resultvar;
 			struct kvm_run kvm_run;
 			struct kvm_vcpu *vcpu;
 
-			kvm_run._errno = 0;
-			kvm_run.ioctl_r = -EINVAL;
-
 			RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
+			kvm_run._errno = 0;
 
 			vcpu = get_vcpu(kvm_run.vcpu_fd);
 			SAFE_ASSERT(vcpu);
 
 			if (vcpu) {
-				r = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
-				kvm_run._errno = -r;
-				kvm_run.ioctl_r = r;
+				resultvar = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
+				if (INTERNAL_SYSCALL_ERROR_P(resultvar, )) {
+					kvm_run._errno = INTERNAL_SYSCALL_ERRNO(resultvar, );
+					resultvar = 0xffffffff;
+				} 
+				kvm_run.ioctl_r = (int)resultvar;
 				RtlCopyMemory(outBuf, &kvm_run, sizeof(kvm_run));
 				Irp->IoStatus.Information = sizeof(kvm_run);
 				ntStatus = STATUS_SUCCESS;

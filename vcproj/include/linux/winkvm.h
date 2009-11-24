@@ -47,6 +47,10 @@ struct file {
 	int r_flags;	
 };
 
+struct task_struct {
+  int counter;
+};
+
 #pragma pack()
 
 enum km_type {	

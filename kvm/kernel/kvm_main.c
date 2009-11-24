@@ -250,7 +250,7 @@ int kvm_read_guest(struct kvm_vcpu *vcpu, gva_t addr, unsigned long size,
 		addr += now;
 		size -= now;
 		kunmap_atomic((void *)(guest_buf & PAGE_MASK), KM_USER0);
-	}
+	}	
 
 	FUNCTION_EXIT();
 	
@@ -2350,8 +2350,8 @@ out:
 }
 
 static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
-				  unsigned long address,
-				  int *type)
+								  unsigned long address,
+								  int *type)
 {
 	struct kvm *kvm = vma->vm_file->private_data;
 	unsigned long pgoff;	

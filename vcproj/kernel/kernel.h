@@ -13,6 +13,23 @@
 #define KERN_INFO       "<6>"   /* informational                        */
 #define KERN_DEBUG      "<7>"   /* debug-level messages                 */
 
+#define INTERNAL_SYSCALL_ERRNO(val, err) (-(val))
+#define INTERNAL_SYSCALL_ERROR_P(val, err) \
+	((unsigned int) (val) >= 0xfffff001u)
+
+/* This is the position that returning -1 of ioctl */
+/* in glibc sysdeps/unix/sysv/linux/i386/sysdep.h  */
+/* #undef INLINE_SYSCALL */
+/* #define INLINE_SYSCALL(name, nr, args...) \ */
+/*   ({                                          \ */
+/*     unsigned int resultvar = INTERNAL_SYSCALL (name, , nr, args);         \ */
+/*     if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (resultvar, ), 0))         \ */
+/*       {                                       \ */
+/*     __set_errno (INTERNAL_SYSCALL_ERRNO (resultvar, ));           \ */
+/*     resultvar = 0xffffffff;                           \ */
+/*       }                                       \ */
+/*     (int) resultvar; }) */
+
 int _cdecl printk(const char *s, ...);
 void _cdecl get_page(struct page *page);
 

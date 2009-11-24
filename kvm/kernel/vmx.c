@@ -210,9 +210,9 @@ static void vmcs_write64(unsigned long field, u64 value)
 #ifdef CONFIG_X86_64
 	vmcs_writel(field, value);
 #else
-	vmcs_writel(field, value);
+	vmcs_writel(field, value);	
 	asm volatile ("");
-	vmcs_writel(field+1, value >> 32);
+	vmcs_writel(field+1, value >> 32);	
 #endif
 }
 
@@ -1930,7 +1930,7 @@ again:
 
 	//	vm_entry_test(vcpu);	
 
-#ifndef __WINKVM
+#ifndef __WINKVM__   
 	vmcs_writel(HOST_CR0, read_cr0());  /* 22.2.3 */
 	vmcs_writel(HOST_CR4, read_cr4());  /* 22.2.3, 22.2.5 */
 	vmcs_writel(HOST_CR3, read_cr3());  /* 22.2.3  FIXME: shadow tables */	
@@ -2093,16 +2093,14 @@ again:
 	REG_DUMP(RSI);
 	REG_DUMP(RDI);
 #endif
-#define __WINKVM__   
-
-	//printk(KERN_ALERT "VM-exit immediate aftermath\n");	
+#define __WINKVM__	
 	
 	/*
 	 * Reload segment selectors ASAP. (it's needed for a functional
 	 * kernel: x86 relies on having __KERNEL_PDA in %fs and x86_64
 	 * relies on having 0 in %gs for the CPU PDA to work.)
 	 */
-	if (fs_gs_ldt_reload_needed) {
+	if (fs_gs_ldt_reload_needed) {		
 		load_ldt(ldt_sel);		
 		load_fs(fs_sel);		
 		/*
@@ -2120,7 +2118,7 @@ again:
 	}
 	++kvm_stat.exits;
 
-	save_msrs(vcpu->guest_msrs, NR_BAD_MSRS);
+	save_msrs(vcpu->guest_msrs, NR_BAD_MSRS);	
 	load_msrs(vcpu->host_msrs, NR_BAD_MSRS);	
 
 	fx_save(vcpu->guest_fx_image);
@@ -2131,18 +2129,15 @@ again:
 	asm ("mov %0, %%ds; mov %0, %%es" : : "r"(__USER_DS));
 #else
 	asm ("mov %0, %%ds; mov %1, %%es" : : "r"(read_ds()), "r"(read_es()));	
-#endif
-	
-	//	dump_context(&vcpu->mmu);	
+#endif   
 
-	kvm_run->exit_type = 0;
+	kvm_run->exit_type = 0;	
 	if (fail) {
 		kvm_run->exit_type = KVM_EXIT_TYPE_FAIL_ENTRY;
 		kvm_run->exit_reason = vmcs_read32(VM_INSTRUCTION_ERROR);
 		r = 0;
 		printk(KERN_ALERT "VM-exit failed: 0x%08lx\n", kvm_run->exit_reason);		
-	} else {
-	  //		printk(KERN_ALERT "VM-exit is sccuess\n");	  
+	} else {		
 	  
 		/*
 		 * Profile KVM exit RIPs:
@@ -2158,25 +2153,23 @@ again:
 		if (r > 0) {
 			/* Give scheduler a change to reschedule. */
 
-#ifndef __WINKVM__
+/* #ifndef __WINKVM__ */
 			if (signal_pending(current)) {
 				++kvm_stat.signal_exits;
 				post_kvm_run_save(vcpu, kvm_run);
 				FUNCTION_EXIT();				
 				return -EINTR;
 			}
-#endif			
-
+/* #endif			 */			
 			if (dm_request_for_irq_injection(vcpu, kvm_run)) {
 				++kvm_stat.request_irq_exits;
 				post_kvm_run_save(vcpu, kvm_run);
 				FUNCTION_EXIT();				
-				return -EINTR;
-			}
-			printk(KERN_ALERT "goto again: %d\n", -EINTR);			
-			post_kvm_run_save(vcpu, kvm_run);			
-			return -EINTR;			
-			//goto again;			
+				return -EINTR;				
+			}			
+			
+			kvm_resched(vcpu);			
+			goto again;			
 		}		
 	}	
 	
@@ -2187,12 +2180,12 @@ again:
 
 static void vmx_flush_tlb(struct kvm_vcpu *vcpu)
 {
-	vmcs_writel(GUEST_CR3, vmcs_readl(GUEST_CR3));
+	vmcs_writel(GUEST_CR3, vmcs_readl(GUEST_CR3));	
 }
 
 static void vmx_inject_page_fault(struct kvm_vcpu *vcpu,
-				  unsigned long addr,
-				  u32 err_code)
+								  unsigned long addr,
+								  u32 err_code)	
 {
 	u32 vect_info = vmcs_read32(IDT_VECTORING_INFO_FIELD);
 
