@@ -116,9 +116,6 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
         if (!kvm_tr.valid)
 			return -1;
 //            return -WINKVM_EFAULT;
-		printf("translate: 0x%08lx -> 0x%08lx\n", 
-			kvm_tr.linear_address,
-			kvm_tr.physical_address);
 
         tr->linear = page;
         tr->physical = (void*)((unsigned long)kvm->physical_memory + kvm_tr.physical_address);
@@ -400,13 +397,13 @@ static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
 			else
 				value_addr = &run->io.value;
 		} else {
-			gm_access = 1;
+			gm_access = 1;			
 			r = translate(kvm, vcpu, &tr, run->io.address, &value_addr);
 			if (r) {
 				fprintf(stderr, "failed translating I/O address %llx\n",
 					    run->io.address);
 				return r;
-			}
+			}			
 		}
 
 		switch (run->io.direction) {		  
@@ -882,7 +879,6 @@ again:
 		printf("kvm_run: failed\n");
 		return -1;
 	}
-	/*
 	if (kvm_run.ioctl_r == -1 && kvm_run._errno != EINTR) {
 		r = -(kvm_run._errno);
 		printf("kvm_run: %d\n", kvm_run._errno);
@@ -892,12 +888,13 @@ again:
 		r = handle_io_window(kvm, &kvm_run);
 		goto more;
 	}
-	*/
+	/*
 	if (kvm_run.ioctl_r == -EINTR) {
 		r = handle_io_window(kvm, &kvm_run);
 		r = 1;
 		goto more;
 	}
+	*/
 	switch (kvm_run.exit_type) {
 	case KVM_EXIT_TYPE_FAIL_ENTRY:
 		fprintf(stderr, "kvm_run: failed entry, reason %u\n", 
