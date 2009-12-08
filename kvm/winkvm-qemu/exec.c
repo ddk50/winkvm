@@ -2567,8 +2567,19 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
     target_phys_addr_t page;
     unsigned long pd;
     PhysPageDesc *p;
-
-    while (len > 0) {
+#ifdef USE_KVM
+	int orig_len = len;	
+	uint8_t *orig_buf = buf;	
+	target_phys_addr_t orig_addr = addr;	
+#endif
+	
+#ifdef USE_KVM
+	if (is_write) {		
+		winkvm_write_guest(kvm_context, (unsigned long)addr, len, addr);
+	}	
+#endif
+	
+    while (len > 0) {		
         page = addr & TARGET_PAGE_MASK;
         l = (page + TARGET_PAGE_SIZE) - addr;
         if (l > len)
@@ -2647,6 +2658,11 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
         buf += l;
         addr += l;
     }
+#ifdef USE_KVM	
+	if (!is_write) {		
+		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_addr);		
+	}	
+#endif	
 }
 
 /* used for ROM loading : can write in RAM and ROM */
@@ -2698,7 +2714,7 @@ uint32_t ldl_phys(target_phys_addr_t addr)
     unsigned long pd;
     PhysPageDesc *p;
 
-    p = phys_page_find(addr >> TARGET_PAGE_BITS);
+    p = phys_page_find(addr >> TARGET_PAGE_BITS);	
     if (!p) {
         pd = IO_MEM_UNASSIGNED;
     } else {
@@ -2759,7 +2775,11 @@ uint64_t ldq_phys(target_phys_addr_t addr)
 uint32_t ldub_phys(target_phys_addr_t addr)
 {
     uint8_t val;
+#ifndef USE_KVM	
     cpu_physical_memory_read(addr, &val, 1);
+#else
+	
+#endif
     return val;
 }
 
@@ -2767,7 +2787,11 @@ uint32_t ldub_phys(target_phys_addr_t addr)
 uint32_t lduw_phys(target_phys_addr_t addr)
 {
     uint16_t val;
+#ifndef USE_KVM
     cpu_physical_memory_read(addr, (uint8_t *)&val, 2);
+#else
+	
+#endif
     return tswap16(val);
 }
 
@@ -2866,21 +2890,32 @@ void stl_phys(target_phys_addr_t addr, uint32_t val)
 void stb_phys(target_phys_addr_t addr, uint32_t val)
 {
     uint8_t v = val;
+#ifndef USE_KVM
     cpu_physical_memory_write(addr, &v, 1);
+#else	
+#endif
 }
 
 /* XXX: optimize */
 void stw_phys(target_phys_addr_t addr, uint32_t val)
 {
     uint16_t v = tswap16(val);
+#ifndef USE_KVM
     cpu_physical_memory_write(addr, (const uint8_t *)&v, 2);
+#else
+	
+#endif
 }
 
 /* XXX: optimize */
 void stq_phys(target_phys_addr_t addr, uint64_t val)
 {
     val = tswap64(val);
+#ifndef USE_KVM
     cpu_physical_memory_write(addr, (const uint8_t *)&val, 8);
+#else
+	
+#endif
 }
 
 #endif
