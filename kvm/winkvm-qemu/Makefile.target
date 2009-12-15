@@ -290,8 +290,8 @@ SRCS:= $(OBJS:.o=.c)
 OBJS+= libqemu.a
 
 # cpu emulator library
-LIBOBJS=exec.o kqemu.o qemu-kvm.o seh.o translate-op.o translate-all.o cpu-exec.o\
-        translate.o op.o host-utils.o		
+LIBOBJS=exec.o kqemu.o qemu-kvm.o translate-op.o translate-all.o cpu-exec.o\
+        translate.o op.o host-utils.o	
 ifdef CONFIG_SOFTFLOAT
 LIBOBJS+=fpu/softfloat.o
 else
@@ -386,8 +386,10 @@ endif
 
 all: $(PROGS)
 
+# few addition by Kazushi
+LDFLAGS+=-mno-cygwin
 $(QEMU_USER): $(OBJS)
-	$(CC) $(LDFLAGS) $(BASE_LDFLAGS) -o $@ $^  $(LIBS)
+	$(CC) $(LDFLAGS) $(BASE_LDFLAGS) -o $@ $^  $(LIBS)	
 ifeq ($(ARCH),alpha)
 # Mark as 32 bit binary, i. e. it will be mapped into the low 31 bit of
 # the address space (31 bit so sign extending doesn't matter)
@@ -396,6 +398,8 @@ endif
 
 # must use static linking to avoid leaving stuff in virtual address space
 VL_OBJS=vl.o osdep.o monitor.o pci.o loader.o isa_mmio.o
+# few addition for Kazushi
+BASE_CFLAGS+=-I../../../vcproj/include
 # XXX: suppress QEMU_TOOL tests
 ifdef CONFIG_WIN32
 VL_OBJS+=block-raw-win32.o
@@ -552,6 +556,10 @@ vl.o: BASE_CFLAGS+=-p
 VL_LDFLAGS+=-p
 endif
 
+# addition for ddk
+# this line is not necessary
+# vl.o: BASE_CFLAGS+=-I../../../vcproj/include
+
 ifeq ($(ARCH),ia64)
 VL_LDFLAGS+=-Wl,-G0 -Wl,-T,$(SRC_PATH)/ia64.ld
 endif
@@ -574,14 +582,18 @@ ifdef CONFIG_WIN32
 SDL_LIBS := $(filter-out -mwindows, $(SDL_LIBS)) -mconsole
 endif
 
+# few addition for ddk
+KVMCTL_OBJS+=../../../vcproj/bin/kvmctldll.dll
+KVMCTL_LIBS+=-L$(KVMCTL_OBJS) -lkvmctldll
+
 $(QEMU_SYSTEM): $(VL_OBJS) ../libqemu_common.a libqemu.a
-	$(CC) $(VL_LDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS) $(KVMCTL_LIBS)
+	$(CC) $(VL_LDFLAGS) $(LDFLAGS) -o $@ $^ $(KVMCTL_LIBS) $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS)
 
 depend: $(SRCS)
 	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend	
 
 vldepend: $(VL_OBJS:.o=.c)
-	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend	
+	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $(KVMCTL_LIBS) $^ 1>.depend	
 
 # libqemu
 
@@ -595,6 +607,9 @@ translate-all.o: translate-all.c opc.h cpu.h
 
 translate-op.o: translate-all.c op.h opc.h cpu.h
 
+# addition for kazushi
+qemu-kvm.o: qemu-kvm.c qemu-kvm.h kvmctl.h
+
 op.h: op.o $(DYNGEN)
 	$(DYNGEN) -o $@ $<
 
@@ -606,6 +621,11 @@ gen-op.h: op.o $(DYNGEN)
 
 op.o: op.c
 	$(CC) $(OP_CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+# addition for Kazushi
+WINKVM_INC=-I../../vcproj/include/linux
+qemu-kvm.o: qemu-kvm.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $(WINKVM_INC) -c -o $@ $<
 
 # HELPER_CFLAGS is used for all the code compiled with static register
 # variables
@@ -653,3 +673,4 @@ endif
 
 # Include automatically generated dependency files
 -include $(wildcard *.d */*.d)
+

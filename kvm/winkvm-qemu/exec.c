@@ -39,6 +39,12 @@
 #include <qemu.h>
 #endif
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern kvm_context_t kvm_context;
+extern int kvm_allowed;
+#endif
+
 //#define DEBUG_TB_INVALIDATE
 //#define DEBUG_FLUSH
 //#define DEBUG_TLB
@@ -2523,6 +2529,17 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
     int l, flags;
     target_ulong page;
     void * p;
+#ifdef USE_KVM
+	int orig_len = len;	
+	uint8_t *orig_buf = buf;	
+	target_phys_addr_t orig_addr = addr;	
+#endif
+	
+#ifdef USE_KVM
+	if (is_write) {		
+		winkvm_write_guest(kvm_context, (unsigned long)addr, len, addr);
+	}	
+#endif   
 
     while (len > 0) {
         page = addr & TARGET_PAGE_MASK;
@@ -2554,7 +2571,12 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
         len -= l;
         buf += l;
         addr += l;
-    }
+    }	
+#ifdef USE_KVM	
+	if (!is_write) {	  
+		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_addr);		
+	}	
+#endif	
 }
 
 #else
@@ -2575,7 +2597,7 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
 	
 #ifdef USE_KVM
 	if (is_write) {		
-		winkvm_write_guest(kvm_context, (unsigned long)addr, len, addr);
+	  winkvm_write_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_buf);	  
 	}	
 #endif
 	
@@ -2659,8 +2681,8 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
         addr += l;
     }
 #ifdef USE_KVM	
-	if (!is_write) {		
-		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_addr);		
+	if (!is_write) {	  
+		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_buf);		
 	}	
 #endif	
 }
@@ -2775,11 +2797,7 @@ uint64_t ldq_phys(target_phys_addr_t addr)
 uint32_t ldub_phys(target_phys_addr_t addr)
 {
     uint8_t val;
-#ifndef USE_KVM	
     cpu_physical_memory_read(addr, &val, 1);
-#else
-	
-#endif
     return val;
 }
 
@@ -2787,11 +2805,7 @@ uint32_t ldub_phys(target_phys_addr_t addr)
 uint32_t lduw_phys(target_phys_addr_t addr)
 {
     uint16_t val;
-#ifndef USE_KVM
-    cpu_physical_memory_read(addr, (uint8_t *)&val, 2);
-#else
-	
-#endif
+    cpu_physical_memory_read(addr, (uint8_t *)&val, 2);	
     return tswap16(val);
 }
 
@@ -2889,33 +2903,22 @@ void stl_phys(target_phys_addr_t addr, uint32_t val)
 /* XXX: optimize */
 void stb_phys(target_phys_addr_t addr, uint32_t val)
 {
-    uint8_t v = val;
-#ifndef USE_KVM
+    uint8_t v = val;	
     cpu_physical_memory_write(addr, &v, 1);
-#else	
-#endif
 }
 
 /* XXX: optimize */
 void stw_phys(target_phys_addr_t addr, uint32_t val)
 {
     uint16_t v = tswap16(val);
-#ifndef USE_KVM
     cpu_physical_memory_write(addr, (const uint8_t *)&v, 2);
-#else
-	
-#endif
 }
 
 /* XXX: optimize */
 void stq_phys(target_phys_addr_t addr, uint64_t val)
 {
     val = tswap64(val);
-#ifndef USE_KVM
     cpu_physical_memory_write(addr, (const uint8_t *)&val, 8);
-#else
-	
-#endif
 }
 
 #endif
