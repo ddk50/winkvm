@@ -584,7 +584,7 @@ endif
 
 # few addition for ddk
 KVMCTL_OBJS+=../../../vcproj/bin/kvmctldll.dll
-KVMCTL_LIBS+=-L$(KVMCTL_OBJS) -lkvmctldll
+KVMCTL_LIBS+=-L../../../vcproj/bin -L../../vcproj/bin -lkvmctldll
 
 $(QEMU_SYSTEM): $(VL_OBJS) ../libqemu_common.a libqemu.a
 	$(CC) $(VL_LDFLAGS) $(LDFLAGS) -o $@ $^ $(KVMCTL_LIBS) $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS)
