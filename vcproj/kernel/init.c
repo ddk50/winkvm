@@ -662,6 +662,21 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			break;
 		}
+	case WINKVM_GET_HUGE_NONPAGEAREA:
+		{
+			void *test = NULL;
+			printk(KERN_ALERT "Get Huge nonpagearea ... \n");			
+			/* allocate Non Page Pool */
+			test = ExAllocatePoolWithTag(NonPagedPool, (64 * 1024 * 1024), MEM_TAG);
+			if (test) {
+				printk(KERN_ALERT "Success!!\n");
+				ntStatus = STATUS_SUCCESS;
+			} else {
+				printk(KERN_ALERT "Could not allocate Huge memory area\n");
+				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+			}
+			break;
+		}
 	default:
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 		printk(KERN_ALERT "ERROR: unreconginzed IOCTL: %x\n", 

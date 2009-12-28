@@ -939,9 +939,9 @@ out:
 
 struct kvm_memory_slot *gfn_to_memslot(struct kvm *kvm, gfn_t gfn)
 {
-	int i;
+	int i;	
 
-	for (i = 0; i < kvm->nmemslots; ++i) {
+	for (i = 0; i < kvm->nmemslots; ++i) {	  
 		struct kvm_memory_slot *memslot = &kvm->memslots[i];
 
 		if (gfn >= memslot->base_gfn
@@ -2362,8 +2362,8 @@ static struct page *kvm_vm_nopage(struct vm_area_struct *vma,
 	pgoff = ((address - vma->vm_start) >> PAGE_SHIFT) + vma->vm_pgoff;
 	slot = gfn_to_memslot(kvm, pgoff);
 	if (!slot)
-		return NOPAGE_SIGBUS;
-	page = gfn_to_page(slot, pgoff);
+		return NOPAGE_SIGBUS;	
+	page = gfn_to_page(slot, pgoff);	
 	if (!page)
 		return NOPAGE_SIGBUS;
 	get_page(page);

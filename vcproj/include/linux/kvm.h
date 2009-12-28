@@ -319,6 +319,7 @@ struct kvm_dirty_log {
 /*
  * for WinKVM 
  */
+#define WINKVM_GET_HUGE_NONPAGEAREA _IOW(KVMIO, 19, unsigned long)
 #define WINKVM_NOPAGE          _IOW(KVMIO, 20, unsigned long)
 #define WINKVM_INIT_TESTMAP    _IO(KVMIO, 30)
 #define WINKVM_TESTMAP         _IOW(KVMIO, 31, unsigned long)

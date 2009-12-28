@@ -25,10 +25,10 @@ CONFIG_WIN32=yes
 CONFIG_GDBSTUB=yes
 CONFIG_SLIRP=yes
 VERSION=0.9.1
-SRC_PATH=/home/t2ladmin/gitrep/winkvm/kvm/winkvm-qemu
+SRC_PATH=/home/ddk/vmwared/gitrep/winkvm/kvm/winkvm-qemu
 TARGET_DIRS=i386-softmmu
 CONFIG_SDL=yes
-SDL_LIBS=-L/usr/local/mingw32//lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
+SDL_LIBS=-L/usr/local/mingw32/lib -lmingw32 -lSDLmain -lSDL -mno-cygwin -mwindows
 SDL_CFLAGS=-I/usr/local/mingw32/include/SDL -I/usr/include/mingw -mno-cygwin -Dmain=SDL_main
 TOOLS=qemu-img$(EXESUF) 
 HOST_USB=stub
