@@ -30,7 +30,6 @@
 
 PDRIVER_OBJECT DriverObject;
 
-static void *maptest_page = NULL;
 /* this buffer should be take in DriverObject->DriverExtension */
 static int current_vcpu = -1;
 static FAST_MUTEX writer_mutex;
@@ -60,10 +59,21 @@ __winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
 							   IN PIRP Irp,							   
 							   IN struct kvm_vcpu *vcpu);
 
-NTSTATUS 
+static void *maptest_page = NULL;
+static ULONG maptest_size = 0;
+static PVOID gUserSpaceAddress = NULL;
+static PMDL gMdl;
+
+NTSTATUS
 MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-			  IN PVOID UserSpaceAddress,
-			  IN PVOID KernelSpaceAddress);
+			  IN PVOID KernelSpaceAddress,
+			  IN ULONG KernelSpaceSize,
+			  OUT PVOID *outUSAddress,
+			  OUT PMDL *outMdl);
+
+VOID
+UnMapPageToUser(IN PVOID UserSpaceAddress,
+				IN PMDL mdl);
 
 NTSTATUS 
 ConvertRetval(IN int ret);
@@ -576,36 +586,45 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		}
 	case WINKVM_INIT_TESTMAP:
 		{
+			unsigned long size = 50 * 1024 * 1024;
+
 			printk(KERN_ALERT "WINKVM_INIT_TESTMAP\n");
-			maptest_page = KeGetPageMemory(PAGE_SIZE); /* alloc a page */		
+
+			maptest_page = ExAllocatePoolWithTag(NonPagedPool, size, MEM_TAG);
 			if (maptest_page == NULL) {
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 				break;
+			} else {
+				maptest_size = size;
 			}
-			printk(KERN_ALERT "TESTMAP PAGE ... 0x%08lx\n", 
-				(unsigned long)maptest_page);
-			ntStatus = STATUS_SUCCESS;
-			break;
-		}
-	case WINKVM_TESTMAP:
-		{
-			printk(KERN_ALERT "WINKVM_TESTMAP");
-			RtlCopyMemory(&vaddr, inBuf, inBufLen);
-			printk(KERN_ALERT "Test Mapping .. 0x%08x\n", vaddr);
-			if (maptest_page == NULL) {
+
+			printk(KERN_ALERT "TESTMAP PAGE ... 0x%08lx : %d [mbytes]\n", 
+				(unsigned long)maptest_page, size / (1024 * 1024));
+
+			printk(KERN_ALERT "mapping ... \n");
+			ntStatus = MapPageToUser(DeviceObject,
+				                     maptest_page,
+									 maptest_size,
+									 &gUserSpaceAddress,
+									 &gMdl);
+
+			if (NT_SUCCESS(ntStatus)) {
+				printk(KERN_ALERT "Mapping: Success\n");
+				printk(KERN_ALERT "UserSpace -> 0x%08p\n", gUserSpaceAddress);
+			} else {
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-				break;
+				ExFreePoolWithTag(maptest_page, MEM_TAG);
+				maptest_size = 0;
 			}
-			ntStatus = MapPageToUser(DeviceObject, (PVOID)vaddr, maptest_page);
 			break;
 		}
 	case WINKVM_RELEASE_TESTMAP:
 		{
 			printk(KERN_ALERT "WINKVM_RELEASE_TESTMAP\n");
 			if (maptest_page != NULL) {
-				KeFreePageMemory(maptest_page, PAGE_SIZE);
+				UnMapPageToUser(gUserSpaceAddress, gMdl);
+				ExFreePoolWithTag(maptest_page, MEM_TAG);
 			}
-			ntStatus = STATUS_SUCCESS;
 			break;
 		}
 	case WINKVM_READ_GUEST:
@@ -664,17 +683,20 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		}
 	case WINKVM_GET_HUGE_NONPAGEAREA:
 		{
-			void *test = NULL;
+			void *p = NULL;
+
 			printk(KERN_ALERT "Get Huge nonpagearea ... \n");			
 			/* allocate Non Page Pool */
-			test = ExAllocatePoolWithTag(NonPagedPool, (64 * 1024 * 1024), MEM_TAG);
-			if (test) {
+			p = ExAllocatePoolWithTag(NonPagedPool, (64 * 1024 * 1024), MEM_TAG);
+			if (p) {
 				printk(KERN_ALERT "Success!!\n");
+				printk(KERN_ALERT "Free memory ...\n");
+				ExFreePoolWithTag(p, MEM_TAG);
 				ntStatus = STATUS_SUCCESS;
 			} else {
 				printk(KERN_ALERT "Could not allocate Huge memory area\n");
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-			}
+			}			
 			break;
 		}
 	default:
@@ -710,17 +732,19 @@ NTSTATUS __winkvmstab_read(IN PDEVICE_OBJECT DeviceObject,
 }
 */
 
-NTSTATUS 
+NTSTATUS
 MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-			  IN PVOID UserSpaceAddress,
-			  IN PVOID KernelSpaceAddress)
+			  IN PVOID KernelSpaceAddress,
+			  IN ULONG KernelSpaceSize,
+			  OUT PVOID *outUSAddress,
+			  OUT PMDL *outMdl)
 {
 	NTSTATUS ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 	PMDL mdl = NULL;
 	PVOID ret = NULL;
 
-	mdl = IoAllocateMdl(KernelSpaceAddress, 
-		                PAGE_SIZE, 
+	mdl = IoAllocateMdl(KernelSpaceAddress,
+		                KernelSpaceSize,
 						FALSE, 
 						FALSE, 
 						NULL);
@@ -728,26 +752,30 @@ MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
 	SAFE_ASSERT(mdl != NULL);
 	if (!mdl) {		
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+		*outUSAddress = NULL;
+		*outMdl = NULL;
 		printk(KERN_ALERT "Mapping failed\n");
 		goto ret;
 	}
 
-	MmInitializeMdl(mdl, KernelSpaceAddress, PAGE_SIZE);	
 	MmBuildMdlForNonPagedPool(mdl);
-	printk(KERN_ALERT "BuildMdlForNonPage\n");
 
-	ret = MmMapLockedPagesSpecifyCache(mdl,
-		                               UserMode, 
-		                               MmNonCached, 
-									   UserSpaceAddress, 
-									   FALSE, 
-									   HighPagePriority);
+	*outUSAddress = MmMapLockedPages(mdl, UserMode);
+	*outMdl = mdl;
 
-	SAFE_ASSERT(ret == UserSpaceAddress);
-	
 	printk(KERN_ALERT "Mapping done\n");
+	ntStatus = STATUS_SUCCESS;
 ret:
 	return ntStatus;
+}
+
+/* test*/
+VOID
+UnMapPageToUser(IN PVOID USAddress,
+				IN PMDL mdl)
+{	
+	MmUnmapLockedPages(USAddress, mdl);
+	IoFreeMdl(mdl);
 }
 
 NTSTATUS 
