@@ -2539,7 +2539,13 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
 	if (is_write) {		
 		winkvm_write_guest(kvm_context, (unsigned long)addr, len, addr);
 	}	
-#endif   
+#endif  
+
+#ifdef USE_KVM	
+	if (!is_write) {	  
+		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_addr);		
+	}	
+#endif	 
 
     while (len > 0) {
         page = addr & TARGET_PAGE_MASK;
@@ -2572,11 +2578,6 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
         buf += l;
         addr += l;
     }	
-#ifdef USE_KVM	
-	if (!is_write) {	  
-		winkvm_read_guest(kvm_context, (unsigned long)orig_addr, orig_len, orig_addr);		
-	}	
-#endif	
 }
 
 #else
