@@ -29,6 +29,7 @@ void FreeMemSpace(void *ptr, unsigned long npage, unsigned long pagesize);
 BOOL MapPageToPhys(HANDLE hnd, PVOID *pageaddr, unsigned long pageshift);
 HANDLE OpenWinkvm(void);
 BOOL InitTestMap(HANDLE hnd);
+BOOL ReleaseTestMap(HANDLE hnd);
 void MemmapAndTest(unsigned long dwPageSize);
 
 static BOOL winkvm_test_run(HANDLE hnd, int vcpu_fd);
@@ -111,7 +112,7 @@ int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord,
 #define SetSEHhandler(handler) \
 	do { \
 	   __asm mov eax, handler \
-	   __asm push eax \
+	   __asmain push eax \
 	   __asm push fs:[0] \
 	   __asm mov fs:[0], esp \
 	} while(0);\
@@ -124,11 +125,38 @@ int SEHHandler(struct _EXCEPTION_RECORD *ExceptionRecord,
 	   __asm add esp, 8 \
 	} while(0);\
 
+
+void get_memory(HANDLE hnd)
+{
+	BOOL ret;
+	unsigned long retlen;
+
+	printf("get huge page\n");
+
+	ret = DeviceIoControl(hnd, 
+		                  WINKVM_GET_HUGE_NONPAGEAREA,
+						  NULL,
+						  0,
+						  NULL,
+						  0,
+						  &retlen,
+						  NULL);
+
+	if (ret) {
+		printf("Success: Huge Page\n");
+	} else {
+		printf("Failed: Huge Page\n");
+	}
+
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	unsigned long dwPageSize, pageshift, pagemask;
+	HANDLE hnd;
 	SYSTEM_INFO SysInfo;
-	kvm_context_t kvm;
+//	kvm_context_t kvm
 
 	GetSystemInfo(&SysInfo);
 
@@ -142,18 +170,28 @@ int main(int argc, char *argv[])
 		printf("invalid system page size\n");
 		exit(1);
 	}
+	
+	printf("test for allocating huge kernel memory\n");
 
 	printf("Systen info:\n");
 	printf(" page size: %d\n page shift: %d\n", dwPageSize, pageshift);
 
-	kvm = kvm_init(NULL, NULL);
-	kvm_create(kvm, 5 * 1024 * 1024, NULL);
+	hnd = OpenWinkvm();
 
-	CloseHandle(kvm->hnd);
+	InitTestMap(hnd);
+	ReleaseTestMap(hnd);
+
+	CloseHandle(hnd);
+
+	//kvm = kvm_init(NULL, NULL);
+	//kvm_create(kvm, 5 * 1024 * 1024, NULL);
+
+	//CloseHandle(kvm->hnd);
 
 	return 1;	
 }
 
+/*
 void __cdecl MemmapAndTest(unsigned long dwPageSize)
 {
 	void *memspace;	
@@ -177,6 +215,7 @@ void __cdecl MemmapAndTest(unsigned long dwPageSize)
 
 	FreeMemSpace(memspace, 1, dwPageSize);
 }
+*/
 
 HANDLE OpenWinkvm(void)
 {
@@ -207,8 +246,39 @@ BOOL InitTestMap(HANDLE hnd)
 
 	printf("%s\n", __FUNCTION__);
 
-	ret = DeviceIoControl(hnd, WINKVM_INIT_TESTMAP, &writeval, 
-	                      sizeof(unsigned long), NULL, 0, &retlen, NULL);
+	ret = DeviceIoControl(hnd,
+		                  WINKVM_INIT_TESTMAP,
+						  NULL,
+	                      0,
+						  NULL,
+						  0,
+						  &retlen,
+						  NULL);
+
+	if (ret) {
+		printf("Success: DeviceIoControl\n");
+	} else {
+		printf("Failed: DeviceIoControl\n");
+	}
+
+	return ret;
+}
+
+BOOL ReleaseTestMap(HANDLE hnd)
+{
+	unsigned long retlen;
+	BOOL ret = FALSE;
+
+	printf("%s\n", __FUNCTION__);
+
+	ret = DeviceIoControl(hnd,
+		                  WINKVM_RELEASE_TESTMAP,
+						  NULL,
+	                      0,
+						  NULL,
+						  0,
+						  &retlen,
+						  NULL);
 
 	if (ret) {
 		printf("Success: DeviceIoControl\n");
