@@ -73,5 +73,6 @@ int atomic_inc_and_test(int *v);
 
 void* _cdecl __va(unsigned long addr);
 u64 _cdecl __pa(hva_t virt);
+hpa_t get_phys(PHYSICAL_ADDRESS *addr);
 
 #endif

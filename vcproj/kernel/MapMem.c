@@ -1,7 +1,6 @@
 
-#include "StdAfx.h"
 #include "MapMem.h"
-#include "drv_common.h"
+#include "kernel.h"
 
 #define MEM_PHYSICAL 0x400000
 
@@ -45,7 +44,7 @@ CreateUserMappingSection(IN SIZE_T shared_size,
 		NULL);
 
 	if (!NT_SUCCESS(status)) {
-		DebugPrint(("Could not Create Section: 0x%x\n", status));
+		printk(KERN_ALERT "Could not Create Section: 0x%x\n", status);
 		goto error;
 	}
 
@@ -66,11 +65,11 @@ CreateUserMappingSection(IN SIZE_T shared_size,
 		PAGE_READWRITE | PAGE_NOCACHE);	
 
 	if (!NT_SUCCESS(status)) {
-		DebugPrint(("Could not Map Section: 0x%x\n", status));
+		printk("Could not Map Section: 0x%x\n", status);
 		goto error;
 	}
 
-	DebugPrint(("Pointer: 0x%x\n", pSharedSection));
+	printk("Pointer: 0x%x\n", pSharedSection);
 
 	/*
 	RtlFillMemory(pSharedSection, shared_size, 'a');	
@@ -97,8 +96,8 @@ CloseUserMappingSection(IN HANDLE handler,
 
 	status = ZwUnmapViewOfSection(handler, OutBuffer);
 	if (!NT_SUCCESS(status)) {
-		DebugPrint(("Could not Unmap Section: %p 0x%x\n", 
-			        *OutBuffer, status));
+		printk("Could not Unmap Section: %p 0x%x\n", 
+			*OutBuffer, status);
 		return STATUS_UNSUCCESSFUL;
 	}
 

@@ -238,6 +238,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\MapMem.c"
+				>
+			</File>
+			<File
 				RelativePath=".\slab.c"
 				>
 			</File>
@@ -276,6 +280,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\extension.h"
+				>
+			</File>
+			<File
 				RelativePath=".\file.h"
 				>
 			</File>
@@ -289,6 +297,10 @@
 			</File>
 			<File
 				RelativePath=".\kvmdefined.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MapMem.h"
 				>
 			</File>
 			<File
