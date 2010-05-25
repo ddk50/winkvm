@@ -2,7 +2,7 @@
  * init.c
  * This file has the main routines of WinKVM
  *
- * Copyright (C) Kazushi Takahashi <kazushi@rvm.jp>, 2009
+ * Copyright (C) Kazushi Takahashi <kazushi@rvm.jp>, 2009 - 2010
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,28 +55,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				   IN PIRP Irp);
 
 NTSTATUS
-__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,							   
-							   IN PIRP Irp,							   
-							   IN struct kvm_vcpu *vcpu);
+ConvertRetval(IN int ret);
 
 static void *maptest_page = NULL;
 static ULONG maptest_size = 0;
 static PVOID gUserSpaceAddress = NULL;
 static PMDL gMdl;
-
-NTSTATUS
-MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-			  IN PVOID KernelSpaceAddress,
-			  IN ULONG KernelSpaceSize,
-			  OUT PVOID *outUSAddress,
-			  OUT PMDL *outMdl);
-
-VOID
-UnMapPageToUser(IN PVOID UserSpaceAddress,
-				IN PMDL mdl);
-
-NTSTATUS 
-ConvertRetval(IN int ret);
 
 /* driver entry */
 NTSTATUS 
@@ -146,7 +130,7 @@ err:
 	return status;
 }
 
-/* winkvm release */
+
 void 
 __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 {
@@ -171,7 +155,7 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	FUNCTION_EXIT();
 
     return;
-}
+} /* winkvm release */
 
 NTSTATUS 
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
@@ -187,7 +171,7 @@ __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 	FUNCTION_EXIT();
 
 	return STATUS_SUCCESS;
-}
+} /* winkvm close */
 
 NTSTATUS 
 __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
@@ -207,105 +191,6 @@ __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 	return STATUS_SUCCESS;
 }
 
-#define MAX_PATH        256
-#define GUEST_IMG_PATH  L"\\DosDevices\\C:\\bootstrap.bin"
-#define GUEST_IMG_SIZE  65536
-
-NTSTATUS
-__winkvmstab_execute_guestcode(IN PDEVICE_OBJECT DeviceObject,
-							   IN PIRP Irp,
-							   IN struct kvm_vcpu *vcpu)
-{
-	OBJECT_ATTRIBUTES objAttr;
-	IO_STATUS_BLOCK   ioStatusBlock;
-	UNICODE_STRING    uniStr;
-	HANDLE            fHandle;
-	LARGE_INTEGER     byteOffset;
-	unsigned char     *buf;
-	int               copied;
-	int               r;
-	NTSTATUS          ret = STATUS_INVALID_DEVICE_REQUEST;
-	struct kvm_run    kvm_run;
-
-	FUNCTION_ENTER();
-
-	buf = ExAllocatePoolWithTag(NonPagedPool, GUEST_IMG_SIZE, MEM_TAG);
-	SAFE_ASSERT(buf);
-	if (!buf)
-		goto ret;
-
-	RtlInitUnicodeString(&uniStr, GUEST_IMG_PATH);
-	InitializeObjectAttributes(&objAttr, &uniStr,
-							   OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);	
-
-	printk(KERN_ALERT "Try to open file ... \n");
-	
-	SAFE_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
-	
-	ret = ZwOpenFile(&fHandle,
-		             GENERIC_READ,
-					 &objAttr,
-					 &ioStatusBlock,
-					 0,
-					 FILE_NON_DIRECTORY_FILE);	
-
-	if (!NT_SUCCESS(ret)) {
-		printk(KERN_ALERT " Could not open test binary file\n");
-		goto free_ret;
-	}
-	printk(KERN_ALERT "Done\n");
-
-	printk(KERN_ALERT "Read Guest Image ... \n");
-	byteOffset.u.HighPart = byteOffset.u.LowPart = 0;	
-	ret = ZwReadFile(fHandle, 
-		             NULL, 
-					 NULL, 
-					 NULL, 
-					 &ioStatusBlock, 
-		             buf, 
-					 GUEST_IMG_SIZE, 
-					 &byteOffset, 
-					 NULL);
-
-	if (!NT_SUCCESS(ret)){
-		printk(KERN_ALERT " Could not read test binary\n");
-		goto close_free_ret;
-	}
-
-	printk(KERN_ALERT " Read bytes: High: %d, Low: %d\n", 
-		               byteOffset.u.HighPart,		   
-					   byteOffset.u.LowPart);
-
-	printk(KERN_ALERT "Done\n");	
-	
-	printk(KERN_ALERT "Write to guest ... \n");	
-	copied = kvm_write_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);	
-	printk(KERN_ALERT "Done copied: %d\n", copied);	
-
-	RtlZeroMemory(buf, GUEST_IMG_SIZE);
-	kvm_read_guest(vcpu, 0xf0000, GUEST_IMG_SIZE, buf);	
-
-	printk(KERN_ALERT "Read to run!!\n");
-	RtlZeroMemory(&kvm_run, sizeof(kvm_run));
-
-	printk(KERN_ALERT "Run!!\n");
-	r = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
-	if (r < 0) {
-		printk(KERN_ALERT "kvm_vcpu_ioctl_run was failed!!\n");
-	} else {	  
-		printk(KERN_ALERT "kvm_vcpu_ioctl_run was success!!\n");
-	}
-
-close_free_ret:
-	ZwClose(fHandle);	
-
-free_ret:
-	ExFreePoolWithTag(buf, MEM_TAG);
-
-ret:
-	FUNCTION_EXIT();
-	return ret;
-}
 
 NTSTATUS 
 __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
@@ -333,7 +218,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			printk(KERN_ALERT "Call KVM_GET_API_VERSION\n");
 			ntStatus = STATUS_SUCCESS;
 			break;
-		}
+		} /* end KVM_GET_API_VERSION */
+
 	case KVM_CREATE_VM:
 		{
 			int ret;
@@ -343,7 +229,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = sizeof(ret);	   
 			ntStatus = ConvertRetval(ret);
 			break;
-		}
+		} /* end KVM_CREATE_VM */
+
 	case KVM_GET_MSR_INDEX_LIST:
 		{
 			struct kvm_msr_list msr_list;
@@ -370,7 +257,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				ntStatus = STATUS_SUCCESS;
 			}
 			break;
-		}
+		} /* end KVM_GET_MSR_INDEX_LIST */
+
 	case KVM_CREATE_VCPU:
 		{	
 			int ret;
@@ -384,7 +272,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = sizeof(ret);
 			ntStatus = ConvertRetval(ret);
 			break;
-		}
+		} /* end KVM_CREATE_VCPU */
+
 	case KVM_SET_MEMORY_REGION:
 		{
 			struct winkvm_memory_region winkvm_mem;
@@ -392,8 +281,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			int ret;
 
 			printk(KERN_ALERT "Call KVM_SET_MEMORY_REGION\n");
-			RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
 
+			RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
 			kvm_mem = &winkvm_mem.kvm_memory_region;
 
 			printk(KERN_ALERT "VM_FD : 0x%08x\n", winkvm_mem.vm_fd);
@@ -408,7 +297,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = sizeof(winkvm_mem);
 			ntStatus = ConvertRetval(ret);
 			break;
-		}
+		} /* end KVM_SET_MEMORY_REGION */
+
 	case KVM_GET_REGS: 
 		{
 			struct kvm_regs kvm_regs;
@@ -429,7 +319,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = sizeof(struct kvm_regs);
 			ntStatus = ConvertRetval(r);
 			break;
-		}
+		} /* end KVM_GET_REGS */
+
     case KVM_SET_REGS: 
 		{
 			struct kvm_regs kvm_regs;
@@ -449,7 +340,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = 0;
 			ntStatus = ConvertRetval(r);
 			break;
-		}
+		} /* end KVM_SET_REGS */
+
 	case KVM_GET_SREGS:
 		{
 			struct kvm_sregs kvm_sregs;
@@ -471,7 +363,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			RtlCopyMemory(outBuf, &kvm_sregs, sizeof(kvm_sregs));
 			ntStatus = ConvertRetval(r);
 			break;
-		}
+		} /* end KVM_GET_SREGS */
+
 	case KVM_SET_SREGS:
 		{
 			struct kvm_sregs kvm_sregs;
@@ -491,7 +384,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			Irp->IoStatus.Information = 0;
 			ntStatus = ConvertRetval(r);
 			break;
-		}
+		} /* end KVM_SET_SREGS */
+
 	case KVM_TRANSLATE:
 		{
 			struct kvm_translation tr;
@@ -513,7 +407,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			RtlCopyMemory(outBuf, &tr, sizeof(tr));
 			ntStatus = ConvertRetval(r);
 			break;
-		}
+		} /* end KVM_TRANSLATE */
 
 	case KVM_INTERRUPT: 
 		{
@@ -533,7 +427,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
 			break;
-		}
+		} /* end KVM_INTERRUPT */
+
 	case KVM_RUN:
 		{		
 			unsigned int resultvar;
@@ -561,72 +456,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 			}
 			break;
-		}
-	case WINKVM_EXECUTE_TEST:
-		{
-			struct kvm_vcpu *vcpu;
-			int vcpu_fd;
+		} /* end KVM_RUN */
 
-			printk(KERN_ALERT "Call WINKVM_EXECUTE_TEST\n");
-			RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
-			vcpu = get_vcpu(vcpu_fd);
-			SAFE_ASSERT(vcpu != NULL);
-
-			if (vcpu) {
-				ntStatus = __winkvmstab_execute_guestcode(DeviceObject, Irp, vcpu);
-			} else {
-				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-			}			
-			break;
-		}
-	case WINKVM_NOPAGE:
-		{
-			ntStatus = STATUS_SUCCESS;
-			break;
-		}
-	case WINKVM_INIT_TESTMAP:
-		{
-			unsigned long size = 50 * 1024 * 1024;
-
-			printk(KERN_ALERT "WINKVM_INIT_TESTMAP\n");
-
-			maptest_page = ExAllocatePoolWithTag(NonPagedPool, size, MEM_TAG);
-			if (maptest_page == NULL) {
-				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-				break;
-			} else {
-				maptest_size = size;
-			}
-
-			printk(KERN_ALERT "TESTMAP PAGE ... 0x%08lx : %d [mbytes]\n", 
-				(unsigned long)maptest_page, size / (1024 * 1024));
-
-			printk(KERN_ALERT "mapping ... \n");
-			ntStatus = MapPageToUser(DeviceObject,
-				                     maptest_page,
-									 maptest_size,
-									 &gUserSpaceAddress,
-									 &gMdl);
-
-			if (NT_SUCCESS(ntStatus)) {
-				printk(KERN_ALERT "Mapping: Success\n");
-				printk(KERN_ALERT "UserSpace -> 0x%08p\n", gUserSpaceAddress);
-			} else {
-				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-				ExFreePoolWithTag(maptest_page, MEM_TAG);
-				maptest_size = 0;
-			}
-			break;
-		}
-	case WINKVM_RELEASE_TESTMAP:
-		{
-			printk(KERN_ALERT "WINKVM_RELEASE_TESTMAP\n");
-			if (maptest_page != NULL) {
-				UnMapPageToUser(gUserSpaceAddress, gMdl);
-				ExFreePoolWithTag(maptest_page, MEM_TAG);
-			}
-			break;
-		}
 	case WINKVM_READ_GUEST:
 		{			
 			struct winkvm_transfer_mem trans_mem;
@@ -651,7 +482,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ExReleaseFastMutex(&reader_mutex);
 
 			break;
-		}
+		} /* end WINKVM_READ_GUEST */
+
 	case WINKVM_WRITE_GUEST:
 		{
 			struct winkvm_transfer_mem *trans_mem;
@@ -680,25 +512,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			ExReleaseFastMutex(&writer_mutex);
 
 			break;
-		}
-	case WINKVM_GET_HUGE_NONPAGEAREA:
-		{
-			void *p = NULL;
+		} /* end WINKVM_WRITE_GUEST */
 
-			printk(KERN_ALERT "Get Huge nonpagearea ... \n");			
-			/* allocate Non Page Pool */
-			p = ExAllocatePoolWithTag(NonPagedPool, (64 * 1024 * 1024), MEM_TAG);
-			if (p) {
-				printk(KERN_ALERT "Success!!\n");
-				printk(KERN_ALERT "Free memory ...\n");
-				ExFreePoolWithTag(p, MEM_TAG);
-				ntStatus = STATUS_SUCCESS;
-			} else {
-				printk(KERN_ALERT "Could not allocate Huge memory area\n");
-				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-			}			
-			break;
-		}
 	default:
 		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 		printk(KERN_ALERT "ERROR: unreconginzed IOCTL: %x\n", 
@@ -715,67 +530,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 	FUNCTION_EXIT();
 
 	return ntStatus;
-}
-
-/*
-NTSTATUS __winkvmstab_read(IN PDEVICE_OBJECT DeviceObject,
-						   IN PIRP Irp)
-{
-	PIO_STACK_LOCATION irpSp;
-	PVOID SystemAddress;
-	kvm_vcpu *test
-
-	irpSp = IoGetCurrentIrpStackLocation(Irp);
-
-	SystemAddress = (PVOID)MmGetSystemAddressForMdl(Irp->MdlAddress);
-	Irp->IoStatus.Information = irpSp->Parameters.Read.Length;
-}
-*/
-
-NTSTATUS
-MapPageToUser(IN PDEVICE_OBJECT DeviceObject,
-			  IN PVOID KernelSpaceAddress,
-			  IN ULONG KernelSpaceSize,
-			  OUT PVOID *outUSAddress,
-			  OUT PMDL *outMdl)
-{
-	NTSTATUS ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-	PMDL mdl = NULL;
-	PVOID ret = NULL;
-
-	mdl = IoAllocateMdl(KernelSpaceAddress,
-		                KernelSpaceSize,
-						FALSE, 
-						FALSE, 
-						NULL);
-
-	SAFE_ASSERT(mdl != NULL);
-	if (!mdl) {		
-		ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-		*outUSAddress = NULL;
-		*outMdl = NULL;
-		printk(KERN_ALERT "Mapping failed\n");
-		goto ret;
-	}
-
-	MmBuildMdlForNonPagedPool(mdl);
-
-	*outUSAddress = MmMapLockedPages(mdl, UserMode);
-	*outMdl = mdl;
-
-	printk(KERN_ALERT "Mapping done\n");
-	ntStatus = STATUS_SUCCESS;
-ret:
-	return ntStatus;
-}
-
-/* test*/
-VOID
-UnMapPageToUser(IN PVOID USAddress,
-				IN PMDL mdl)
-{	
-	MmUnmapLockedPages(USAddress, mdl);
-	IoFreeMdl(mdl);
 }
 
 NTSTATUS 
