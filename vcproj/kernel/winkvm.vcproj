@@ -258,10 +258,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\undefined.c"
-				>
-			</File>
-			<File
 				RelativePath=".\vmx-debug.c"
 				>
 			</File>
@@ -317,10 +313,6 @@
 			</File>
 			<File
 				RelativePath=".\vmxop.h"
-				>
-			</File>
-			<File
-				RelativePath=".\x86.h"
 				>
 			</File>
 			<Filter
