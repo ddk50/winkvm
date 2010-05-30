@@ -60,11 +60,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 NTSTATUS
 ConvertRetval(IN int ret);
 
-static void *maptest_page = NULL;
-static ULONG maptest_size = 0;
-static PVOID gUserSpaceAddress = NULL;
-static PMDL gMdl;
-
 /* driver entry */
 NTSTATUS 
 DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
@@ -487,6 +482,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				break;
 			} /* end KVM_RUN */
 
+			/* There are specific ioctl handlers for WinKVM */
 		case WINKVM_READ_GUEST:
 			{			
 				struct winkvm_transfer_mem trans_mem;
