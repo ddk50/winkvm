@@ -234,7 +234,7 @@ OP_LDFLAGS+=$(OS_LDFLAGS) $(ARCH_LDFLAGS)
 #########################################################
 
 CPPFLAGS+=-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
-LIBS+=-lm
+LIBS+=
 ifndef CONFIG_USER_ONLY
 LIBS+=-lz
 endif
