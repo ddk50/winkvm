@@ -294,7 +294,7 @@ int _cdecl raw_smp_processor_id(void)
 	return (int)KeGetCurrentProcessorNumber();
 }
 
-int _cdecl get_cpu(void)
+int _cdecl get_cpu(void)	
 {
 	/* FIXME: smp process */
 	/* This function have to ensure preempt */
