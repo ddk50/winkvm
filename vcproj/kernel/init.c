@@ -60,11 +60,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 NTSTATUS
 ConvertRetval(IN int ret);
 
-static void *maptest_page = NULL;
-static ULONG maptest_size = 0;
-static PVOID gUserSpaceAddress = NULL;
-static PMDL gMdl;
-
 /* driver entry */
 NTSTATUS 
 DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
@@ -131,9 +126,9 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	}
 	*/
 
-	init_smp_emulater();
-	init_slab_emulater();
-	init_file_emulater();
+	init_smp_emulater(extension);
+	init_slab_emulater(extension);
+	init_file_emulater(extension);
 
 	ExInitializeFastMutex(&writer_mutex);
 	ExInitializeFastMutex(&reader_mutex);
@@ -156,16 +151,19 @@ err:
 void 
 __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 {
-	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
-	UNICODE_STRING Win32NameString;
+	PDEVICE_OBJECT             deviceObject = DriverObject->DeviceObject;
+	UNICODE_STRING             Win32NameString;
+	PWINKVM_DEVICE_EXTENSION   extension;
 
 	FUNCTION_ENTER();
+	
+	extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
 
 	vmx_exit();
 
-	release_smp_emulater();
-	release_slab_emulater();
-	release_file_emulater();
+	release_smp_emulater(extension);
+	release_slab_emulater(extension);
+	release_file_emulater(extension);	
 
 	if (deviceObject != NULL) {
 		IoDeleteDevice(DriverObject->DeviceObject);
@@ -487,6 +485,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				break;
 			} /* end KVM_RUN */
 
+			/* There are specific ioctl handlers for WinKVM */
 		case WINKVM_READ_GUEST:
 			{			
 				struct winkvm_transfer_mem trans_mem;
@@ -600,7 +599,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_UNMAPMEM_GETPVMAP:
 			{
-
+				if (extension->MapmemInfo.shared_size > 0 &&
+					extension->MapmemInfo.maphandler != NULL) {
+					ntStatus = CloseUserMappingSection(
+						extension->MapmemInfo.maphandler,
+						&extension->MapmemInfo.mappointer);
+				}
 			} /* end WINKVM_UNMAPMEM_GETPVMAP */
 
 		default:

@@ -4,10 +4,10 @@
 
 #include "init.h"
 #include "kernel.h"
+
 #include <linux/winkvm.h>
 
-void init_slab_emulater(void);
-void release_slab_emulater(void);
+#include "extension.h"
 
 void _cdecl kfree(void *objp);
 void* _cdecl kmalloc(size_t size, int flags);
@@ -30,6 +30,7 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order);
 struct page* _cdecl alloc_page(unsigned int flags);
 struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask, 
 	                                 unsigned int order);
+
 void _cdecl __free_pages(struct page *page, unsigned int order);
 void _cdecl __free_page(struct page *page);
 void _cdecl free_page(hva_t addr);
@@ -41,5 +42,23 @@ int _cdecl get_order(unsigned long size);
 
 void* KeGetPageMemory(unsigned long size);
 void KeFreePageMemory(void *ptr, unsigned long size);
+
+/* winkvm special function */
+struct page* _cdecl wk_alloc_page(unsigned long gpfn, unsigned int flags);
+void _cdecl wk_free_page(unsigned long gpfn, struct page *page);
+
+/* initailizer */
+void init_slab_emulater(WINKVM_DEVICE_EXTENSION *extn);
+void release_slab_emulater(WINKVM_DEVICE_EXTENSION *extn);
+
+struct membitmap {
+#define	 MASK_LEN (0x1000 / sizeof(unsigned long))    
+	unsigned long address_mask[MASK_LEN];	
+};
+
+struct page_root {
+	struct page page[1024];
+	struct membitmap bitmap;
+};
 
 #endif

@@ -33,7 +33,8 @@ const int fd_slot_num = sizeof(*fd_slot) / sizeof(struct fd_emulater_slot);
 
 static int VALID_FD(int fd);
 
-void init_file_emulater(void)
+void 
+init_file_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 {
 	int i;
 	FUNCTION_ENTER();
@@ -44,7 +45,8 @@ void init_file_emulater(void)
 	FUNCTION_EXIT();
 }
 
-void release_file_emulater(void)
+void 
+release_file_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 {
 	int i;
 	FUNCTION_ENTER();

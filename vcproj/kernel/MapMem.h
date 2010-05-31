@@ -3,6 +3,7 @@
 #define _MAP_MEM_H_
 
 #include "init.h"
+#include "extension.h"
 
 NTSTATUS 
 CreateUserMappingSection(IN SIZE_T shared_size,

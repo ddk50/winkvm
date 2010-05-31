@@ -61,7 +61,8 @@ struct smpf_data {
 	int mycpu_num;
 } *smpf_data_slot = NULL;
 
-void init_smp_emulater(void)
+void
+init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 {
 	int i;
 	KAFFINITY aps;
@@ -97,7 +98,8 @@ void init_smp_emulater(void)
 	printk(KERN_ERR "Number Processors: %d\n", get_nr_cpus());
 }
 
-void release_smp_emulater(void)
+void 
+release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 {	
 	int i;
 

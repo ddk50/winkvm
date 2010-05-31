@@ -6,8 +6,10 @@
 #include <linux/winkvmint.h>
 #include <linux/winkvmgfp.h>
 
-void init_smp_emulater(void);
-void release_smp_emulater(void);
+#include "extension.h"
+
+void init_smp_emulater(PWINKVM_DEVICE_EXTENSION extn);
+void release_smp_emulater(PWINKVM_DEVICE_EXTENSION extn);
 
 void _cdecl mutex_init(struct mutex *lock);
 void _cdecl mutex_lock(struct mutex *lock);
