@@ -126,9 +126,9 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	}
 	*/
 
-	init_smp_emulater();
-	init_slab_emulater();
-	init_file_emulater();
+	init_smp_emulater(extension);
+	init_slab_emulater(extension);
+	init_file_emulater(extension);
 
 	ExInitializeFastMutex(&writer_mutex);
 	ExInitializeFastMutex(&reader_mutex);
@@ -151,16 +151,17 @@ err:
 void 
 __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 {
-	PDEVICE_OBJECT deviceObject = DriverObject->DeviceObject;
-	UNICODE_STRING Win32NameString;
+	PDEVICE_OBJECT             deviceObject = DriverObject->DeviceObject;
+	UNICODE_STRING             Win32NameString;
+	PWINKVM_DEVICE_EXTENSION   extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
 
 	FUNCTION_ENTER();
 
 	vmx_exit();
 
-	release_smp_emulater();
-	release_slab_emulater();
-	release_file_emulater();
+	release_smp_emulater(extension);
+	release_slab_emulater(extension);
+	release_file_emulater(extension);	
 
 	if (deviceObject != NULL) {
 		IoDeleteDevice(DriverObject->DeviceObject);
