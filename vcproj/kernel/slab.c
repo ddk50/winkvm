@@ -345,17 +345,17 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 	struct page *page = NULL;
 	hva_t r;
 
-	if (page->mem_type == 1) {
-		printk(KERN_ALERT 
-			"You are trying to free shared page area using free_pages\n");
-		return;
-	}
-
 	for (r = addr ; r < addr + actual_size ; r += PAGE_SIZE) {
 		page = get_page_slot(r);
 
 		SAFE_ASSERT(page);
 		SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
+
+		if (page->mem_type == 1) {
+			printk(KERN_ALERT 
+				"You are trying to free shared page area using free_pages\n");
+			return;
+		}
 
 		if (page->__wpfn != PAGE_NOTNEED_FREE)
 			KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
