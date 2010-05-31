@@ -14,7 +14,7 @@ struct kvm_context;
 typedef struct kvm_context *kvm_context_t;
 
 /*!
- * \brief KVM callbacks structure
+ * \brief KVM callbacks structure 
  *
  * This structure holds pointers to various functions that KVM will call
  * when it encounters something that cannot be virtualized, such as

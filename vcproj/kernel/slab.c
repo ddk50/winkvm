@@ -17,6 +17,7 @@
 
 #include "slab.h"
 #include "kernel.h"
+#include "extension.h"
 
 #define PAGE_NOT_USED        0xfffffffful
 #define PAGE_NOTNEED_FREE    0xfffffffeul
@@ -25,38 +26,36 @@
 #define PAGE_PTE(x)         (((x) >> 12) & 0x3ff)
 #define PAGE_NUM(pde, pte)  (((pde) << 22) | ((pte) << 12))
 
-struct page_root {
-	struct page page[1024];
-};
-
-static struct page_root *page_slot_root[1024];
-static FAST_MUTEX page_emulater_mutex;
-const int page_slot_num = sizeof(page_slot_root) / sizeof(struct page_root*);
-
 static struct page_root *get_page_rootslot(hva_t pageaddr);
 static struct page *get_page_slot(hva_t pageaddr);
 
-void init_slab_emulater(void)
+static PWINKVM_DEVICE_EXTENSION extension = NULL;
+
+void 
+init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 {
 	int i;
 	struct page_root *pgr;
 	unsigned long addr;
 	unsigned long cache_size = 0;
 
-	for (i = 0 ; i < page_slot_num ; i++) {
-		page_slot_root[i] = NULL;
-	}
+	extn->MemAlloc.page_slot_num = 
+		sizeof(extn->MemAlloc.page_slot_root) / sizeof(struct page_root*);
+
+	for (i = 0 ; i < extn->MemAlloc.page_slot_num ; i++) {
+		extn->MemAlloc.page_slot_root[i] = NULL;
+	}	
 
 	/* allocate cache slot */
 	cache_size = 1024 * 1024 * 128;
 	for (addr = 0 ; addr < cache_size ; addr += PAGE_SIZE) {
-		pgr = page_slot_root[PAGE_PDE(addr)];
+		pgr = extn->MemAlloc.page_slot_root[PAGE_PDE(addr)];
 		if (!pgr) {
 			pgr = (struct page_root*)ExAllocatePoolWithTag(NonPagedPool, 
 				                                           sizeof(struct page_root), 
 														   MEM_TAG);
 			SAFE_ASSERT(pgr);
-			page_slot_root[PAGE_PDE(addr)] = pgr;
+			extn->MemAlloc.page_slot_root[PAGE_PDE(addr)] = pgr;
 		}
 
 		/* FIX ME: immediate number!  */
@@ -68,32 +67,38 @@ void init_slab_emulater(void)
 		}
 	}
 
-	ExInitializeFastMutex(&page_emulater_mutex);
+	ExInitializeFastMutex(&extn->MemAlloc.page_emulater_mutex);
+
+	extension = extn;	
 }
 
-void release_slab_emulater(void)
+void 
+release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 {
 	int i, k;
 	struct page *pd;
 	
-	for (i = 0 ; i < page_slot_num ; i++) {
-		if (page_slot_root[i]) {
-			pd = page_slot_root[i]->page;
+	for (i = 0 ; i < extn->MemAlloc.page_slot_num ; i++) {
+		if (extn->MemAlloc.page_slot_root[i]) {
+			pd = extn->MemAlloc.page_slot_root[i]->page;
 			/* bug!! */
 			for (k = 0 ; k < 1024 ; k++) {
 				if (pd[k].__wpfn != PAGE_NOT_USED && 
 					pd[k].__wpfn != PAGE_NOTNEED_FREE)
 					KeFreePageMemory(pd[k].__nt_mem, pd[k].__nt_memsize);
 			}
-			ExFreePoolWithTag(page_slot_root[i], MEM_TAG);
-			page_slot_root[i] = NULL;
+			ExFreePoolWithTag(extn->MemAlloc.page_slot_root[i], MEM_TAG);
+			extn->MemAlloc.page_slot_root[i] = NULL;
 		}
 	}
+
+	extension = NULL;
 }
 
-int _cdecl check_page_compatible(unsigned long page_size,
-								 unsigned long page_shift,
-								 unsigned long page_mask)
+int _cdecl 
+check_page_compatible(unsigned long page_size,
+					  unsigned long page_shift,
+					  unsigned long page_mask)
 {
 	if (page_size != PAGE_SIZE)
 		goto err;
@@ -219,7 +224,7 @@ void _cdecl get_page(struct page *page)
  *          %GFP_ATOMIC don't sleep.
  *  @order: Power of two of allocation size in pages. 0 is a single page.
  *
- *  Allocate a page from the kernel page pool.  When not in
+ *  Allocate a page from the kernel 0page pool.  When not in
  *  interrupt context and apply the current process NUMA policy.
  *  Returns NULL when no page can be allocated.
  *
@@ -320,7 +325,7 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 
 static struct page_root *get_page_rootslot(hva_t pageaddr)
 {
-	return page_slot_root[PAGE_PDE(pageaddr)];
+	return extension->MemAlloc.page_slot_root[PAGE_PDE(pageaddr)];
 }
 
 static struct page *get_page_slot(hva_t pageaddr)
@@ -330,13 +335,15 @@ static struct page *get_page_slot(hva_t pageaddr)
 	unsigned long addr = (unsigned long)pageaddr;
 	int i;
 
+	SAFE_ASSERT(extension != NULL);
+
 //	ExAcquireFastMutex(&page_emulater_mutex);
 
-	pgr = page_slot_root[PAGE_PDE(addr)];
+	pgr = extension->MemAlloc.page_slot_root[PAGE_PDE(addr)];
 
 	if (!pgr) {
 		pgr = (struct page_root*)ExAllocatePoolWithTag(NonPagedPool, sizeof(struct page_root), MEM_TAG);		
-		page_slot_root[PAGE_PDE(addr)] = pgr;
+		extension->MemAlloc.page_slot_root[PAGE_PDE(addr)] = pgr;
 
 		/* FIX ME: immediate number!  */
 		for (i = 0 ; i < 1024 ; i++) {
