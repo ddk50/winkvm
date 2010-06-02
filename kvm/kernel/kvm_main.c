@@ -757,8 +757,8 @@ raced:
 		  /*			new.phys_mem[i] = alloc_page(GFP_HIGHUSER
 						     | __GFP_ZERO);
 		  */
-			new.phys_mem[i] = wk_alloc_page(GFP_HIGHUSER
-											| __GFP_ZERO);			
+			new.phys_mem[i] = wk_alloc_page((new.base_gfn + i) << PAGE_SHIFT,											
+											GFP_HIGHUSER | __GFP_ZERO);			
 			if (!new.phys_mem[i])
 				goto out_free;
 			set_page_private(new.phys_mem[i],0);
