@@ -352,4 +352,3 @@ struct kvm_dirty_log {
 #define WINKVM_UNMAPMEM_GETPVMAP _IOWR(KVMIO, 39, struct winkvm_getpvmap)
 
 #endif
-

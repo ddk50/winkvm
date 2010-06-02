@@ -18,9 +18,9 @@ struct page {
 	unsigned long __nt_memsize;	
 	/* hfn_t __wpfn; */
 	unsigned long __wpfn;
-	unsigned long __ppfn;	
-	/* 0: ExAllocatePoolWithTag() 1: memorymap area */
-	int mem_type; 
+	unsigned long __ppfn;
+	/* 0: ExAllocatePoolWithTag() 1: memorymap area */	
+	int mem_type;	
 };
 
 struct inode {	
