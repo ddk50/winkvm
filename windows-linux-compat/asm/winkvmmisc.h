@@ -148,9 +148,9 @@ static inline void clear_bit(int nr, volatile unsigned long * addr)
 }
 
 #define rdmsr(msr,val1,val2)						\
-	do {								\
+	do {											\
 		u64 __val = native_read_msr(msr);			\
-		(val1) = (u32)__val;					\
+		(val1) = (u32)__val;						\
 		(val2) = (u32)(__val >> 32);				\
 	} while(0)
 
@@ -172,13 +172,13 @@ static inline void wrmsr(u32 __msr, u32 __low, u32 __high)
 	native_write_msr(__msr, ((u64)__high << 32) | __low);
 }
 
-#define rdmsr_safe(msr,p1,p2)						\
-	({								\
-		int __err = 1;						\		
-		u64 __val = native_read_msr(msr);	\		
-		(*p1) = (u32)__val;					\
+#define rdmsr_safe(msr,p1,p2)					\
+	({											\
+		int __err = 1;							\
+		u64 __val = native_read_msr(msr);		\
+		(*p1) = (u32)__val;						\
 		(*p2) = (u32)(__val >> 32);				\
-		__err;							\
+		__err;									\
 	})
 	
 /* Warning */

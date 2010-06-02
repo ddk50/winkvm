@@ -153,9 +153,11 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 {
 	PDEVICE_OBJECT             deviceObject = DriverObject->DeviceObject;
 	UNICODE_STRING             Win32NameString;
-	PWINKVM_DEVICE_EXTENSION   extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
+	PWINKVM_DEVICE_EXTENSION   extension;
 
 	FUNCTION_ENTER();
+	
+	extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
 
 	vmx_exit();
 
@@ -597,7 +599,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_UNMAPMEM_GETPVMAP:
 			{
-
+				if (extension->MapmemInfo.shared_size > 0 &&
+					extension->MapmemInfo.maphandler != NULL) {
+					ntStatus = CloseUserMappingSection(
+						extension->MapmemInfo.maphandler,
+						&extension->MapmemInfo.mappointer);
+				}
 			} /* end WINKVM_UNMAPMEM_GETPVMAP */
 
 		default:
