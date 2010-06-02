@@ -73,18 +73,18 @@ struct winkvm_transfer_mem {
 
 struct winkvm_mapmem_initialize {
 	int vm_fd;
-	__u64 shared_size;
+	__u64 shared_size;	
 };
 
 struct winkvm_pfmap {
 	__u64 phys;
-	__u64 virt;
+	__u64 virt;	
 };
 
 struct winkvm_getpvmap {
 	int vm_fd;
 	__u32 tablesize;
-	struct winkvm_pfmap maptable[0];
+	struct winkvm_pfmap maptable[0];	
 };
 
 #endif
@@ -337,17 +337,17 @@ struct kvm_dirty_log {
  * for WinKVM 
  */
 #define WINKVM_GET_HUGE_NONPAGEAREA _IOW(KVMIO, 19, unsigned long)
-#define WINKVM_NOPAGE            _IOW(KVMIO, 20, unsigned long)
-#define WINKVM_INIT_TESTMAP      _IO(KVMIO, 30)
-#define WINKVM_TESTMAP           _IOW(KVMIO, 31, unsigned long)
-#define WINKVM_RELEASE_TESTMAP   _IO(KVMIO, 32)
-#define WINKVM_EXECUTE_TEST      _IO(KVMIO, 33)
-#define WINKVM_PUT_VCPU          _IO(KVMIO, 34)
-#define WINKVM_READ_GUEST        _IO(KVMIO, 35)
-#define WINKVM_WRITE_GUEST       _IO(KVMIO, 36)
-#define WINKVM_MAPMEM_INITIALIZE _IOWR(KVMIO, 37, struct winkvm_mapmem_initialize)
-#define WINKVM_MAPMEM_GETPVMAP   _IOWR(KVMIO, 38, struct winkvm_getpvmap)
-#define WINKVM_UNMAPMEM_GETPVMAP _IOWR(KVMIO, 39, struct winkvm_getpvmap)
+#define WINKVM_NOPAGE          _IOW(KVMIO, 20, unsigned long)
+#define WINKVM_INIT_TESTMAP    _IO(KVMIO, 30)
+#define WINKVM_TESTMAP         _IOW(KVMIO, 31, unsigned long)
+#define WINKVM_RELEASE_TESTMAP _IO(KVMIO, 32)
+#define WINKVM_EXECUTE_TEST    _IO(KVMIO, 33)
+#define WINKVM_PUT_VCPU        _IO(KVMIO, 34)
+#define WINKVM_READ_GUEST      _IO(KVMIO, 35)
+#define WINKVM_WRITE_GUEST     _IO(KVMIO, 36)
+#define WINKVM_MAPMEM_INITIALIZE  _IOWR(KVMIO, 37, struct winkvm_mapmem_initialize)
+#define WINKVM_MAPMEM_GETPVMAP    _IOWR(KVMIO, 38, struct winkvm_getpvmap)
+#define WINKVM_UNMAPMEM_GETPVMAP  _IOWR(KVMIO, 39, struct winkvm_getpvmap)
 
 #endif
 

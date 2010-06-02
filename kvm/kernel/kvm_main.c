@@ -753,9 +753,12 @@ raced:
 			goto out_free;
 
 		memset(new.phys_mem, 0, npages * sizeof(struct page *));
-		for (i = 0; i < npages; ++i) {
-			new.phys_mem[i] = alloc_page(GFP_HIGHUSER
+		for (i = 0; i < npages; ++i) {		  
+		  /*			new.phys_mem[i] = alloc_page(GFP_HIGHUSER
 						     | __GFP_ZERO);
+		  */
+			new.phys_mem[i] = wk_alloc_page(GFP_HIGHUSER
+											| __GFP_ZERO);			
 			if (!new.phys_mem[i])
 				goto out_free;
 			set_page_private(new.phys_mem[i],0);

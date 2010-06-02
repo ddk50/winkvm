@@ -386,7 +386,10 @@ static struct page *get_page_slot(hva_t pageaddr)
 	pgr = extension->MemAlloc.page_slot_root[PAGE_PDE(addr)];
 
 	if (!pgr) {
-		pgr = (struct page_root*)ExAllocatePoolWithTag(NonPagedPool, sizeof(struct page_root), MEM_TAG);		
+		pgr = (struct page_root*)ExAllocatePoolWithTag(
+			                NonPagedPool, 
+							sizeof(struct page_root), 
+							MEM_TAG);
 		extension->MemAlloc.page_slot_root[PAGE_PDE(addr)] = pgr;
 
 		/* FIX ME: immediate number!  */
@@ -466,12 +469,15 @@ struct page* _cdecl wk_alloc_page(unsigned long gpfn, unsigned int flags)
 	}
 
 	root = extension->MapmemInfo.MemAlloc.page_slot_root[rindex];
-	if (!root) {		
-		root = (struct page_root*)KeGetPageMemory(sizeof(struct page_root));
+	if (!root) {
+		root = (struct page_root*)ExAllocatePoolWithTag(
+			                         NonPagedPool, 
+									 sizeof(struct page_root), 
+									 MEM_TAG);
 		if (!root) {
 			/* error */
-			printk(KERN_ALERT "%s: KeGetPageMemory\n", __FUNCTION__);
-			return NULL;			
+			printk(KERN_ALERT "%s: ExAllocatePoolWithTag\n", __FUNCTION__);
+			return NULL;
 		}
 		RtlZeroMemory(root, sizeof(struct page_root));
 		extension->MapmemInfo.MemAlloc.page_slot_root[rindex] = root;
@@ -528,7 +534,7 @@ void _cdecl wk_free_page(unsigned long gpfn, struct page *page)
 	RtlZeroMemory(entry, sizeof(struct page));
 
 	if (root->bitmap.address_mask == 0) {
-		KeFreePageMemory(root, sizeof(struct page_root));
+		ExFreePoolWithTag(root, sizeof(struct page_root));
 		extension->MapmemInfo.MemAlloc.page_slot_root[rindex] = NULL;
 	}   
 }
