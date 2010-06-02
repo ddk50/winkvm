@@ -345,6 +345,8 @@ struct kvm_dirty_log {
 #define WINKVM_PUT_VCPU          _IO(KVMIO, 34)
 #define WINKVM_READ_GUEST        _IO(KVMIO, 35)
 #define WINKVM_WRITE_GUEST       _IO(KVMIO, 36)
+
+
 #define WINKVM_MAPMEM_INITIALIZE _IOWR(KVMIO, 37, struct winkvm_mapmem_initialize)
 #define WINKVM_MAPMEM_GETPVMAP   _IOWR(KVMIO, 38, struct winkvm_getpvmap)
 #define WINKVM_UNMAPMEM_GETPVMAP _IOWR(KVMIO, 39, struct winkvm_getpvmap)
