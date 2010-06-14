@@ -2,6 +2,8 @@
 #include "MapMem.h"
 #include "kernel.h"
 
+#include <Ntstrsafe.h>
+
 #define MEM_PHYSICAL 0x400000
 
 /*
@@ -9,30 +11,34 @@
  */
 //L"\\BaseNamedObjects\\UserKernelSharedSection"
 NTSTATUS 
-CreateUserMappingSection(IN SIZE_T shared_size,
-						 IN PCWSTR section_name,
-						 OUT PVOID *OutBuffer,
-						 OUT HANDLE *handler)
+CreateUserMappingSection(IN SIZE_T            npages,
+						 IN int               slot,
+						 OUT PUNICODE_STRING  section_name,
+						 OUT PVOID            *OutBuffer,
+						 OUT HANDLE           *handler)
 {
 	LARGE_INTEGER       size;
-	UNICODE_STRING      usSectionName;
 	OBJECT_ATTRIBUTES   objAttributes;
 	NTSTATUS            status;
 	HANDLE              g_hSection;
 	PVOID               pSharedSection;
 	SIZE_T              ViewSize;
 
-	RtlInitUnicodeString(&usSectionName, section_name);
+	RtlUnicodeStringPrintf(section_name, SECTION_BASENAME, slot);
+
 	InitializeObjectAttributes(
 		&objAttributes, 
-		&usSectionName, 
+		section_name, 
 		OBJ_CASE_INSENSITIVE, 
 		NULL, 
 		NULL);
 
 	size.HighPart  = 0;
-	size.LowPart   = shared_size;	
+	size.LowPart   = npages << PAGE_SHIFT;
 	g_hSection     = NULL;
+
+	/* ToDo: セクション名の生成コードを書くこと！ */
+	/* OUT PCWSTR section_name */
 
 	status = ZwCreateSection(
 		&g_hSection,
@@ -50,7 +56,7 @@ CreateUserMappingSection(IN SIZE_T shared_size,
 
 	/* for pSharedSection */
 	pSharedSection = NULL;
-	ViewSize = shared_size;
+	ViewSize = npages << PAGE_SHIFT;
 
 	status = ZwMapViewOfSection(
 		g_hSection,
@@ -89,15 +95,17 @@ error:
  * CloseMapSection
  */
 NTSTATUS
-CloseUserMappingSection(IN HANDLE handler,
-						IN PVOID *OutBuffer)
+CloseUserMappingSection(IN HANDLE            handler,
+						IN int               slot,
+						IN PUNICODE_STRING   section_name,
+						IN PVOID             *OutBuffer)
 {
 	NTSTATUS status;
 
 	status = ZwUnmapViewOfSection(handler, OutBuffer);
 	if (!NT_SUCCESS(status)) {
-		printk("Could not Unmap Section: %p 0x%x\n", 
-			*OutBuffer, status);
+		printk("Could not Unmap Section: %w %p 0x%x\n", 
+			section_name, *OutBuffer, status);
 		return STATUS_UNSUCCESSFUL;
 	}
 

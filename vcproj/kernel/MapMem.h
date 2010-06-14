@@ -6,13 +6,16 @@
 #include "extension.h"
 
 NTSTATUS 
-CreateUserMappingSection(IN SIZE_T shared_size,
-						 IN PCWSTR section_name,
-						 OUT PVOID *OutBuffer,
-						 OUT HANDLE *handler);
+CreateUserMappingSection(IN SIZE_T            npages,
+						 IN int               slot,
+						 OUT PUNICODE_STRING  section_name,
+						 OUT PVOID            *OutBuffer,
+						 OUT HANDLE           *handler);
 
 NTSTATUS
-CloseUserMappingSection(IN HANDLE handler,
-						IN PVOID *OutBuffer);
+CloseUserMappingSection(IN HANDLE            handler,
+						IN int               slot,
+						IN PUNICODE_STRING   section_name,
+						IN PVOID             *OutBuffer);
 
 #endif
