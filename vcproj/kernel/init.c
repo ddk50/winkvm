@@ -101,11 +101,6 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 		extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
 		RtlZeroMemory(extension, sizeof(WINKVM_DEVICE_EXTENSION));
 
-		/* init extension */
-		extension->MapmemInfo.maphandler  = NULL;
-		extension->MapmemInfo.mappointer  = NULL;
-		extension->MapmemInfo.shared_size = 0;
-		
 		RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
 		status = IoCreateSymbolicLink(&Win32NameString, &NtNameString);
 
@@ -544,28 +539,36 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_MAPMEM_INITIALIZE:
 			{				
-				struct winkvm_mapmem_initialize init;
+				struct winkvm_mapmem_initialize  init;
+				MAPMEM *MapmemInfo;
 
 				RtlCopyMemory(&init, inBuf, sizeof(init)); {
-					if (extension->MapmemInfo.shared_size > 0) {
+					if (init.slot >= MAX_MEMMAP_SLOT) {
+						ntStatus = STATUS_UNSUCCESSFUL;
+						break;
+					}
+
+					MapmemInfo = &extension->MapmemInfo[init.slot];
+					if (MapmemInfo->npages > 0) {
 						printk(KERN_ALERT "already mapped memory region\n");
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
 
 					ntStatus = CreateUserMappingSection(
-						(SIZE_T)init.shared_size,
-						L"\\BaseNamedObjects\\UserKernelSharedSection",
-						&extension->MapmemInfo.mappointer,
-						&extension->MapmemInfo.maphandler);
+						    (SIZE_T)init.npages,
+							init.slot,
+							MapmemInfo->SectionName,
+							&MapmemInfo->MapPointer,
+							&MapmemInfo->MapHandler);
 
 					if (!NT_SUCCESS(ntStatus)) {
-						init.shared_size       = 0;
-						extension->MapmemInfo.shared_size = 0;
+						init.npages        = 0;
+						MapmemInfo->npages = 0;
 					} else {
-						extension->MapmemInfo.shared_size = init.shared_size;
+						MapmemInfo->npages = init.npages;
 						printk("memory mapping size: %d [bytes]\n", 
-							init.shared_size);
+							init.npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
 				break;
@@ -573,19 +576,23 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_MAPMEM_GETPVMAP:
 			{
-				unsigned int i;
-				unsigned long addr;
-				PHYSICAL_ADDRESS paddr;
-				struct winkvm_getpvmap pvmap;
+				unsigned int            i;
+				unsigned long           addr;
+				PHYSICAL_ADDRESS        paddr;
+				struct winkvm_getpvmap  pvmap;				
 
 				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); {
+					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
+						ntStatus = STATUS_UNSUCCESSFUL;
+						break;
+					}
 					if (pvmap.tablesize == 0) {
 						pvmap.tablesize = 
-							(__u32)(extension->MapmemInfo.shared_size >> PAGE_SHIFT) 
+							(__u32)(extension->MapmemInfo[pvmap.slot].npages)
 							* sizeof(struct winkvm_pfmap);
 					} else {
 						for (i = 0 ; i < (pvmap.tablesize / sizeof(struct winkvm_pfmap)) ; i++ ) {
-							addr = (unsigned long)extension->MapmemInfo.mappointer + i * PAGE_SIZE;
+							addr = (unsigned long)extension->MapmemInfo[pvmap.slot].MapPointer + i * PAGE_SIZE;
 							pvmap.maptable[i].virt = addr;
 							RtlFillMemory((char*)addr, 0, PAGE_SIZE);
 							paddr = MmGetPhysicalAddress((PVOID)addr);
@@ -599,12 +606,24 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_UNMAPMEM_GETPVMAP:
 			{
-				if (extension->MapmemInfo.shared_size > 0 &&
-					extension->MapmemInfo.maphandler != NULL) {
-					ntStatus = CloseUserMappingSection(
-						extension->MapmemInfo.maphandler,
-						&extension->MapmemInfo.mappointer);
-				}
+				struct winkvm_getpvmap  pvmap;
+
+				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); {
+					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
+						ntStatus = STATUS_UNSUCCESSFUL;
+						break;
+					}
+					if (extension->MapmemInfo[pvmap.slot].npages > 0 &&						
+						extension->MapmemInfo[pvmap.slot].MapHandler != NULL) {
+							ntStatus = CloseUserMappingSection(
+								extension->MapmemInfo[pvmap.slot].MapHandler,
+								pvmap.slot,								
+								extension->MapmemInfo[pvmap.slot].SectionName,
+								&extension->MapmemInfo[pvmap.slot].MapPointer);
+					}
+				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
+
+				ntStatus = STATUS_SUCCESS;
 			} /* end WINKVM_UNMAPMEM_GETPVMAP */
 
 		default:
