@@ -550,7 +550,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 					MapmemInfo = &extension->MapmemInfo[init.slot];
 					if (MapmemInfo->npages > 0) {
-						printk(KERN_ALERT "already mapped memory region\n");
+						printk(KERN_ALERT "%d slot has been already mapped memory region\n",
+							init.slot);
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
@@ -563,12 +564,17 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							&MapmemInfo->MapHandler);
 
 					if (!NT_SUCCESS(ntStatus)) {
-						init.npages        = 0;
-						MapmemInfo->npages = 0;
+						init.npages          = 0;
+						MapmemInfo->npages   = 0;
+						MapmemInfo->base_gfn = init.base_gfn;
 					} else {
-						MapmemInfo->npages = init.npages;
-						printk("memory mapping size: %d [bytes]\n", 
-							init.npages);
+						MapmemInfo->npages   = init.npages;
+						MapmemInfo->base_gfn = init.base_gfn;
+						printk(KERN_ALERT "slot [%d] memory mapping: %x ... %x (%d [pages])\n", 
+							init.slot,
+							MapmemInfo->base_gfn << PAGE_SHIFT,
+							(MapmemInfo->base_gfn + MapmemInfo->npages) << PAGE_SHIFT,
+							MapmemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
 				break;
