@@ -577,6 +577,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							MapmemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
+				Irp->IoStatus.Information = sizeof(init);
 				break;
 			} /* end WINKVM_MAPMEM_INITIALIZE */
 
@@ -584,8 +585,11 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			{
 				unsigned int            i;
 				unsigned long           addr;
+				unsigned long           RetLength;
 				PHYSICAL_ADDRESS        paddr;
 				struct winkvm_getpvmap  pvmap;
+				struct winkvm_getpvmap  *p;
+				__u64 val;
 
 				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
 
@@ -594,21 +598,31 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
+
 					if (pvmap.tablesize == 0) {
+						p         = &pvmap;
+						RetLength = sizeof(pvmap);
+
 						pvmap.tablesize = 
 							(__u32)(extension->MapmemInfo[pvmap.slot].npages)
 							* sizeof(struct winkvm_pfmap);
 						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
-						for (i = 0 ; i < (pvmap.tablesize / sizeof(struct winkvm_pfmap)) ; i++ ) {
-							addr = (unsigned long)extension->MapmemInfo[pvmap.slot].MapPointer + i * PAGE_SIZE;
-							pvmap.maptable[i].virt = addr;
+						p         = (struct winkvm_getpvmap*)inBuf;
+						RetLength = p->tablesize + sizeof(struct winkvm_pfmap);
+						for (i = 0 ; i < (p->tablesize / sizeof(struct winkvm_pfmap)) ; i++) {
+							addr = (unsigned long)((__u8*)extension->MapmemInfo[p->slot].MapPointer + i * PAGE_SIZE);
+							p->maptable[i].virt = addr;
 							RtlFillMemory((char*)addr, 0, PAGE_SIZE);
-							paddr = MmGetPhysicalAddress((PVOID)addr);
-							pvmap.maptable[i].phys = get_phys(&paddr);
+							paddr = MmGetPhysicalAddress(addr);
+							val = 
+//							p->maptable[i].phys = 
+//							printk(KERN_ALERT "(virt) 0x%08lx ... (phys) 0x%08lx\n",
+//								p->maptable[i].virt, p->maptable[i].phys);
 						}
 					}
-				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
+				} RtlCopyMemory(outBuf, p, RetLength);
+				Irp->IoStatus.Information = RetLength;
 				ntStatus = STATUS_SUCCESS;
 				printk(KERN_ALERT "End WINKVM_MAPMEM_GETPVMAP\n");
 				break;
@@ -632,6 +646,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 								&extension->MapmemInfo[pvmap.slot].MapPointer);
 					}
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
+				Irp->IoStatus.Information = sizeof(pvmap);
 
 				ntStatus = STATUS_SUCCESS;
 			} /* end WINKVM_UNMAPMEM_GETPVMAP */

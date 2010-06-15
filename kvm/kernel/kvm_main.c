@@ -757,8 +757,6 @@ raced:
 		  /*			new.phys_mem[i] = alloc_page(GFP_HIGHUSER
 						     | __GFP_ZERO);
 		  */
-
-			printk(KERN_ALERT " (gfn) 0x%08lx\n", new.base_gfn + i);
 			
 			new.phys_mem[i] = wk_alloc_page(new.base_gfn + i,											
 											GFP_HIGHUSER | __GFP_ZERO);			
