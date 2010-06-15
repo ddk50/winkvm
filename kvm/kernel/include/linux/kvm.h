@@ -68,12 +68,13 @@ struct winkvm_transfer_mem {
 	int vcpu_fd;	
 	__u32 gva;
 	__u32 size;
-	__u8 payload[0];  
+	__u8 payload[0];	
 };
 
 struct winkvm_mapmem_initialize {
 	int   vm_fd;	
-	int   slot;	
+	int   slot;
+	__u32 base_gfn;	
 	__u32 npages;	
 };
 

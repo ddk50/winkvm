@@ -24,14 +24,16 @@ CreateUserMappingSection(IN SIZE_T            npages,
 	PVOID               pSharedSection;
 	SIZE_T              ViewSize;
 
-	RtlUnicodeStringPrintf(section_name, SECTION_BASENAME, slot);
+	/* Form section name */
+	status = RtlUnicodeStringPrintf(section_name, SECTION_BASENAME, slot);
+	SAFE_ASSERT(status == STATUS_SUCCESS);
 
 	InitializeObjectAttributes(
-		&objAttributes, 
-		section_name, 
-		OBJ_CASE_INSENSITIVE, 
-		NULL, 
-		NULL);
+		  &objAttributes, 
+		  section_name, 
+		  OBJ_CASE_INSENSITIVE, 
+		  NULL, 
+		  NULL);
 
 	size.HighPart  = 0;
 	size.LowPart   = npages << PAGE_SHIFT;
@@ -50,7 +52,9 @@ CreateUserMappingSection(IN SIZE_T            npages,
 		NULL);
 
 	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Create Section: 0x%x\n", status);
+		printk(KERN_ALERT "Could not Create %w Section: 0x%x\n", 
+			section_name,
+			status);
 		goto error;
 	}
 
