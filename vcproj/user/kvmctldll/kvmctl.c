@@ -18,7 +18,7 @@
 #define PAGE_MASK   (~(PAGE_SIZE-1))
 
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
-#define MAP                L"UserKernelSharedSection"
+#define MAP                L"wkukss-%d"
 
 #define KVM_MAX_NUM_MEM_REGIONS 4u
 
@@ -34,13 +34,17 @@ static int more_io(struct kvm_run *run, int first_time);
 
 int try_push_interrupts(kvm_context_t kvm);
 
-static BOOL SetMemmapArea(kvm_context_t kvm,
-						  unsigned long page_num);
+static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map);
 
-static LPVOID WkVirtualAlloc(kvm_context_t kvm, SIZE_T dwSize);
-static void WkVirtualFree(kvm_context_t kvm);
+static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map);
+static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map);
 
-static void GetPhysicalMap(kvm_context_t kvm);
+struct winkvm_memmap {
+	HANDLE  hMapHandle;
+	void    *ptr;
+	struct winkvm_getpvmap *mapping_pvmap;
+	struct winkvm_mapmem_initialize init;
+};
 
 /**
  * \brief The KVM context
@@ -51,9 +55,6 @@ struct kvm_context {
     /// Filedescriptor to /dev/kvm
     //int fd;
 	HANDLE                 hnd;
-	HANDLE                 hMapHandle;
-	PVOID                  *mapping_area;	
-	struct winkvm_getpvmap *mapping_pvmap;
 
     int     vm_fd;
     int     vcpu_fd[1];
@@ -66,6 +67,7 @@ struct kvm_context {
     int dirty_pages_log_all;
     /// memory regions parameters
     struct kvm_memory_region mem_regions[KVM_MAX_NUM_MEM_REGIONS];
+	struct winkvm_memmap mapping[KVM_MAX_NUM_MEM_REGIONS];
 };
 
 struct kvm_context *kvm_context = NULL;
@@ -96,14 +98,15 @@ static int translate(kvm_context_t kvm, int vcpu, struct translation_cache *tr,
 		kvm_tr.vcpu_fd = kvm->vcpu_fd[vcpu];
 
 //        r = ioctl(kvm->vcpu_fd[vcpu], KVM_TRANSLATE, &kvm_tr);
-		ret = DeviceIoControl(kvm->hnd,
-			                  KVM_TRANSLATE,
-							  &kvm_tr,
-							  sizeof(kvm_tr),
-							  &kvm_tr,
-							  sizeof(kvm_tr),
-							  &retlen,
-							  NULL);
+		ret = DeviceIoControl(
+			 kvm->hnd,
+			 KVM_TRANSLATE,
+			 &kvm_tr,
+			 sizeof(kvm_tr),
+			 &kvm_tr,
+			 sizeof(kvm_tr),
+			 &retlen,
+			 NULL);
 
 //        if (r == -1)
 //            return -errno;
@@ -132,11 +135,17 @@ void kvm_finalize(kvm_context_t kvm)
 	close(kvm->fd);
     free(kvm);
 	*/
-	if (kvm->mapping_pvmap)
-		free(kvm->mapping_pvmap);
 
-	CloseHandle(kvm->hMapHandle);
-	CloseHandle(kvm->hnd);
+	int i;
+
+	for (i = 0 ; i < KVM_MAX_NUM_MEM_REGIONS ; i++) {
+		if (kvm->mapping[i].mapping_pvmap)
+			free(kvm->mapping[i].mapping_pvmap);
+
+		CloseHandle(kvm->mapping[i].hMapHandle);
+	}
+
+	CloseHandle(kvm->hnd);	
 
 	kvm_context = NULL;
 
@@ -164,23 +173,49 @@ static void kvm_memory_region_clear_params(kvm_context_t kvm, int regnum)
     kvm->mem_regions[regnum].memory_size = 0;
 }
 
+static void winkvm_mapping_region_save_params(kvm_context_t kvm, struct winkvm_memmap *map)
+{
+	if (!map || (map->init.slot >= KVM_MAX_NUM_MEM_REGIONS)) {
+		fprintf(stderr, "BUG: %s: invalid parameters\n", __FUNCTION__);
+		return;
+	}
+	kvm->mapping[map->init.slot] = *map;
+}
+
 int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 {
     unsigned long dosmem = 0xa0000;
     unsigned long exmem = 0xc0000;
-    HANDLE hnd = kvm->hnd;
-	int fd, retlen, vcpufd;
+    HANDLE  hnd = kvm->hnd;
+	int     fd, retlen, vcpufd;
 //    int zfd;	
 //    int r;
-	struct winkvm_memory_region low_memory;
-	struct winkvm_memory_region extended_memory;
-	struct winkvm_create_vcpu create_vcpu;
-	BOOL ret;
+	struct winkvm_memory_region  low_memory;
+	struct winkvm_memory_region  extended_memory;
+	struct winkvm_memmap         maparea;
+	struct winkvm_create_vcpu    create_vcpu;
+	BOOL   ret;
 	
 	kvm_context = kvm;
 
 	memset(&low_memory, 0, sizeof(struct winkvm_memory_region));
 	memset(&extended_memory, 0, sizeof(struct winkvm_memory_region));
+
+	/* for winkvm */	
+	memset(&maparea, 0, sizeof(struct winkvm_memmap));
+
+	fprintf(stderr, "memory size: %d [mbytes]\n", memory / 1024 / 1024);
+
+	maparea.init.slot      = 0;
+	maparea.init.base_gfn  = 0 >> PAGE_SHIFT;
+	maparea.init.npages    = memory >> PAGE_SHIFT;
+
+	if (!SetMemmapArea(kvm, &maparea)) {
+		fprintf(stderr, "Could not initialize Memmap Area: %m\n");
+		return -1;
+	}
+
+	/* end */
 
 	low_memory.kvm_memory_region.slot = 3;
 	low_memory.kvm_memory_region.memory_size = memory  < dosmem ? memory : dosmem;
@@ -193,14 +228,15 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
     kvm->vcpu_fd[0] = -1;
 
 	printf("Create VM ... \n");
-	ret = DeviceIoControl(hnd,			  
-						  KVM_CREATE_VM,
-						  NULL,
-						  0,
-						  &fd,
-						  sizeof(fd),
-						  &retlen,					  
-						  NULL); 
+	ret = DeviceIoControl(
+		      hnd,			  
+			  KVM_CREATE_VM,
+			  NULL,
+			  0,
+			  &fd,
+			  sizeof(fd),
+			  &retlen,					  
+			  NULL); 
 	
 	//    fd = ioctl(fd, KVM_CREATE_VM, 0);	
     if (!ret && fd == -1) {
@@ -211,7 +247,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	printf(" Done\n");
 
 	printf("Set Memory Region ... \n");
-	low_memory.vm_fd = fd;
+	low_memory.vm_fd      = fd;
+	extended_memory.vm_fd = fd;
 
 	printf(" VM_FD : %d\n", low_memory.vm_fd);
 	printf(" MEMORY REGION (flag) : 0x%08x\n", low_memory.kvm_memory_region.flags);
@@ -221,14 +258,16 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 
     /* 640K should be enough. */
 	//    r = ioctl(fd, KVM_SET_MEMORY_REGION, &low_memory);
-	ret = DeviceIoControl(hnd,						  
-						  KVM_SET_MEMORY_REGION,						  
-						  &low_memory,
-						  sizeof(struct winkvm_memory_region),
-						  &low_memory,
-						  sizeof(struct winkvm_memory_region),
-						  &retlen,						  
-						  NULL);
+	ret = DeviceIoControl(
+		       hnd,						  
+			   KVM_SET_MEMORY_REGION,						  
+			   &low_memory,
+			   sizeof(struct winkvm_memory_region),
+			   &low_memory,
+			   sizeof(struct winkvm_memory_region),
+			   &retlen,						  
+			   NULL);
+
     if (!ret) {
         fprintf(stderr, "kvm_create_memory_region: %m\n");
         return -1;		
@@ -245,14 +284,16 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 		printf(" MEMORY REGION (slot) : %d\n", extended_memory.kvm_memory_region.slot);
 		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.kvm_memory_region.guest_phys_addr);
 
-		ret = DeviceIoControl(hnd,
-							  KVM_SET_MEMORY_REGION,
-							  &extended_memory,
-							  sizeof(struct winkvm_memory_region),
-							  &extended_memory,
-							  sizeof(struct winkvm_memory_region),
-							  &retlen,
-							  NULL);
+		ret = DeviceIoControl(
+			     hnd,
+				 KVM_SET_MEMORY_REGION,
+				 &extended_memory,
+				 sizeof(struct winkvm_memory_region),
+				 &extended_memory,
+				 sizeof(struct winkvm_memory_region),
+				 &retlen,
+				 NULL);
+
         if (!ret) {
             fprintf(stderr, "kvm_create_memory_region: %m\n");
             return -1; 
@@ -264,27 +305,30 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	kvm_memory_region_save_params(kvm, &extended_memory.kvm_memory_region);
 
 /*	*vm_mem = VirtualAlloc(NULL, memory, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE); */
-/*	*vm_mem = VirtualAlloc(NULL, memory, MEM_COMMIT, PAGE_READWRITE); */
-	*vm_mem = WkVirtualAlloc(kvm, memory);
+	*vm_mem = WkVirtualAlloc(kvm, &maparea);
 	if (*vm_mem == NULL) {
 		fprintf(stderr, "VirtualAlloc error\n");
 		return -1;
 	}
 	kvm->physical_memory = *vm_mem;
 
+	winkvm_mapping_region_save_params(kvm, &maparea);
+
 	create_vcpu.vm_fd    = fd;
 	create_vcpu.vcpu_fd  = 0;
 
 	vcpufd = -1;
 	printf("Create VCPU ... \n");
-	ret = DeviceIoControl(hnd,
-		                  KVM_CREATE_VCPU,
-						  &create_vcpu,
-						  sizeof(create_vcpu),
-						  &vcpufd,
-						  sizeof(vcpufd),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		      hnd,
+			  KVM_CREATE_VCPU,
+			  &create_vcpu,
+			  sizeof(create_vcpu),
+			  &vcpufd,
+			  sizeof(vcpufd),
+			  &retlen,
+			  NULL);
+
      if (vcpufd == -1) {	   
          fprintf(stderr, " kvm_create_vcpu: %m\n");
          return -1;
@@ -305,7 +349,9 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 //    int prot = PROT_READ;
 	BOOL ret;
 	int retlen;
-	struct winkvm_memory_region memory;
+	struct winkvm_memory_region  memory;
+
+	printf("called %s\n", __FUNCTION__);
 
 	/*
     struct kvm_memory_region memory = {
@@ -339,14 +385,14 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 		   memory.kvm_memory_region.guest_phys_addr);
 
 	ret = DeviceIoControl(
-		kvm->hnd,
-		KVM_SET_MEMORY_REGION,
-		&memory,
-		sizeof(struct winkvm_memory_region),
-		&memory,
-		sizeof(struct winkvm_memory_region),
-		&retlen,
-		NULL);
+		     kvm->hnd,
+			 KVM_SET_MEMORY_REGION,
+			 &memory,
+			 sizeof(struct winkvm_memory_region),
+			 &memory,
+			 sizeof(struct winkvm_memory_region),
+			 &retlen,
+			 NULL);
 
 	if (!ret) {
 		return 0;
@@ -509,14 +555,17 @@ int kvm_get_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs)
 	BOOL ret;
 	unsigned long retlen;
 	int fd = kvm->vcpu_fd[vcpu];
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_GET_REGS,
-						  &fd,
-						  sizeof(int),
-						  regs,
-						  sizeof(struct kvm_regs),
-						  &retlen,
-						  NULL);
+
+	ret = DeviceIoControl(
+		    kvm->hnd,
+			KVM_GET_REGS,
+			&fd,
+			sizeof(int),
+			regs,
+			sizeof(struct kvm_regs),
+			&retlen,
+			NULL);
+
 	if (ret)
 		return 1;
 	else 
@@ -529,15 +578,18 @@ int kvm_set_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs)
 	BOOL ret;
 	int fd = kvm->vcpu_fd[vcpu];
 	unsigned long retlen;	
+
 	regs->vcpu_fd = fd;
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_SET_REGS,
-						  regs,
-						  sizeof(struct kvm_regs),
-						  NULL,
-						  0,
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_SET_REGS,
+			 regs,
+			 sizeof(struct kvm_regs),
+			 NULL,
+			 0,
+			 &retlen,
+			 NULL);
+
 	if (ret)
 		return 1;
 	else
@@ -550,14 +602,17 @@ int kvm_get_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *sregs)
 	BOOL ret;
 	unsigned long retlen;
 	int vcpu_fd = kvm->vcpu_fd[vcpu];
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_GET_SREGS,
-						  &vcpu_fd,
-						  sizeof(int),
-						  sregs,
-						  sizeof(struct kvm_sregs),
-						  &retlen,
-						  NULL);
+
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_GET_SREGS,
+			 &vcpu_fd,
+			 sizeof(int),
+			 sregs,
+			 sizeof(struct kvm_sregs),
+			 &retlen,
+			 NULL);
+
 	if (ret)
 		return 1;
 	else
@@ -570,14 +625,17 @@ int kvm_set_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *sregs)
 	BOOL ret;
 	unsigned long retlen;
 	int vcpu_fd = kvm->vcpu_fd[vcpu];
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_SET_SREGS,
-						  sregs,
-						  sizeof(struct kvm_sregs),
-						  NULL,
-						  0,
-						  &retlen,
-						  NULL);
+
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_SET_SREGS,
+			 sregs,
+			 sizeof(struct kvm_sregs),
+			 NULL,
+			 0,
+			 &retlen,
+			 NULL);
+
 	if (ret)
 		return 1;
 	else
@@ -662,14 +720,16 @@ static BOOL winkvm_test_run(HANDLE hnd, int vcpu_fd)
 
 	printf("%s\n", __FUNCTION__);
 	
-	ret = DeviceIoControl(hnd,
-						  WINKVM_EXECUTE_TEST,
-						  &vcpu_fd,						  
-						  sizeof(vcpu_fd),
-						  NULL,
-						  0,
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		       hnd,
+			   WINKVM_EXECUTE_TEST,
+			   &vcpu_fd,						  
+			   sizeof(vcpu_fd),
+			   NULL,
+			   0,
+			   &retlen,
+			   NULL);
+
 	if (ret) {
 		printf(" Success: DeviceIoControl\n");
 	} else {
@@ -703,18 +763,21 @@ void kvm_show_regs(kvm_context_t kvm, int vcpu)
 	BOOL ret;
 
 //    r = ioctl(fd, KVM_GET_REGS, &regs);	
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_GET_REGS,
-						  &fd,
-						  sizeof(int),
-						  &regs,
-						  sizeof(struct kvm_regs),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_GET_REGS,
+			 &fd,
+			 sizeof(int),
+			 &regs,
+			 sizeof(struct kvm_regs),
+			 &retlen,
+			 NULL);
+
     if (!ret) {
         perror("KVM_GET_REGS");
         return;
     }
+
     fprintf(stderr,
         "rax %016llx rbx %016llx rcx %016llx rdx %016llx\n"
         "rsi %016llx rdi %016llx rsp %016llx rbp %016llx\n"
@@ -726,15 +789,18 @@ void kvm_show_regs(kvm_context_t kvm, int vcpu)
         regs.r8,  regs.r9,  regs.r10, regs.r11,
         regs.r12, regs.r13, regs.r14, regs.r15,
         regs.rip, regs.rflags);
+
 //    r = ioctl(fd, KVM_GET_SREGS, &sregs);
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_GET_REGS,
-						  &fd,
-						  sizeof(int),
-						  &sregs,
-						  sizeof(struct kvm_sregs),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		      kvm->hnd,
+			  KVM_GET_REGS,
+			  &fd,
+			  sizeof(int),
+			  &sregs,
+			  sizeof(struct kvm_sregs),
+			  &retlen,
+			  NULL);
+
     if (!ret) {
         perror("KVM_GET_SREGS");
         return;
@@ -797,14 +863,15 @@ again:
 	pre_kvm_run(kvm, &kvm_run);
 
 /*	r = ioctl(fd, KVM_RUN, &kvm_run); */
-	ret = DeviceIoControl(kvm->hnd,
-						  KVM_RUN,
-						  &kvm_run,
-						  sizeof(kvm_run),
-						  &kvm_run,
-						  sizeof(kvm_run),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		    kvm->hnd,
+			KVM_RUN,
+			&kvm_run,
+			sizeof(kvm_run),
+			&kvm_run,
+			sizeof(kvm_run),
+			&retlen,
+			NULL);
 
 	if (retlen != sizeof(kvm_run)) {
 		printf("kvm_run: invalid return value\n");
@@ -998,15 +1065,18 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
 	printf("Call %s\n", __FUNCTION__);
 
 	sizer.nmsrs = 0;
+
 //    r = ioctl(kvm->fd, KVM_GET_MSR_INDEX_LIST, &sizer);
-	ret = DeviceIoControl(kvm->hnd,
-						  KVM_GET_MSR_INDEX_LIST,
-						  &sizer,
-						  sizeof(sizer),
-						  NULL,
-						  0,
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_GET_MSR_INDEX_LIST,
+			 &sizer,
+			 sizeof(sizer),
+			 NULL,
+			 0,
+			 &retlen,
+			 NULL);
+
 //    if (r == -1 && errno != E2BIG)
 //		return 0;
 	if (!ret) {
@@ -1028,15 +1098,18 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
 		(sizeof *msrs + sizer.nmsrs * sizeof *msrs->indices));
 
     msrs->nmsrs = sizer.nmsrs;
+
 //  r = ioctl(kvm->fd, KVM_GET_MSR_INDEX_LIST, msrs);
-	ret = DeviceIoControl(kvm->hnd,
-						  KVM_GET_MSR_INDEX_LIST,
-						  msrs,
-						  (sizeof *msrs + sizer.nmsrs * sizeof *msrs->indices),
-						  msrs,
-						  (sizeof *msrs + sizer.nmsrs * sizeof *msrs->indices),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 KVM_GET_MSR_INDEX_LIST,
+			 msrs,
+			 (sizeof *msrs + sizer.nmsrs * sizeof *msrs->indices),
+			 msrs,
+			 (sizeof *msrs + sizer.nmsrs * sizeof *msrs->indices),
+			 &retlen,
+			 NULL);
+
 
     if (!ret) {
 //		e = errno;
@@ -1195,14 +1268,15 @@ int _cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
 	trans_mem->size    = size;
 	trans_mem->gva     = addr;
 
-	ret = DeviceIoControl(kvm->hnd,
-		                  WINKVM_READ_GUEST,
-						  trans_mem,
-						  sizeof(struct winkvm_transfer_mem),
-						  trans_mem->payload,
-						  size,
-						  &copyed_bytes,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 WINKVM_READ_GUEST,
+			 trans_mem,
+			 sizeof(struct winkvm_transfer_mem),
+			 trans_mem->payload,
+			 size,
+			 &copyed_bytes,
+			 NULL);
 
 	if (!ret) {
 		fprintf(stderr, "Could not copy to guest area\n");
@@ -1236,8 +1310,9 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 		trans_mem = realloc(trans_mem,
 			                sizeof(struct winkvm_transfer_mem) + size);
 		if (!trans_mem) {
-			fprintf(stderr, "Could not allocate read buffer\n");
-			fprintf(stderr, "winkvm_write_guest end\n");	
+			fprintf(stderr, 
+				"Could not allocate read buffer\n"
+				"winkvm_write_guest end\n");
 			return 0;
 		}
 	    tbuf_size = size;
@@ -1251,14 +1326,15 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 //	printf("write guest: gva: 0x%08lx, size: %d\n", 
 //		trans_mem->gva, trans_mem->size);
 
-	ret = DeviceIoControl(kvm->hnd,
-		                  WINKVM_WRITE_GUEST,
-						  trans_mem,
-						  sizeof(struct winkvm_transfer_mem) + size,
-						  &copyed_bytes,
-						  sizeof(copyed_bytes),
-						  &retlen,
-						  NULL);
+	ret = DeviceIoControl(
+		     kvm->hnd,
+			 WINKVM_WRITE_GUEST,
+			 trans_mem,
+			 sizeof(struct winkvm_transfer_mem) + size,
+			 &copyed_bytes,
+			 sizeof(copyed_bytes),
+			 &retlen,
+			 NULL);
 
 	if (!ret) {
 		fprintf(stderr, "Could not copy to guest area\n");
@@ -1269,30 +1345,16 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 	return copyed_bytes;
 }
 
-static LPVOID WkVirtualAlloc(kvm_context_t kvm, SIZE_T dwSize)
-{
-	unsigned long page = dwSize >> PAGE_SHIFT;
-	if (SetMemmapArea(kvm, page)) {
-		GetPhysicalMap(kvm);
-		return kvm->mapping_area;
-	}
-	return NULL;
-}
-
-static void WkVirtualFree(kvm_context_t kvm)
-{
-
-}
-
-static void GetPhysicalMap(kvm_context_t kvm)
+static void GetPhysicalMap(kvm_context_t kvm, struct winkvm_memmap *map)
 {
 	struct winkvm_getpvmap tmp;
-	struct winkvm_getpvmap *map;
+	struct winkvm_getpvmap *pvmap;
 	BOOL Result;
 	ULONG ReturnedLength;
 	int i;
 
 	memset(&tmp, 0, sizeof(tmp));
+	tmp.slot = map->init.slot;
 
 	Result = DeviceIoControl(
 		  kvm->hnd,
@@ -1311,21 +1373,22 @@ static void GetPhysicalMap(kvm_context_t kvm)
 
 	if (tmp.tablesize > 0) {
 		unsigned long table_size = tmp.tablesize + sizeof(struct winkvm_getpvmap);
-		map = (struct winkvm_getpvmap*)malloc(table_size);
-		if (!map) {
+		pvmap = (struct winkvm_getpvmap*)malloc(table_size);
+		if (!pvmap) {
 			printf("%s Could not allocate memory\n", 
 				__FUNCTION__);
 			return;
 		}
 
-		map->tablesize = tmp.tablesize;
+		pvmap->tablesize = tmp.tablesize;
+		pvmap->slot      = map->init.slot;
 
 		Result = DeviceIoControl(
 			  kvm->hnd,
 			  WINKVM_MAPMEM_GETPVMAP,
-			  map,
+			  pvmap,
 			  table_size,
-			  map,
+			  pvmap,
 			  table_size,
 			  &ReturnedLength,
 			  NULL);
@@ -1335,14 +1398,13 @@ static void GetPhysicalMap(kvm_context_t kvm)
 			goto free_and_error;
 		}
 
-		for (i = 0 ; i < map->tablesize / sizeof(struct winkvm_pfmap) ; i++) {
+		for (i = 0 ; i < pvmap->tablesize / sizeof(struct winkvm_pfmap) ; i++) {
 			printf("[%d] 0x%08lx -> 0x%08lx\n", 
 				i,
-				map->maptable[i].virt,
-				map->maptable[i].phys);		
+				pvmap->maptable[i].virt,
+				pvmap->maptable[i].phys);		
 		}
-
-		kvm->mapping_pvmap = map;
+		map->mapping_pvmap = pvmap;
 	}
 
 	return;
@@ -1353,59 +1415,68 @@ free_and_error:
 	return;
 }
 
-static BOOL SetMemmapArea(kvm_context_t kvm,
-						  unsigned long page_num)
+static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 {
 	PVOID *ptr = NULL;
-	HANDLE hMap;
 	BOOL Result;
-	ULONG ReturnedLength;	
-	struct winkvm_mapmem_initialize init;
+	ULONG ReturnedLength;
+	ULONG npages;
+	WCHAR  SecName[255];
 
-	memset(&init, 0, sizeof(init));	
-
-	init.shared_size = PAGE_SIZE * page_num;
+	npages = map->init.npages;
 
 	Result = DeviceIoControl(
-		  kvm->hnd,
-		  WINKVM_MAPMEM_INITIALIZE,
-		  &init,
-		  sizeof(init),
-		  &init,
-		  sizeof(init),
-		  &ReturnedLength,
-		  NULL);	
+		kvm->hnd,
+		WINKVM_MAPMEM_INITIALIZE,
+		&map->init,
+		sizeof(map->init),
+		&map->init,
+		sizeof(map->init),
+		&ReturnedLength,
+		NULL);
 
 	if (!Result) {
-		printf("Driver can not allocate memory area\n");
+		fprintf(stderr, "Driver can not allocate memory area\n");
 		goto error;
 	}	
 
-	hMap = OpenFileMapping(FILE_MAP_WRITE, FALSE, MAP);
-	if (hMap == NULL) {
-		printf("failed to OpenFileMapping()\n");
+	wsprintf(SecName, MAP, map->init.slot);
+
+	map->hMapHandle = OpenFileMapping(FILE_MAP_WRITE, FALSE, SecName);
+	if (map->hMapHandle == NULL) {
+		fprintf(stderr, "failed to OpenFileMapping()\n");
 		goto error;
 	} else {
-		if (init.shared_size != PAGE_SIZE * page_num) {
-			printf("Could not allocate memory mapping area\n");
+		if (map->init.npages != npages) {
+			fprintf(stderr, "Could not allocate memory mapping area\n");
 			goto error;
 		}
 	}
 
-	ptr = MapViewOfFile(hMap, FILE_MAP_WRITE, 0, 0, 0);
+	ptr = MapViewOfFile(map->hMapHandle, FILE_MAP_WRITE, 0, 0, 0);
 	if (ptr == NULL) {
-		printf("failed to MapViewOfFile\n");
+		fprintf(stderr, "failed to MapViewOfFile\n");
 		goto error;
 	}
 
-	kvm->hMapHandle   = hMap;
-	kvm->mapping_area = ptr;
+	map->ptr = ptr;
 
 	return TRUE;
 
 error:
-	kvm->hMapHandle   = NULL;
-	kvm->mapping_area = NULL;
+	map->hMapHandle   = NULL;
+	map->ptr          = NULL;
 
 	return FALSE;
+}
+
+static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map)
+{
+	GetPhysicalMap(kvm, map);
+	return map->ptr;
+}
+
+static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map)
+{
+	printf("%s implement me\n", __FUNCTION__);
 }
