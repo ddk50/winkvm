@@ -24,7 +24,7 @@ typedef struct _MAPMEM {
 	PVOID            MapPointer;
 	HANDLE           MapHandler;
 	MEMALLOC         MemAlloc;
-	PUNICODE_STRING  SectionName;
+	UNICODE_STRING   SectionName;
 } MAPMEM;
 
 /* extension */

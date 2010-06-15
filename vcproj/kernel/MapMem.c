@@ -24,9 +24,18 @@ CreateUserMappingSection(IN SIZE_T            npages,
 	PVOID               pSharedSection;
 	SIZE_T              ViewSize;
 
-	/* Form section name */
+	/* Form section name */	
+	RtlInitUnicodeString(section_name, L"\\BaseNamedObjects\\UserKernelSharedSection");
 	status = RtlUnicodeStringPrintf(section_name, SECTION_BASENAME, slot);
-	SAFE_ASSERT(status == STATUS_SUCCESS);
+	if (!NT_SUCCESS(status)) {
+		printk(KERN_ALERT "Could not Create %s Section: 0x%x\n", 
+			section_name,
+			status);
+		goto error;
+	} else {
+		printk(KERN_ALERT "CreateUserMappingSection: %s\n", 
+			section_name);
+	}
 
 	InitializeObjectAttributes(
 		  &objAttributes, 
@@ -52,7 +61,7 @@ CreateUserMappingSection(IN SIZE_T            npages,
 		NULL);
 
 	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Create %w Section: 0x%x\n", 
+		printk(KERN_ALERT "Could not Create %s Section: 0x%x\n", 
 			section_name,
 			status);
 		goto error;
@@ -75,11 +84,15 @@ CreateUserMappingSection(IN SIZE_T            npages,
 		PAGE_READWRITE | PAGE_NOCACHE);	
 
 	if (!NT_SUCCESS(status)) {
-		printk("Could not Map Section: 0x%x\n", status);
+		printk("Could not %s Map Section: 0x%x\n", 
+			section_name,
+			status);
 		goto error;
 	}
 
-	printk("Pointer: 0x%x\n", pSharedSection);
+	printk("slot [%d] Pointer: 0x%x\n", 
+		slot,
+		pSharedSection);
 
 	/*
 	RtlFillMemory(pSharedSection, shared_size, 'a');	

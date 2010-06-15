@@ -559,14 +559,14 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					ntStatus = CreateUserMappingSection(
 						    (SIZE_T)init.npages,
 							init.slot,
-							MapmemInfo->SectionName,
+							&MapmemInfo->SectionName,
 							&MapmemInfo->MapPointer,
 							&MapmemInfo->MapHandler);
 
 					if (!NT_SUCCESS(ntStatus)) {
 						init.npages          = 0;
 						MapmemInfo->npages   = 0;
-						MapmemInfo->base_gfn = init.base_gfn;
+						MapmemInfo->base_gfn = 0;
 					} else {
 						MapmemInfo->npages   = init.npages;
 						MapmemInfo->base_gfn = init.base_gfn;
@@ -585,7 +585,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				unsigned int            i;
 				unsigned long           addr;
 				PHYSICAL_ADDRESS        paddr;
-				struct winkvm_getpvmap  pvmap;				
+				struct winkvm_getpvmap  pvmap;
+
+				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
 
 				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); {
 					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
@@ -596,6 +598,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						pvmap.tablesize = 
 							(__u32)(extension->MapmemInfo[pvmap.slot].npages)
 							* sizeof(struct winkvm_pfmap);
+						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
 						for (i = 0 ; i < (pvmap.tablesize / sizeof(struct winkvm_pfmap)) ; i++ ) {
 							addr = (unsigned long)extension->MapmemInfo[pvmap.slot].MapPointer + i * PAGE_SIZE;
@@ -607,6 +610,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					}
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
 				ntStatus = STATUS_SUCCESS;
+				printk(KERN_ALERT "End WINKVM_MAPMEM_GETPVMAP\n");
 				break;
 			} /* end WINKVM_MAPMEM_GETPVMAP */
 
@@ -624,7 +628,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							ntStatus = CloseUserMappingSection(
 								extension->MapmemInfo[pvmap.slot].MapHandler,
 								pvmap.slot,								
-								extension->MapmemInfo[pvmap.slot].SectionName,
+								&extension->MapmemInfo[pvmap.slot].SectionName,
 								&extension->MapmemInfo[pvmap.slot].MapPointer);
 					}
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
