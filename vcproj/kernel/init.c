@@ -586,10 +586,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				unsigned int            i;
 				unsigned long           addr;
 				unsigned long           RetLength;
-				PHYSICAL_ADDRESS        paddr;
 				struct winkvm_getpvmap  pvmap;
 				struct winkvm_getpvmap  *p;
-				__u64 val;
 
 				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
 
@@ -614,11 +612,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							addr = (unsigned long)((__u8*)extension->MapmemInfo[p->slot].MapPointer + i * PAGE_SIZE);
 							p->maptable[i].virt = addr;
 							RtlFillMemory((char*)addr, 0, PAGE_SIZE);
-							paddr = MmGetPhysicalAddress(addr);
-							val = 
-//							p->maptable[i].phys = 
-//							printk(KERN_ALERT "(virt) 0x%08lx ... (phys) 0x%08lx\n",
-//								p->maptable[i].virt, p->maptable[i].phys);
+							p->maptable[i].phys = __pa(addr);
+							printk(KERN_ALERT "(virt) 0x%08lx ... (phys) 0x%08lx\n",
+								p->maptable[i].virt, p->maptable[i].phys);
 						}
 					}
 				} RtlCopyMemory(outBuf, p, RetLength);
