@@ -75,7 +75,8 @@ struct winkvm_mapmem_initialize {
 	int   vm_fd;	
 	int   slot;
 	__u32 base_gfn;	
-	__u32 npages;	
+	__u32 npages;
+	__u8  *mapUserVA;	
 };
 
 struct winkvm_pfmap {	
@@ -86,7 +87,7 @@ struct winkvm_pfmap {
 struct winkvm_getpvmap {
 	int vm_fd;
 	int slot;	
-	__u32 tablesize;	
+	__u32 tablesize;
 	struct winkvm_pfmap maptable[0];	
 };
 

@@ -549,7 +549,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					}
 
 					mapMemInfo = &extension->mapMemInfo[init.slot];
-
 					if (mapMemInfo->npages > 0) {
 						printk(KERN_ALERT "%d slot has been already mapped memory region\n",
 							init.slot);
@@ -564,10 +563,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 								   &mapMemInfo->userVAaddress);
 
 					if (!NT_SUCCESS(ntStatus)) {
+						init.mapUserVA       = NULL;
 						init.npages          = 0;
 						mapMemInfo->npages   = 0;
 						mapMemInfo->base_gfn = 0;
 					} else {
+						init.mapUserVA       = (__u8*)mapMemInfo->userVAaddress;
 						mapMemInfo->npages   = init.npages;
 						mapMemInfo->base_gfn = init.base_gfn;
 						printk(KERN_ALERT "slot [%d] memory mapping: %x ... %x (%d [pages])\n", 
@@ -596,7 +597,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-
 					if (pvmap.tablesize == 0) {
 						p         = &pvmap;
 						RetLength = sizeof(pvmap);

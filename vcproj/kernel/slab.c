@@ -29,6 +29,7 @@
 static struct page_root *get_page_rootslot(hva_t pageaddr);
 static struct page *get_page_slot(hva_t pageaddr);
 
+/* ToDo: use extern value */
 static PWINKVM_DEVICE_EXTENSION extension = NULL;
 
 static void 
@@ -488,9 +489,9 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
 
 	SAFE_ASSERT(extension != NULL);
-	SAFE_ASSERT(mapMemInfo != NULL);
 
-	if (mapMemInfo->npages <= 0) {
+	if (mapMemInfo == NULL || 
+		mapMemInfo->npages <= 0) {
 		printk(KERN_ALERT 
 			"There are no the allocated shared memory region "
 			"that should assign to 0x%08x gfn area\n",

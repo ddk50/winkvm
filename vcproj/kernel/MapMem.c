@@ -202,7 +202,9 @@ CreateUserMappingSectionWithMdl(PMDL     *pMemMdl,
 	*userVA  = userVAToReturn;
 	*pMemMdl = mdl;
 
-	printk(KERN_ALERT "%s: mapping UserVA = 0x%0x\n", 
+	printk(KERN_ALERT "%s: %d [mbytes] mapping UserVA = 0x%0x\n", 
+		__FUNCTION__,
+		totalBytes / 1024 / 1024,
 		userVAToReturn);
 
 	return STATUS_SUCCESS;		 

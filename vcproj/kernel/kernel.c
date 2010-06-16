@@ -75,7 +75,6 @@ u64 _cdecl __pa(hva_t virt)
 	PHYSICAL_ADDRESS paddr;
 	paddr = MmGetPhysicalAddress((PVOID)virt);	
 	retVal = PAU64(&paddr);
-	SAFE_ASSERT(retVal != 0x0);
 	return retVal;
 }
 
