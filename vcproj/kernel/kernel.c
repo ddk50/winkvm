@@ -71,15 +71,12 @@ void* _cdecl __va(unsigned long addr)
 
 u64 _cdecl __pa(hva_t virt)
 {
-	/*
+	u64 retVal;
 	PHYSICAL_ADDRESS paddr;
-	paddr = MmGetPhysicalAddress((PVOID)virt);
-	return PAU64(&paddr);
-	*/
-   if (virt < 0x80000000 || virt >= 0xA0000000) {
-	   return virt & 0xFFFF000;
-   }
-   return virt & 0x1FFFF000;
+	paddr = MmGetPhysicalAddress((PVOID)virt);	
+	retVal = PAU64(&paddr);
+	SAFE_ASSERT(retVal != 0x0);
+	return retVal;
 }
 
 void _cdecl test_for_phys2virt(void)

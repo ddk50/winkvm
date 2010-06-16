@@ -538,9 +538,9 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			} /* end WINKVM_WRITE_GUEST */
 
 		case WINKVM_MAPMEM_INITIALIZE:
-			{				
+			{
 				struct winkvm_mapmem_initialize  init;
-				MAPMEM *MapmemInfo;
+				MAPMEM *mapMemInfo;
 
 				RtlCopyMemory(&init, inBuf, sizeof(init)); {
 					if (init.slot >= MAX_MEMMAP_SLOT) {
@@ -548,33 +548,33 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						break;
 					}
 
-					MapmemInfo = &extension->MapmemInfo[init.slot];
-					if (MapmemInfo->npages > 0) {
+					mapMemInfo = &extension->mapMemInfo[init.slot];
+
+					if (mapMemInfo->npages > 0) {
 						printk(KERN_ALERT "%d slot has been already mapped memory region\n",
 							init.slot);
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
 
-					ntStatus = CreateUserMappingSection(
-						    (SIZE_T)init.npages,
-							init.slot,
-							&MapmemInfo->SectionName,
-							&MapmemInfo->MapPointer,
-							&MapmemInfo->MapHandler);
+					ntStatus = CreateUserMappingSectionWithMdl(
+						           &mapMemInfo->apMdl[1],
+								   init.slot,
+								   init.npages,
+								   &mapMemInfo->userVAaddress);
 
 					if (!NT_SUCCESS(ntStatus)) {
 						init.npages          = 0;
-						MapmemInfo->npages   = 0;
-						MapmemInfo->base_gfn = 0;
+						mapMemInfo->npages   = 0;
+						mapMemInfo->base_gfn = 0;
 					} else {
-						MapmemInfo->npages   = init.npages;
-						MapmemInfo->base_gfn = init.base_gfn;
+						mapMemInfo->npages   = init.npages;
+						mapMemInfo->base_gfn = init.base_gfn;
 						printk(KERN_ALERT "slot [%d] memory mapping: %x ... %x (%d [pages])\n", 
 							init.slot,
-							MapmemInfo->base_gfn << PAGE_SHIFT,
-							(MapmemInfo->base_gfn + MapmemInfo->npages) << PAGE_SHIFT,
-							MapmemInfo->npages);
+							mapMemInfo->base_gfn << PAGE_SHIFT,
+							(mapMemInfo->base_gfn + mapMemInfo->npages) << PAGE_SHIFT,
+							mapMemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
 				Irp->IoStatus.Information = sizeof(init);
@@ -602,19 +602,20 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						RetLength = sizeof(pvmap);
 
 						pvmap.tablesize = 
-							(__u32)(extension->MapmemInfo[pvmap.slot].npages)
+							(__u32)(extension->mapMemInfo[pvmap.slot].npages)
 							* sizeof(struct winkvm_pfmap);
 						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
 						p         = (struct winkvm_getpvmap*)inBuf;
 						RetLength = p->tablesize + sizeof(struct winkvm_pfmap);
 						for (i = 0 ; i < (p->tablesize / sizeof(struct winkvm_pfmap)) ; i++) {
-							addr = (unsigned long)((__u8*)extension->MapmemInfo[p->slot].MapPointer + i * PAGE_SIZE);
+							addr = (unsigned long)((__u8*)extension->mapMemInfo[p->slot].userVAaddress + i * PAGE_SIZE);
 							p->maptable[i].virt = addr;
 							RtlFillMemory((char*)addr, 0, PAGE_SIZE);
 							p->maptable[i].phys = __pa(addr);
 							printk(KERN_ALERT "(virt) 0x%08lx ... (phys) 0x%08lx\n",
-								p->maptable[i].virt, p->maptable[i].phys);
+								p->maptable[i].virt, 
+								p->maptable[i].phys);
 						}
 					}
 				} RtlCopyMemory(outBuf, p, RetLength);
@@ -633,13 +634,11 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-					if (extension->MapmemInfo[pvmap.slot].npages > 0 &&						
-						extension->MapmemInfo[pvmap.slot].MapHandler != NULL) {
-							ntStatus = CloseUserMappingSection(
-								extension->MapmemInfo[pvmap.slot].MapHandler,
-								pvmap.slot,								
-								&extension->MapmemInfo[pvmap.slot].SectionName,
-								&extension->MapmemInfo[pvmap.slot].MapPointer);
+					if (extension->mapMemInfo[pvmap.slot].npages > 0 &&						
+						extension->mapMemInfo[pvmap.slot].userVAaddress != NULL) {
+							UnMapAndFreeMemory(
+								extension->mapMemInfo[pvmap.slot].apMdl[1],
+								extension->mapMemInfo[pvmap.slot].userVAaddress);
 					}
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
 				Irp->IoStatus.Information = sizeof(pvmap);

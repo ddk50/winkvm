@@ -12,25 +12,25 @@
 //L"\\BaseNamedObjects\\UserKernelSharedSection",
 #define SECTION_BASENAME  L"\\BaseNamedObjects\\wkukss-%d"
 
-typedef struct _MEMALLOC {
+typedef struct _MEMALLOCMANTBL {
 	struct page_root  *page_slot_root[1024];
 	FAST_MUTEX        page_emulater_mutex;
 	int               page_slot_num;
-} MEMALLOC;
+} MEMALLOCMANTBL;
 
 typedef struct _MAPMEM {
 	unsigned long    npages;
 	unsigned long    base_gfn;
-	PVOID            MapPointer;
-	HANDLE           MapHandler;
-	MEMALLOC         MemAlloc;
-	UNICODE_STRING   SectionName;
+	PVOID            userVAaddress;
+	unsigned long    cMdls;
+	PMDL             apMdl[1];
+	MEMALLOCMANTBL   memTbl;
 } MAPMEM;
 
 /* extension */
 typedef struct _WINKVM_DEVICE_EXTENSION {
-	MAPMEM   MapmemInfo[MAX_MEMMAP_SLOT];
-	MEMALLOC MemAlloc;
+	MAPMEM          mapMemInfo[MAX_MEMMAP_SLOT];
+	MEMALLOCMANTBL  globalMemTbl;
 } WINKVM_DEVICE_EXTENSION;
 
 typedef WINKVM_DEVICE_EXTENSION* PWINKVM_DEVICE_EXTENSION;

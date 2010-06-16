@@ -18,4 +18,22 @@ CloseUserMappingSection(IN HANDLE            handler,
 						IN PUNICODE_STRING   section_name,
 						IN PVOID             *OutBuffer);
 
+/*
+ * Memory mapping routine with MDL
+ */
+NTSTATUS
+CreateUserMappingSectionWithMdl(PMDL     *pMemMdl,
+								ULONG    slot,
+								SIZE_T   npages,
+								PVOID    *userVA);
+
+/*
+ * This routine frees and unmaps the memory that we shared between a 
+ * process and our driver.
+ */
+void
+UnMapAndFreeMemory(PMDL  PMdl,
+				   PVOID UserVA);
+
+
 #endif

@@ -61,11 +61,11 @@ get_mapmem_slot(unsigned long gfn)
 	SAFE_ASSERT(extension != NULL);
 
 	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
-		base_gfn = extension->MapmemInfo[i].base_gfn;
-		npages   = extension->MapmemInfo[i].npages;
+		base_gfn = extension->mapMemInfo[i].base_gfn;
+		npages   = extension->mapMemInfo[i].npages;
 
 		if (base_gfn <= gfn && (base_gfn + npages) > gfn) {
-			return &extension->MapmemInfo[i];
+			return &extension->mapMemInfo[i];
 		}
 	}
 
@@ -75,40 +75,40 @@ get_mapmem_slot(unsigned long gfn)
 void 
 init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 {
-	int i, j;
+	int i;
 	struct page_root *pgr;
 	unsigned long addr;
 	unsigned long cache_size = 0;
 
-	/* initialize normal page allocater */
-	extn->MemAlloc.page_slot_num = 
-		sizeof(extn->MemAlloc.page_slot_root) / sizeof(struct page_root*);
-
-	for (i = 0 ; i < extn->MemAlloc.page_slot_num ; i++)
-		extn->MemAlloc.page_slot_root[i] = NULL;
+	/* initialize global page allocater */
+	RtlZeroMemory(&extn->globalMemTbl, sizeof(MEMALLOCMANTBL));
+	extn->globalMemTbl.page_slot_num = 
+		sizeof(extn->globalMemTbl.page_slot_root) / sizeof(struct page_root*);
 
 
 	/* initialize winkvm shared page allocater */
 	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
-		extn->MapmemInfo[i].MemAlloc.page_slot_num = 
-			sizeof(extn->MapmemInfo[i].MemAlloc.page_slot_root) / sizeof(struct page_root*);
-
-		for (j = 0 ; j < extn->MapmemInfo[i].MemAlloc.page_slot_num ; j++)
-			extn->MapmemInfo[i].MemAlloc.page_slot_root[j] = NULL;
+		MEMALLOCMANTBL *tbl = &extn->mapMemInfo[i].memTbl;
+		RtlZeroMemory(tbl, sizeof(MEMALLOCMANTBL));
 	}
 
-	/* allocate cache slot */
+	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++)
+		extn->mapMemInfo[i].memTbl.page_slot_num = 
+			sizeof(extn->mapMemInfo[i].memTbl.page_slot_root) / sizeof(struct page_root*);	
+
+
+	/* allocate global pageallocater cache slot */
 	/* cache_size = 1024 * 1024 * 1; */
 	cache_size = 0;
 	for (addr = 0 ; addr < cache_size ; addr += PAGE_SIZE) {
-		pgr = extn->MemAlloc.page_slot_root[PAGE_PDE(addr)];
+		pgr = extn->globalMemTbl.page_slot_root[PAGE_PDE(addr)];
 		if (!pgr) {
 			pgr = (struct page_root*)ExAllocatePoolWithTag(
 				                 NonPagedPool, 
 								 sizeof(struct page_root), 
 								 MEM_TAG);
 			SAFE_ASSERT(pgr);
-			extn->MemAlloc.page_slot_root[PAGE_PDE(addr)] = pgr;
+			extn->globalMemTbl.page_slot_root[PAGE_PDE(addr)] = pgr;
 		}
 
 		/* FIX ME: immediate number!  */
@@ -120,36 +120,40 @@ init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 		}
 	}
 
-	ExInitializeFastMutex(&extn->MemAlloc.page_emulater_mutex);
-
-	extension = extn;	
+	ExInitializeFastMutex(&extn->globalMemTbl.page_emulater_mutex);
+	extension = extn;
 }
 
 void 
 release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 {
-	int i, k, j;
+	int i, j;
 	struct page *pd;
 	
-	for (i = 0 ; i < extn->MemAlloc.page_slot_num ; i++) {
-		if (extn->MemAlloc.page_slot_root[i]) {
-			pd = extn->MemAlloc.page_slot_root[i]->page;
+	/* free all global page allocater  */
+	for (i = 0 ; i < extn->globalMemTbl.page_slot_num ; i++) {
+		if (extn->globalMemTbl.page_slot_root[i]) {
+			pd = extn->globalMemTbl.page_slot_root[i]->page;
 			/* bug!! */
-			for (k = 0 ; k < 1024 ; k++) {
-				if (pd[k].__wpfn != PAGE_NOT_USED && 
-					pd[k].__wpfn != PAGE_NOTNEED_FREE)
-					KeFreePageMemory(pd[k].__nt_mem, pd[k].__nt_memsize);
+			for (j = 0 ; j < 1024 ; j++) {
+				if (pd[j].__wpfn != PAGE_NOT_USED && 
+					pd[j].__wpfn != PAGE_NOTNEED_FREE && 
+					pd[j].__nt_mem != NULL && 
+					pd[j].__nt_memsize > 0)
+					KeFreePageMemory(pd[j].__nt_mem, pd[j].__nt_memsize);
 			}
-			ExFreePoolWithTag(extn->MemAlloc.page_slot_root[i], MEM_TAG);
-			extn->MemAlloc.page_slot_root[i] = NULL;
+			ExFreePoolWithTag(extn->globalMemTbl.page_slot_root[i], MEM_TAG);
+			extn->globalMemTbl.page_slot_root[i] = NULL;
 		}
 	}
 
-	for (i = 0 ; i < extn->MemAlloc.page_slot_num ; i++) {
-		for (j = 0 ; j < MAX_MEMMAP_SLOT ; j++) {
-			if (extn->MapmemInfo[j].MemAlloc.page_slot_root[i]) {
-				ExFreePoolWithTag(extn->MapmemInfo[j].MemAlloc.page_slot_root[i], MEM_TAG);
-				extn->MapmemInfo[j].MemAlloc.page_slot_root[i] = NULL;
+	/* free winkvm shared page allocater */
+	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
+		MAPMEM *mem = &extn->mapMemInfo[i];		
+		for (j = 0 ; j < mem->memTbl.page_slot_num ; j++) {
+			if (mem->memTbl.page_slot_root[j]) {
+				ExFreePoolWithTag(mem->memTbl.page_slot_root[j], MEM_TAG);
+				mem->memTbl.page_slot_root[j] = NULL;
 			}
 		}
 	}
@@ -374,12 +378,6 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 		SAFE_ASSERT(page);
 		SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
 
-		if (page->mem_type == 1) {
-			printk(KERN_ALERT 
-				"You are trying to free shared page area using free_pages\n");
-			return;
-		}
-
 		if (page->__wpfn != PAGE_NOTNEED_FREE)
 			KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
 
@@ -390,9 +388,12 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 	}
 }
 
+/* 
+ * for global page allocater table
+ */
 static struct page_root *get_page_rootslot(hva_t pageaddr)
 {
-	return extension->MemAlloc.page_slot_root[PAGE_PDE(pageaddr)];
+	return extension->globalMemTbl.page_slot_root[PAGE_PDE(pageaddr)];
 }
 
 static struct page *get_page_slot(hva_t pageaddr)
@@ -406,21 +407,21 @@ static struct page *get_page_slot(hva_t pageaddr)
 
 //	ExAcquireFastMutex(&page_emulater_mutex);
 
-	pgr = extension->MemAlloc.page_slot_root[PAGE_PDE(addr)];
+	pgr = extension->globalMemTbl.page_slot_root[PAGE_PDE(addr)];
 
 	if (!pgr) {
 		pgr = (struct page_root*)ExAllocatePoolWithTag(
 			                NonPagedPool, 
 							sizeof(struct page_root), 
 							MEM_TAG);
-		extension->MemAlloc.page_slot_root[PAGE_PDE(addr)] = pgr;
+		extension->globalMemTbl.page_slot_root[PAGE_PDE(addr)] = pgr;
 
 		/* FIX ME: immediate number!  */
 		for (i = 0 ; i < 1024 ; i++) {
-			pgr->page[i].__wpfn = PAGE_NOT_USED;
-			pgr->page[i].__nt_mem = NULL;
+			pgr->page[i].__wpfn       = PAGE_NOT_USED;
+			pgr->page[i].__nt_mem     = NULL;
 			pgr->page[i].__nt_memsize = 0;
-			pgr->page[i].__ppfn = 0;
+			pgr->page[i].__ppfn       = 0;
 		}
 	}
 
@@ -484,17 +485,20 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 	int rindex = PAGE_PDE(gpa);
 	int eindex = PAGE_PTE(gpa);
 
-	MAPMEM *MapmemInfo = get_mapmem_slot(gfn);
+	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
 
 	SAFE_ASSERT(extension != NULL);
-	SAFE_ASSERT(MapmemInfo != NULL);
+	SAFE_ASSERT(mapMemInfo != NULL);
 
-	if (MapmemInfo->npages <= 0) {
-		printk(KERN_ALERT "There are no allocated shared memory region\n");
+	if (mapMemInfo->npages <= 0) {
+		printk(KERN_ALERT 
+			"There are no the allocated shared memory region "
+			"that should assign to 0x%08x gfn area\n",
+			gfn);
 		return NULL;
 	}
 
-	root = MapmemInfo->MemAlloc.page_slot_root[rindex];
+	root = mapMemInfo->memTbl.page_slot_root[rindex];
 	if (!root) {
 		root = (struct page_root*)ExAllocatePoolWithTag(
 			                         NonPagedPool, 
@@ -506,7 +510,7 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 			return NULL;
 		}
 		RtlZeroMemory(root, sizeof(struct page_root));
-		MapmemInfo->MemAlloc.page_slot_root[rindex] = root;
+		mapMemInfo->memTbl.page_slot_root[rindex] = root;
 	}
 	
 	entry = &root->page[eindex];
@@ -516,9 +520,11 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 	} else {
 		set_map_bit(gpa, &root->bitmap);
 		RtlZeroMemory(entry, sizeof(struct page));
-		entry->__nt_mem     = (char*)MapmemInfo->MapPointer + gpa;
+		entry->__nt_mem     = (__u8*)mapMemInfo->userVAaddress + gpa;
 		entry->__nt_memsize = PAGE_SIZE;
-		entry->mem_type     = 1; /* 1: memorymap area */
+		entry->__wpfn       = PAGE_NOTNEED_FREE;
+		entry->__ppfn       = (unsigned long)__pa((hva_t)entry->__nt_mem) >> PAGE_SHIFT;
+		SAFE_ASSERT(entry->__ppfn != 0x0);
 		return entry;		
 	}
 
@@ -533,11 +539,11 @@ void _cdecl wk_free_page(unsigned long gfn, struct page *page)
 	int rindex = PAGE_PDE(gpa);
 	int eindex = PAGE_PTE(gpa);
 
-	MAPMEM *MapmemInfo = get_mapmem_slot(gfn);
+	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
 
-	SAFE_ASSERT(MapmemInfo != NULL);
+	SAFE_ASSERT(mapMemInfo != NULL);
 
-	root = MapmemInfo->MemAlloc.page_slot_root[rindex];
+	root = mapMemInfo->memTbl.page_slot_root[rindex];
 	if (!root) {
 		printk(KERN_ALERT 
 			   "%s: memory slot is odd. page_slot_root[%d] is not existence\n", 
@@ -547,9 +553,10 @@ void _cdecl wk_free_page(unsigned long gfn, struct page *page)
 	
 	entry = &root->page[eindex];	
 
-	if (entry->mem_type == 0) {
+	if (entry->__wpfn != PAGE_NOTNEED_FREE) {
 		printk(KERN_ALERT 
-			"You are trying to free normal page area using wk_free_page\n");
+			"WARNING: You are trying to free normal page area using %s\n",
+			__FUNCTION__);
 		return;
 	}
 
@@ -565,7 +572,7 @@ void _cdecl wk_free_page(unsigned long gfn, struct page *page)
 
 	if (root->bitmap.address_mask == 0) {
 		ExFreePoolWithTag(root, sizeof(struct page_root));
-		MapmemInfo->MemAlloc.page_slot_root[rindex] = NULL;
+		mapMemInfo->memTbl.page_slot_root[rindex] = NULL;
 	}   
 }
 
