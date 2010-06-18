@@ -547,7 +547,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-
 					mapMemInfo = &extension->mapMemInfo[init.slot];
 					if (mapMemInfo->npages > 0) {
 						printk(KERN_ALERT "%d slot has been already mapped memory region\n",
@@ -555,13 +554,11 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-
 					ntStatus = CreateUserMappingSectionWithMdl(
-						           &mapMemInfo->apMdl[1],
+						           &mapMemInfo->apMdl[0],
 								   init.slot,
 								   init.npages,
 								   &mapMemInfo->userVAaddress);
-
 					if (!NT_SUCCESS(ntStatus)) {
 						init.mapUserVA       = NULL;
 						init.npages          = 0;

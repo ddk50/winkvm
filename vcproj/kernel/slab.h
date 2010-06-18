@@ -9,6 +9,18 @@
 
 #include "extension.h"
 
+
+struct membitmap {
+#define	 MASK_LEN (0x1000 / sizeof(unsigned long))    
+	unsigned long address_mask[MASK_LEN];
+};
+
+struct page_root {
+	struct page page[1024];
+	struct membitmap bitmap;
+};
+
+
 void _cdecl kfree(void *objp);
 void* _cdecl kmalloc(size_t size, int flags);
 void* _cdecl kzalloc(size_t size, int flags);
@@ -50,15 +62,5 @@ void _cdecl wk_free_page(unsigned long gfn, struct page *page);
 /* initailizer */
 void init_slab_emulater(WINKVM_DEVICE_EXTENSION *extn);
 void release_slab_emulater(WINKVM_DEVICE_EXTENSION *extn);
-
-struct membitmap {
-#define	 MASK_LEN (0x1000 / sizeof(unsigned long))    
-	unsigned long address_mask[MASK_LEN];	
-};
-
-struct page_root {
-	struct page page[1024];
-	struct membitmap bitmap;
-};
 
 #endif
