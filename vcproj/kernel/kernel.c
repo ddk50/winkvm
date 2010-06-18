@@ -74,10 +74,8 @@ u64 _cdecl __pa(hva_t virt)
 	u64 retVal;
 	PHYSICAL_ADDRESS paddr;
 	paddr = MmGetPhysicalAddress((PVOID)virt);	
-	if (paddr.QuadPart == 0x0) {
-		printk(KERN_ALERT "WARNING: %s returned 0x0\n");		
-	}
 	retVal = PAU64(&paddr);
+	SAFE_ASSERT(retVal != 0x0);
 	return retVal;
 }
 

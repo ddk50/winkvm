@@ -316,6 +316,7 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 	struct page *page = NULL;
 	struct page *head_page = NULL;
 	hva_t addr;
+	hva_t limit;
 
 	SAFE_ASSERT((order + 1) > 0);
 /*	printk(KERN_ALERT "allocater order size: %d\n", actual_size); */
@@ -332,7 +333,8 @@ struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 	head_page = get_page_slot((hva_t)__nt_mem);
 
 	addr = (hva_t)__nt_mem;
-	for (; addr < addr + actual_size ; addr += PAGE_SIZE) {
+	limit = addr + actual_size;
+	for (; addr < limit ; addr += PAGE_SIZE) {
 		page = get_page_slot(addr);
 		SAFE_ASSERT(page);
 
