@@ -270,6 +270,18 @@ void _cdecl dump_stack(void)
 
 void* _cdecl kmap_atomic(struct page *page, enum km_type type)
 {
+	PMDL mdl;
+	PVOID retSystemAddr;
+
+	SAFE_ASSERT(page->__nt_mem != NULL);
+
+	if (page->__wpfn == PAGE_MEMMAPPED) {		
+		mdl = (PMDL)page->__nt_mem;
+		retSystemAddr = MmGetSystemAddressForMdlSafe(mdl, NormalPagePriority);
+		SAFE_ASSERT(retSystemAddr != NULL);
+		return (__u8*)retSystemAddr + (page->__ppfn << PAGE_SHIFT);
+	}
+
 	return page->__nt_mem;
 }
 
@@ -280,13 +292,15 @@ void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
 
 void* _cdecl page_address(struct page *page)
 {
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && 
+		        page->__wpfn != PAGE_MEMMAPPED);
 	return page->__nt_mem;
 }
 
 void _cdecl get_page(struct page *page)
 {   
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED);
+	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED &&
+		        page->__wpfn != PAGE_MEMMAPPED);
 	return;
 }
 
@@ -363,7 +377,13 @@ void _cdecl __free_pages(struct page *page, unsigned int order)
 {	
 	hva_t addr;
 	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
-	if (page->__wpfn == PAGE_MEMMAPPED) return;
+
+	if (page->__wpfn == PAGE_MEMMAPPED) {
+		printk(KERN_ALERT "WARNING: tring to free MEMMAPPED page using %s\n",
+			__FUNCTION__);
+		return;
+	}
+	
 	addr = page->__wpfn << PAGE_SHIFT;
 	free_pages(addr, order);
 }
@@ -372,7 +392,12 @@ void _cdecl __free_page(struct page *page)
 {
 	hva_t addr;	
 	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
-	if (page->__wpfn == PAGE_MEMMAPPED) return;
+
+	if (page->__wpfn == PAGE_MEMMAPPED) {
+		RtlZeroMemory(page, sizeof (struct page));
+		return;
+	}
+
 	addr = page->__wpfn << PAGE_SHIFT;
 	free_pages(addr, 0);
 }
@@ -539,10 +564,10 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 	} else {
 		set_map_bit(gpa, &root->bitmap);
 		RtlZeroMemory(entry, sizeof(struct page));
-		entry->__nt_mem     = (__u8*)mapMemInfo->userVAaddress + gpa;
-		entry->__nt_memsize = PAGE_SIZE;
+		entry->__nt_mem     = &mapMemInfo->apMdl[0];
+		entry->__nt_memsize = 0;
 		entry->__wpfn       = PAGE_MEMMAPPED;
-		entry->__ppfn       = (unsigned long)__pa((hva_t)entry->__nt_mem) >> PAGE_SHIFT;
+		entry->__ppfn       = gpa >> PAGE_SHIFT;
 		SAFE_ASSERT(entry->__ppfn != 0x0);
 		return entry;		
 	}

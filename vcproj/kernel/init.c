@@ -586,6 +586,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				unsigned long           RetLength;
 				struct winkvm_getpvmap  pvmap;
 				struct winkvm_getpvmap  *p;
+				PVOID                   sysAddr;
 
 				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
 
@@ -603,16 +604,25 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 							* sizeof(struct winkvm_pfmap);
 						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
+						/* get system address */
+						sysAddr = MmGetSystemAddressForMdlSafe(
+							          extension->mapMemInfo[pvmap.slot].apMdl[0], 
+									  NormalPagePriority);
+						SAFE_ASSERT(sysAddr != NULL);
+
 						p         = (struct winkvm_getpvmap*)inBuf;
 						RetLength = p->tablesize + sizeof(struct winkvm_pfmap);
+
 						for (i = 0 ; i < (p->tablesize / sizeof(struct winkvm_pfmap)) ; i++) {
 							addr = (unsigned long)((__u8*)extension->mapMemInfo[p->slot].userVAaddress + i * PAGE_SIZE);
 							p->maptable[i].virt = addr;
-							RtlFillMemory((char*)addr, 0, PAGE_SIZE);
+							RtlFillMemory((__u8*)sysAddr + i * PAGE_SIZE, PAGE_SIZE, 'a');
 							p->maptable[i].phys = __pa(addr);
-							printk(KERN_ALERT "(virt) 0x%08lx ... (phys) 0x%08lx\n",
-								p->maptable[i].virt, 
-								p->maptable[i].phys);
+							/*
+							printk(KERN_ALERT "(virt) 0x%x ... (phys) 0x%x\n",
+								(unsigned long)p->maptable[i].virt, 
+								(unsigned long)p->maptable[i].phys);
+								*/
 						}
 					}
 				} RtlCopyMemory(outBuf, p, RetLength);
