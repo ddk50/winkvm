@@ -344,10 +344,10 @@ static inline long IS_ERR(const void *ptr)
 }
 
 /* for DEBUG */
-//#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
-//#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
-#define FUNCTION_ENTER()
-#define FUNCTION_EXIT()
+#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
+#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
+//#define FUNCTION_ENTER()
+//#define FUNCTION_EXIT()
 
 #endif /* __WINKVM__ */
 

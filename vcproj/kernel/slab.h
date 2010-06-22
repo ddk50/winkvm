@@ -9,17 +9,9 @@
 
 #include "extension.h"
 
-
-struct membitmap {
-#define	 MASK_LEN (0x1000 / sizeof(unsigned long))    
-	unsigned long address_mask[MASK_LEN];
-};
-
 struct page_root {
 	struct page page[1024];
-	struct membitmap bitmap;
 };
-
 
 void _cdecl kfree(void *objp);
 void* _cdecl kmalloc(size_t size, int flags);

@@ -24,13 +24,12 @@ typedef struct _MAPMEM {
 	PVOID            userVAaddress;
 	unsigned long    cMdls;
 	PMDL             apMdl[1];
-	MEMALLOCMANTBL   memTbl;
 } MAPMEM;
 
 /* extension */
 typedef struct _WINKVM_DEVICE_EXTENSION {
 	MAPMEM          mapMemInfo[MAX_MEMMAP_SLOT];
-	MEMALLOCMANTBL  globalMemTbl;
+	MEMALLOCMANTBL  globalMemTbl; /* host physical address bitmap */
 } WINKVM_DEVICE_EXTENSION;
 
 typedef WINKVM_DEVICE_EXTENSION* PWINKVM_DEVICE_EXTENSION;

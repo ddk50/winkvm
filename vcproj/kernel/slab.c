@@ -19,40 +19,20 @@
 #include "kernel.h"
 #include "extension.h"
 
-#define PAGE_NOT_USED        0xfffffffful
-#define PAGE_NOTNEED_FREE    0xfffffffeul
-#define PAGE_MEMMAPPED       0xfffffffdul
+#define PAGE_NOT_USED        0x0
+#define PAGE_NEED_FREE       0x1
+#define PAGE_NOTNEED_FREE    0x2
+#define PAGE_MEMMAPPED       0x3
 
 #define PAGE_PDE(x)         ((x) >> 22)
 #define PAGE_PTE(x)         (((x) >> 12) & 0x3ff)
 #define PAGE_NUM(pde, pte)  (((pde) << 22) | ((pte) << 12))
 
 static struct page_root *get_page_rootslot(hva_t pageaddr);
-static struct page *get_page_slot(hva_t pageaddr);
+static struct page *get_page_slot(hpa_t pageaddr);
 
 /* ToDo: use extern value */
 static PWINKVM_DEVICE_EXTENSION extension = NULL;
-
-static void 
-set_map_bit(unsigned long address, struct membitmap *bm)
-{
-	unsigned long val = 1 << (PAGE_PTE(address) % sizeof(unsigned long));	
-	bm->address_mask[PAGE_PTE(address) / sizeof(unsigned long)] |= val;
-}
-
-static void 
-clear_map_bit(unsigned long address, struct membitmap *bm)
-{
-	unsigned long val = 1 << (PAGE_PTE(address) % sizeof(unsigned long));	
-	bm->address_mask[PAGE_PTE(address) / sizeof(unsigned long)] &= ~val;	
-}
-
-static int 
-check_map_bit(unsigned long address, struct membitmap *bm)	
-{
-	unsigned long val = 1 << (PAGE_PTE(address) % sizeof(unsigned long));	   
-	return bm->address_mask[PAGE_PTE(address) / sizeof(unsigned long)] & val;
-}
 
 static MAPMEM*
 get_mapmem_slot(unsigned long gfn)
@@ -74,10 +54,58 @@ get_mapmem_slot(unsigned long gfn)
 	return NULL;
 }
 
+static dump_page(struct page *page)
+{
+	static char *page_type[] = {
+		"PAGE_NOT_USED",
+		"PAGE_NEED_FREE",
+		"PAGE_NOTNEED_FREE",
+		"PAGE_MEMMAPPED",
+	};
+
+	switch (page->page_type) {
+		case PAGE_NEED_FREE:
+		case PAGE_NOTNEED_FREE: 
+			printk(KERN_ALERT 
+				"pagetype: %s\n"
+				" size:     %d [bytes]\n"
+				" systemVA: 0x%08x\n"
+				" h_pfn:    0x%08x\n"
+				" head_page: 0x%08x\n",
+				page_type[page->page_type],
+				page->independed.size,
+				(hva_t)page->independed.systemVA,
+				page->independed.h_pfn,
+				page->independed.head_page);
+			break;
+		case PAGE_MEMMAPPED:
+			printk(KERN_ALERT 
+				"pagetype: %s\n"
+				" size:     %d [bytes]\n"
+				" systemVA: 0x%08x\n"
+				" h_pfn:    0x%08x\n"
+				" g_pfn:    0x%08x\n"
+				" pMdl:     0x%08x\n"
+				" userVA:   0x%08x\n",
+				page_type[page->page_type],
+				page->mapped.size,
+				(hva_t)page->independed.systemVA,
+				page->mapped.h_pfn,
+				page->mapped.g_pfn,
+				page->mapped.pMdl,
+				page->mapped.userVA);
+			break;
+		default:
+			printk(KERN_ALERT "%s: odd page: (type: %d)\n",
+			   __FUNCTION__,
+			   page->page_type);
+	}
+}
+
 void 
 init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 {
-	int i, j;
+	int i;
 	struct page_root *pgr;
 	unsigned long addr;
 	unsigned long cache_size = 0;	
@@ -95,17 +123,8 @@ init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 	/* end */
 
 	/* initialize winkvm shared page allocater */
-	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
+	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++)
 		RtlZeroMemory(&extn->mapMemInfo[i], sizeof(MAPMEM));
-		extn->mapMemInfo[i].memTbl.page_slot_num = 
-			sizeof(extn->mapMemInfo[i].memTbl.page_slot_root) / sizeof(struct page_root*);	
-	}
-
-	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
-		ExInitializeFastMutex(&extn->mapMemInfo[i].memTbl.page_emulater_mutex);
-		for (j = 0 ; j < extn->mapMemInfo[i].memTbl.page_slot_num ; j++)
-			extn->mapMemInfo[i].memTbl.page_slot_root[j] = NULL;
-	}
 	/* end */
 
 
@@ -122,14 +141,7 @@ init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 			SAFE_ASSERT(pgr);
 			extn->globalMemTbl.page_slot_root[PAGE_PDE(addr)] = pgr;
 		}
-
-		/* FIX ME: immediate number!  */
-		for (i = 0 ; i < 1024 ; i++) {
-			pgr->page[i].__wpfn = PAGE_NOT_USED;
-			pgr->page[i].__nt_mem = NULL;
-			pgr->page[i].__nt_memsize = 0;
-			pgr->page[i].__ppfn = 0;
-		}
+		RtlZeroMemory(pgr, sizeof(struct page_root));
 	}
 
 	ExInitializeFastMutex(&extn->globalMemTbl.page_emulater_mutex);
@@ -147,26 +159,12 @@ release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 		if (extn->globalMemTbl.page_slot_root[i]) {
 			pd = extn->globalMemTbl.page_slot_root[i]->page;
 			/* bug!! */
-			for (j = 0 ; j < 1024 ; j++) {
-				if (pd[j].__wpfn != PAGE_NOT_USED && 
-					pd[j].__wpfn != PAGE_NOTNEED_FREE && 
-					pd[j].__nt_mem != NULL && 
-					pd[j].__nt_memsize > 0)
-					KeFreePageMemory(pd[j].__nt_mem, pd[j].__nt_memsize);
+			for (j = 0 ; j < 1024 ; j++)  {
+				if (pd[j].page_type == PAGE_NEED_FREE)
+					KeFreePageMemory(pd[j].independed.systemVA, pd[j].independed.size);
 			}
 			ExFreePoolWithTag(extn->globalMemTbl.page_slot_root[i], MEM_TAG);
 			extn->globalMemTbl.page_slot_root[i] = NULL;
-		}
-	}
-
-	/* free winkvm shared page allocater */
-	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
-		MAPMEM *mem = &extn->mapMemInfo[i];		
-		for (j = 0 ; j < mem->memTbl.page_slot_num ; j++) {
-			if (mem->memTbl.page_slot_root[j]) {
-				ExFreePoolWithTag(mem->memTbl.page_slot_root[j], MEM_TAG);
-				mem->memTbl.page_slot_root[j] = NULL;
-			}
 		}
 	}
 
@@ -270,19 +268,34 @@ void _cdecl dump_stack(void)
 
 void* _cdecl kmap_atomic(struct page *page, enum km_type type)
 {
-	PMDL mdl;
-	PVOID retSystemAddr;
+	void *ret;
 
-	SAFE_ASSERT(page->__nt_mem != NULL);
+	SAFE_ASSERT(page->page_type != PAGE_NOT_USED);
 
-	if (page->__wpfn == PAGE_MEMMAPPED) {		
-		mdl = (PMDL)page->__nt_mem;
-		retSystemAddr = MmGetSystemAddressForMdlSafe(mdl, NormalPagePriority);
-		SAFE_ASSERT(retSystemAddr != NULL);
-		return (__u8*)retSystemAddr + (page->__ppfn << PAGE_SHIFT);
+	switch (page->page_type) {
+		case PAGE_NEED_FREE:
+			ret = page->independed.systemVA;
+			break;
+		case PAGE_NOTNEED_FREE: 
+			{
+				struct page *head_page = page->independed.head_page;
+				SAFE_ASSERT(head_page->page_type != PAGE_NOT_USED && 
+					head_page->page_type != PAGE_NOTNEED_FREE);
+				ret = page->independed.systemVA;
+				break;								
+			}
+		case PAGE_MEMMAPPED:
+			ret = page->mapped.systemVA;
+			break;
+		default:
+			printk(KERN_ALERT "%s: you are trying to kmap odd page: (type: %d)\n",
+			   __FUNCTION__,
+			   page->page_type);
 	}
 
-	return page->__nt_mem;
+	SAFE_ASSERT(ret != NULL);
+
+	return ret;
 }
 
 void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
@@ -292,15 +305,38 @@ void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
 
 void* _cdecl page_address(struct page *page)
 {
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && 
-		        page->__wpfn != PAGE_MEMMAPPED);
-	return page->__nt_mem;
+	void *ret;
+
+	SAFE_ASSERT(page->page_type != PAGE_NOT_USED);
+
+	switch (page->page_type) {
+		case PAGE_NEED_FREE:			
+			ret = page->independed.systemVA;
+			break;
+		case PAGE_NOTNEED_FREE:
+			{
+				struct page *head_page = page->independed.head_page;
+				SAFE_ASSERT(head_page->page_type != PAGE_NOT_USED && 
+					head_page->page_type != PAGE_NOTNEED_FREE);
+				ret = page->independed.systemVA;				
+				break;
+			}
+		case PAGE_MEMMAPPED:
+			ret = page->mapped.systemVA;
+			break;
+		default:
+			printk(KERN_ALERT "%s: you are trying to kmap odd page: (type: %d)\n",
+			   __FUNCTION__,
+			   page->page_type);
+	}
+	
+	SAFE_ASSERT(ret != NULL);
+
+	return ret;
 }
 
 void _cdecl get_page(struct page *page)
-{   
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED &&
-		        page->__wpfn != PAGE_MEMMAPPED);
+{
 	return;
 }
 
@@ -326,38 +362,43 @@ void _cdecl get_page(struct page *page)
 struct page* _cdecl alloc_pages(unsigned int flags, unsigned int order)
 {
 	unsigned actual_size = (order + 1) * PAGE_SIZE;
-	void *__nt_mem = NULL;
-	struct page *page = NULL;
 	struct page *head_page = NULL;
-	hva_t addr;
-	hva_t limit;
+	struct page *page = NULL;
+	hva_t sysAddr;
+	hpa_t paAddr;
+	hva_t i;
+	int first_itr = 1;
 
 	SAFE_ASSERT((order + 1) > 0);
-/*	printk(KERN_ALERT "allocater order size: %d\n", actual_size); */
 
-/*	__nt_mem = (void*)ExAllocatePoolWithTag(NonPagedPool, actual_size, MEM_TAG); */
-	__nt_mem = (void*)KeGetPageMemory(actual_size);
-	if (!__nt_mem) {
+	sysAddr = (hva_t)KeGetPageMemory(actual_size);
+	if (!sysAddr) {
 		SAFE_ASSERT(0);
 		return NULL;
-	}
+	}	
 
-	SAFE_ASSERT(((unsigned long)__nt_mem & PAGE_MASK) == (unsigned long)__nt_mem);
+	for (i = sysAddr ; i < (sysAddr + actual_size) ; i += PAGE_SIZE) {
+		paAddr = (hpa_t)__pa(i);
+		page = get_page_slot(paAddr);
+		SAFE_ASSERT(page);		
+		SAFE_ASSERT(page->page_type == PAGE_NOT_USED);
 
-	head_page = get_page_slot((hva_t)__nt_mem);
+		if (first_itr) {
+			page->page_type            = PAGE_NEED_FREE;
+			page->independed.size      = actual_size;
+			page->independed.systemVA  = (PVOID)sysAddr;
+			page->independed.h_pfn     = (unsigned long)paAddr >> PAGE_SHIFT;
+			page->independed.head_page = page;
+			head_page = page;
+		} else {
+			page->page_type             = PAGE_NOTNEED_FREE;
+			page->independed.size       = 0;
+			page->independed.systemVA   = (PVOID)i;
+			page->independed.h_pfn      = (unsigned long)paAddr >> PAGE_SHIFT;
+			page->independed.head_page  = head_page;
+		};
 
-	addr = (hva_t)__nt_mem;
-	limit = addr + actual_size;
-	for (; addr < limit ; addr += PAGE_SIZE) {
-		page = get_page_slot(addr);
-		SAFE_ASSERT(page);
-
-		page->__nt_mem     = (void*)addr;
-		page->__nt_memsize = actual_size;
-		page->__wpfn = ((hva_t)__nt_mem == addr) ? addr >> PAGE_SHIFT : PAGE_NOTNEED_FREE;
-		page->__ppfn = (unsigned long)__pa(addr) >> PAGE_SHIFT;
-
-		SAFE_ASSERT((addr & PAGE_MASK) == addr);
+		first_itr = 0;
 	}
 	return head_page;
 }
@@ -373,33 +414,27 @@ struct page* _cdecl alloc_pages_node(int nid, unsigned int gfp_mask,
 	return alloc_pages(gfp_mask, order);
 }
 
+/* FIXME */
 void _cdecl __free_pages(struct page *page, unsigned int order)
-{	
-	hva_t addr;
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
-
-	if (page->__wpfn == PAGE_MEMMAPPED) {
-		printk(KERN_ALERT "WARNING: tring to free MEMMAPPED page using %s\n",
-			__FUNCTION__);
-		return;
+{
+	switch (page->page_type)  {
+       case PAGE_NEED_FREE:		   
+		   KeFreePageMemory(page->independed.systemVA, page->independed.size);
+		   RtlZeroMemory(page, sizeof(struct page));
+		   break;
+	   case PAGE_MEMMAPPED:
+		   RtlZeroMemory(page, sizeof(struct page));
+		   break;
+	   default:
+		   printk(KERN_ALERT "%s: you are trying to free odd page: (type: %d)\n",
+			   __FUNCTION__,
+			   page->page_type);
 	}
-	
-	addr = page->__wpfn << PAGE_SHIFT;
-	free_pages(addr, order);
 }
 
 void _cdecl __free_page(struct page *page)
 {
-	hva_t addr;	
-	SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_NOTNEED_FREE);
-
-	if (page->__wpfn == PAGE_MEMMAPPED) {
-		RtlZeroMemory(page, sizeof (struct page));
-		return;
-	}
-
-	addr = page->__wpfn << PAGE_SHIFT;
-	free_pages(addr, 0);
+	__free_pages(page, 0);
 }
 
 void _cdecl free_page(hva_t addr)
@@ -411,22 +446,14 @@ void _cdecl free_pages(hva_t addr, unsigned long order)
 {
 	unsigned actual_size = (order + 1) * PAGE_SIZE;
 	struct page *page = NULL;
-	hva_t r;
+	hpa_t  phys = __pa(addr);
+	SAFE_ASSERT(phys != 0ull);
 
-	for (r = addr ; r < addr + actual_size ; r += PAGE_SIZE) {
-		page = get_page_slot(r);
+	page = get_page_slot(phys);
+	SAFE_ASSERT(page != NULL);
+	SAFE_ASSERT(page->page_type != PAGE_NOT_USED);
 
-		SAFE_ASSERT(page);
-		SAFE_ASSERT(page->__wpfn != PAGE_NOT_USED && page->__wpfn != PAGE_MEMMAPPED);
-
-		if (page->__wpfn != PAGE_NOTNEED_FREE)
-			KeFreePageMemory(page->__nt_mem, page->__nt_memsize);
-
-		page->__nt_mem = NULL;
-		page->__nt_memsize = 0;
-		page->__ppfn = 0;
-		page->__wpfn = PAGE_NOT_USED;
-	}
+	__free_pages(page, order);
 }
 
 /* 
@@ -437,52 +464,64 @@ static struct page_root *get_page_rootslot(hva_t pageaddr)
 	return extension->globalMemTbl.page_slot_root[PAGE_PDE(pageaddr)];
 }
 
-static struct page *get_page_slot(hva_t pageaddr)
+static struct page *get_page_slot(hpa_t pageaddr)
 {
 	struct page_root *pgr;
 	struct page *page;
-	unsigned long addr = (unsigned long)pageaddr;
-	int i;
+	hpa_t  addr = pageaddr;
 
 	SAFE_ASSERT(extension != NULL);
 
-//	ExAcquireFastMutex(&page_emulater_mutex);
-
 	pgr = extension->globalMemTbl.page_slot_root[PAGE_PDE(addr)];
-
 	if (!pgr) {
 		pgr = (struct page_root*)ExAllocatePoolWithTag(
 			                NonPagedPool, 
 							sizeof(struct page_root), 
 							MEM_TAG);
 		extension->globalMemTbl.page_slot_root[PAGE_PDE(addr)] = pgr;
-
-		/* FIX ME: immediate number!  */
-		for (i = 0 ; i < 1024 ; i++) {
-			pgr->page[i].__wpfn       = PAGE_NOT_USED;
-			pgr->page[i].__nt_mem     = NULL;
-			pgr->page[i].__nt_memsize = 0;
-			pgr->page[i].__ppfn       = 0;
-		}
+		RtlZeroMemory(pgr, sizeof(struct page_root));
 	}
 
 	page = &pgr->page[PAGE_PTE(addr)];
 	if (!page)
 		SAFE_ASSERT(0);
 
-//	ExReleaseFastMutex(&page_emulater_mutex);
-
 	return page;
 }
 
 struct page* _cdecl pfn_to_page(hfn_t pfn)
 {
-	return get_page_slot((hva_t)__va(pfn << PAGE_SHIFT));
+	struct page *ret = get_page_slot(pfn << PAGE_SHIFT);
+	SAFE_ASSERT(ret != NULL);
+	if (ret->page_type == PAGE_NOT_USED) {
+		printk(KERN_ALERT 
+			"%s WARNING You are trying to get a non allocated-page area. "
+			"Possibly a bug. check your code\n",
+			__FUNCTION__);
+	}
+	return ret;
 }
 
 hfn_t _cdecl page_to_pfn(struct page *page)
-{	
-	return (hfn_t)page->__ppfn;
+{
+	hfn_t pfn = 0;
+
+	SAFE_ASSERT(page->page_type != PAGE_NOT_USED);
+	switch (page->page_type) {
+       case PAGE_NEED_FREE:
+	   case PAGE_NOTNEED_FREE:
+		   pfn = page->independed.h_pfn;
+		   break;
+	   case PAGE_MEMMAPPED:
+		   pfn = page->mapped.h_pfn;
+		   break;
+	   default:
+		   printk(KERN_ALERT "%s: you are trying to get odd page pfn: (type: %d)\n",
+			   __FUNCTION__,
+			   page->page_type);
+	}
+	SAFE_ASSERT(pfn != 0);
+	return pfn;
 }
 
 int _cdecl get_order(unsigned long size)
@@ -519,105 +558,46 @@ int _cdecl get_order(unsigned long size)
  */
 struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 {
-	struct page_root *root;	
-	struct page *entry;	
+	struct page *entry;
+	hva_t  sysBase;
+	hva_t  sysAddr;
+	hpa_t  sysPhys;
 	unsigned long gpa = gfn << PAGE_SHIFT;
-	
-	int rindex = PAGE_PDE(gpa);
-	int eindex = PAGE_PTE(gpa);
 
 	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
-
-	SAFE_ASSERT(extension != NULL);
+	SAFE_ASSERT(mapMemInfo != NULL);
 
 	if (mapMemInfo == NULL || 
 		mapMemInfo->npages <= 0) {
-		printk(KERN_ALERT 
-			"There are no the allocated shared memory region "
-			"that should assign to 0x%08x gfn area\n",
-			gfn);
-		return NULL;
-	}
-
-	root = mapMemInfo->memTbl.page_slot_root[rindex];
-	if (!root) {
-		printk(KERN_ALERT "%s allocated\n",
-			__FUNCTION__);
-		root = (struct page_root*)ExAllocatePoolWithTag(
-			                       NonPagedPool, 
-								   sizeof(struct page_root), 
-								   MEM_TAG);
-		if (!root) {
-			/* error */
-			printk(KERN_ALERT "%s: ExAllocatePoolWithTag\n", __FUNCTION__);
+			printk(KERN_ALERT 
+				"%s There are no the allocated shared memory region "
+				"that should assign to 0x%08x gfn area\n",
+				__FUNCTION__, gfn);
 			return NULL;
-		}
-		RtlZeroMemory(root, sizeof(struct page_root));
-		mapMemInfo->memTbl.page_slot_root[rindex] = root;
-	}
-	
-	entry = &root->page[eindex];
-	if (check_map_bit(gpa, &root->bitmap)) {
-		printk(KERN_ALERT "%s: memory map is odd.\n",
-			__FUNCTION__);
-		return NULL;
-	} else {
-		set_map_bit(gpa, &root->bitmap);
-		RtlZeroMemory(entry, sizeof(struct page));
-		entry->__nt_mem     = &mapMemInfo->apMdl[0];
-		entry->__nt_memsize = 0;
-		entry->__wpfn       = PAGE_MEMMAPPED;
-		entry->__ppfn       = gpa >> PAGE_SHIFT;
-		SAFE_ASSERT(entry->__ppfn != 0x0);
-		return entry;		
 	}
 
-	return NULL;
-}
+	sysBase = (hva_t)MmGetSystemAddressForMdlSafe(
+		mapMemInfo->apMdl[0], 
+		NormalPagePriority);
+	SAFE_ASSERT(sysBase != 0x0);
 
-void _cdecl wk_free_page(unsigned long gfn, struct page *page)	
-{
-	struct page_root *root;	
-	struct page *entry;	
-	unsigned long gpa = gfn << PAGE_SHIFT;
-	int rindex = PAGE_PDE(gpa);
-	int eindex = PAGE_PTE(gpa);
+	sysAddr = sysBase + gpa;
+	sysPhys = __pa(sysAddr);
 
-	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
+	entry = get_page_slot(sysPhys);
+	SAFE_ASSERT(entry);
+	SAFE_ASSERT(entry->page_type == PAGE_NOT_USED);	
 
-	SAFE_ASSERT(mapMemInfo != NULL);
-
-	root = mapMemInfo->memTbl.page_slot_root[rindex];
-	if (!root) {
-		printk(KERN_ALERT 
-			   "%s: memory slot is odd. page_slot_root[%d] is not existence\n", 
-			   __FUNCTION__, rindex);
-		return;		
-	}   
-	
-	entry = &root->page[eindex];	
-
-	if (entry->__wpfn != PAGE_MEMMAPPED) {
-		printk(KERN_ALERT 
-			"WARNING: You are trying to free normal page area using %s\n",
-			__FUNCTION__);
-		return;
-	}
-
-	if (!check_map_bit(gpa, &root->bitmap)) {		
-		printk(KERN_ALERT 
-			"%s: memory bitmap is odd\n", 
-			__FUNCTION__);
-		return;		
-	}
-
-	clear_map_bit(gpa, &root->bitmap);
 	RtlZeroMemory(entry, sizeof(struct page));
+	entry->page_type       = PAGE_MEMMAPPED;
+	entry->mapped.size     = PAGE_SIZE;		
+	entry->mapped.systemVA = (PVOID)sysAddr;
+	entry->mapped.h_pfn    = (unsigned long)sysPhys >> PAGE_SHIFT;
+	entry->mapped.g_pfn    = gfn;
+	entry->mapped.pMdl     = &mapMemInfo->apMdl[0];
+	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + gpa;
 
-	if (root->bitmap.address_mask == 0) {
-		ExFreePoolWithTag(root, sizeof(struct page_root));
-		mapMemInfo->memTbl.page_slot_root[rindex] = NULL;
-	}   
+	return entry;
 }
 
 void* KeGetPageMemory(unsigned long size)
