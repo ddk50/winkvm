@@ -40,8 +40,6 @@ static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map);
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map);
 
 struct winkvm_memmap {
-	HANDLE  hMapHandle;
-	void    *ptr;
 	struct winkvm_getpvmap *mapping_pvmap;
 	struct winkvm_mapmem_initialize init;
 };
@@ -68,6 +66,7 @@ struct kvm_context {
     /// memory regions parameters
     struct kvm_memory_region mem_regions[KVM_MAX_NUM_MEM_REGIONS];
 	struct winkvm_memmap mapping[KVM_MAX_NUM_MEM_REGIONS];
+	int current_mapping_slot;
 };
 
 struct kvm_context *kvm_context = NULL;
@@ -141,8 +140,6 @@ void kvm_finalize(kvm_context_t kvm)
 	for (i = 0 ; i < KVM_MAX_NUM_MEM_REGIONS ; i++) {
 		if (kvm->mapping[i].mapping_pvmap)
 			free(kvm->mapping[i].mapping_pvmap);
-
-		CloseHandle(kvm->mapping[i].hMapHandle);
 	}
 
 	CloseHandle(kvm->hnd);	
@@ -206,13 +203,16 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 
 	fprintf(stderr, "memory size: %d [mbytes]\n", memory / 1024 / 1024);
 
-	maparea.init.slot      = 0;
+	kvm->current_mapping_slot = 0;
+	maparea.init.slot      = kvm->current_mapping_slot;
 	maparea.init.base_gfn  = 0 >> PAGE_SHIFT;
 	maparea.init.npages    = memory >> PAGE_SHIFT;
 
 	if (!SetMemmapArea(kvm, &maparea)) {
 		fprintf(stderr, "Could not initialize Memmap Area: %m\n");
 		return -1;
+	} else {
+		kvm->current_mapping_slot++;
 	}
 
 	/* end */
@@ -350,8 +350,20 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 	BOOL ret;
 	int retlen;
 	struct winkvm_memory_region  memory;
+	struct winkvm_memmap         maparea;
 
-	printf("called %s\n", __FUNCTION__);
+	fprintf(stderr, "called %s\n", __FUNCTION__);
+
+	maparea.init.slot     = kvm->current_mapping_slot;
+	maparea.init.base_gfn = phys_start >> PAGE_SHIFT;
+	maparea.init.npages   = len >> PAGE_SHIFT;
+
+	if (!SetMemmapArea(kvm, &maparea)) {
+		fprintf(stderr, "Could not initialize Memmap Area: %m\n");
+		return NULL;
+	} else {
+		kvm->current_mapping_slot++;
+	}
 
 	/*
     struct kvm_memory_region memory = {
@@ -373,16 +385,19 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 	memory.kvm_memory_region.guest_phys_addr = phys_start;
 	memory.kvm_memory_region.flags           = log ? KVM_MEM_LOG_DIRTY_PAGES : 0;
 
-	printf(" VM_FD : %d\n"
-		   " MEMORY REGION (flag) : 0x%08x\n"
-		   " MEMORY REGION (memory_size) : %d [bytes]\n"
-		   " MEMORY REGION (slot) : %d\n"
-		   " MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
-		   memory.vm_fd,
-		   memory.kvm_memory_region.flags,
-		   memory.kvm_memory_region.memory_size,
-		   memory.kvm_memory_region.slot,
-		   memory.kvm_memory_region.guest_phys_addr);
+	fprintf(stderr, 
+		"%s\n"
+		" VM_FD : %d\n"
+		" MEMORY REGION (flag) : 0x%08x\n"
+		" MEMORY REGION (memory_size) : %d [bytes]\n"
+		" MEMORY REGION (slot) : %d\n"
+		" MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
+		__FUNCTION__,
+		memory.vm_fd,
+		memory.kvm_memory_region.flags,
+		memory.kvm_memory_region.memory_size,
+		memory.kvm_memory_region.slot,
+		memory.kvm_memory_region.guest_phys_addr);
 
 	ret = DeviceIoControl(
 		     kvm->hnd,
@@ -399,12 +414,13 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 	}
 
     kvm_memory_region_save_params(kvm, &(memory.kvm_memory_region));
+	winkvm_mapping_region_save_params(kvm, &maparea);
 
 //    if (writable)
 //        prot |= PROT_WRITE;
 
 //    ptr = mmap(0, len, prot, MAP_SHARED, fd, phys_start);
-	ptr = VirtualAlloc(NULL, len, MEM_COMMIT, PAGE_READWRITE);
+	ptr = WkVirtualAlloc(kvm, &maparea);
     if (ptr == NULL)
         return 0;
 
@@ -1351,7 +1367,8 @@ static void GetPhysicalMap(kvm_context_t kvm, struct winkvm_memmap *map)
 	struct winkvm_getpvmap *pvmap;
 	BOOL Result;
 	ULONG ReturnedLength;
-	int i;
+	unsigned i;
+	char *p;
 
 	memset(&tmp, 0, sizeof(tmp));
 	tmp.slot = map->init.slot;
@@ -1367,16 +1384,20 @@ static void GetPhysicalMap(kvm_context_t kvm, struct winkvm_memmap *map)
 		  NULL);
 
 	if (!Result) {
-		printf("%s: failed 1\n", __FUNCTION__);
+		fprintf(stderr, "%s: failed 1\n", __FUNCTION__);
 		return;
+	} else {
+		fprintf(stderr, "pvmap table size: %d, returned length: %d\n", 
+			tmp.tablesize,
+			ReturnedLength);
 	}
 
 	if (tmp.tablesize > 0) {
 		unsigned long table_size = tmp.tablesize + sizeof(struct winkvm_getpvmap);
 		pvmap = (struct winkvm_getpvmap*)malloc(table_size);
 		if (!pvmap) {
-			printf("%s Could not allocate memory\n", 
-				__FUNCTION__);
+			fprintf(stderr, "%s Could not allocate memory\n", 
+				    __FUNCTION__);
 			return;
 		}
 
@@ -1394,36 +1415,43 @@ static void GetPhysicalMap(kvm_context_t kvm, struct winkvm_memmap *map)
 			  NULL);
 
 		if (!Result) {
-			printf("%s: failed 2\n", __FUNCTION__);
+			fprintf(stderr, "%s: failed 2\n", __FUNCTION__);
 			goto free_and_error;
 		}
 
 		for (i = 0 ; i < pvmap->tablesize / sizeof(struct winkvm_pfmap) ; i++) {
-			printf("[%d] 0x%08lx -> 0x%08lx\n", 
-				i,
-				pvmap->maptable[i].virt,
-				pvmap->maptable[i].phys);		
+			p = (char*)pvmap->maptable[i].virt;
+//			p[PAGE_SIZE-1] = '\0';
+//			fprintf(stderr, "read: %s\n", p);
+//			fprintf(stderr, "[%d] 0x%08lx -> 0x%08lx\n", 
+//				    i,
+//					pvmap->maptable[i].virt,
+//					pvmap->maptable[i].phys);
 		}
 		map->mapping_pvmap = pvmap;
+	} else {
+		fprintf(stderr, "pvmap tablesize is zero\n");
+		return;
 	}
 
 	return;
 
 free_and_error:
+
 	if (map)
 		free(map);
+
 	return;
 }
 
 static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 {
-	PVOID *ptr = NULL;
 	BOOL Result;
 	ULONG ReturnedLength;
 	ULONG npages;
-	WCHAR  SecName[255];
 
 	npages = map->init.npages;
+	map->init.mapUserVA = NULL;
 
 	Result = DeviceIoControl(
 		kvm->hnd,
@@ -1438,8 +1466,14 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 	if (!Result) {
 		fprintf(stderr, "Driver can not allocate memory area\n");
 		goto error;
-	}	
+	}
 
+	if (map->init.mapUserVA == NULL) {
+		fprintf(stderr, "Could not map shared region\n");
+		goto error;
+	}
+
+	/*
 	wsprintf(SecName, MAP, map->init.slot);
 
 	map->hMapHandle = OpenFileMapping(FILE_MAP_WRITE, FALSE, SecName);
@@ -1460,12 +1494,11 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 	}
 
 	map->ptr = ptr;
+	*/
 
 	return TRUE;
 
 error:
-	map->hMapHandle   = NULL;
-	map->ptr          = NULL;
 
 	return FALSE;
 }
@@ -1473,7 +1506,7 @@ error:
 static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map)
 {
 	GetPhysicalMap(kvm, map);
-	return map->ptr;
+	return (map->init.mapUserVA);
 }
 
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map)
