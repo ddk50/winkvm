@@ -48,8 +48,7 @@ void* KeGetPageMemory(unsigned long size);
 void KeFreePageMemory(void *ptr, unsigned long size);
 
 /* winkvm special function */
-struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags);
-void _cdecl wk_free_page(unsigned long gfn, struct page *page);
+struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, unsigned int flags);
 
 /* initailizer */
 void init_slab_emulater(WINKVM_DEVICE_EXTENSION *extn);

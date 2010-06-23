@@ -206,8 +206,7 @@ extern struct page *alloc_pages_node(int nid, unsigned int gfp_mask,
 									 unsigned int order);
 
 /* winkvm special function */
-extern struct page *wk_alloc_page(unsigned long gpfn, unsigned int flags);
-extern void wk_free_page(unsigned long gpfn, struct page *page);
+extern struct page *wk_alloc_page(unsigned long g_basefn, unsigned long i, unsigned int flags);
 /* end */
 
 extern void __free_page(struct page *page);
@@ -344,10 +343,10 @@ static inline long IS_ERR(const void *ptr)
 }
 
 /* for DEBUG */
-#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
-#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
-//#define FUNCTION_ENTER()
-//#define FUNCTION_EXIT()
+//#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
+//#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
+#define FUNCTION_ENTER()
+#define FUNCTION_EXIT()
 
 #endif /* __WINKVM__ */
 

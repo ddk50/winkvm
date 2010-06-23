@@ -556,13 +556,14 @@ int _cdecl get_order(unsigned long size)
  *  1) it's ok to take cpuset_sem (can WAIT), and
  *  2) allocating for current task (not interrupt).
  */
-struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
+struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, unsigned int flags)
 {
-	struct page *entry;
-	hva_t        sysBase;
-	hva_t        sysAddr;
-	hpa_t        sysPhys;
-	unsigned long gpa = gfn << PAGE_SHIFT;
+	struct page    *entry;
+	hva_t          sysBase;
+	hva_t          sysAddr;
+	hpa_t          sysPhys;
+    unsigned long  offset;
+	unsigned long  gfn = g_basefn + pnum;
 
 	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
 	SAFE_ASSERT(mapMemInfo != NULL);
@@ -581,21 +582,23 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 		NormalPagePriority);
 	SAFE_ASSERT(sysBase != 0x0);
 
-	sysAddr = sysBase + gpa;
-	sysPhys = __pa(sysAddr);
+	offset = ((g_basefn - mapMemInfo->base_gfn) + pnum) << PAGE_SHIFT;
+
+	sysAddr = sysBase + offset;
+	sysPhys = __pa(sysAddr); 
 
 	entry = get_page_slot(sysPhys);
 	SAFE_ASSERT(entry);
-	SAFE_ASSERT(entry->page_type == PAGE_NOT_USED);	
+	SAFE_ASSERT(entry->page_type == PAGE_NOT_USED);
 
 	RtlZeroMemory(entry, sizeof(struct page));
 	entry->page_type       = PAGE_MEMMAPPED;
-	entry->mapped.size     = PAGE_SIZE;		
+	entry->mapped.size     = PAGE_SIZE;
 	entry->mapped.systemVA = (PVOID)sysAddr;
 	entry->mapped.h_pfn    = (unsigned long)(sysPhys >> PAGE_SHIFT);
 	entry->mapped.g_pfn    = gfn;
 	entry->mapped.pMdl     = &mapMemInfo->apMdl[0];
-	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + gpa;
+	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + offset;
 
 	return entry;
 }
