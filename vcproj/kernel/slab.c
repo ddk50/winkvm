@@ -305,7 +305,7 @@ void _cdecl kunmap_atomic(void *kvaddr, enum km_type type)
 
 void* _cdecl page_address(struct page *page)
 {
-	void *ret;
+	void *ret = NULL;
 
 	SAFE_ASSERT(page->page_type != PAGE_NOT_USED);
 
@@ -559,9 +559,9 @@ int _cdecl get_order(unsigned long size)
 struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 {
 	struct page *entry;
-	hva_t  sysBase;
-	hva_t  sysAddr;
-	hpa_t  sysPhys;
+	hva_t        sysBase;
+	hva_t        sysAddr;
+	hpa_t        sysPhys;
 	unsigned long gpa = gfn << PAGE_SHIFT;
 
 	MAPMEM *mapMemInfo = get_mapmem_slot(gfn);
@@ -592,7 +592,7 @@ struct page* _cdecl wk_alloc_page(unsigned long gfn, unsigned int flags)
 	entry->page_type       = PAGE_MEMMAPPED;
 	entry->mapped.size     = PAGE_SIZE;		
 	entry->mapped.systemVA = (PVOID)sysAddr;
-	entry->mapped.h_pfn    = (unsigned long)sysPhys >> PAGE_SHIFT;
+	entry->mapped.h_pfn    = (unsigned long)(sysPhys >> PAGE_SHIFT);
 	entry->mapped.g_pfn    = gfn;
 	entry->mapped.pMdl     = &mapMemInfo->apMdl[0];
 	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + gpa;

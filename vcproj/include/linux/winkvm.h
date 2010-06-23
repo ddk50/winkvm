@@ -8,7 +8,7 @@
 
 #pragma pack(1)
 
-//struct page;
+struct page;
 
 struct page_mapped {
 	unsigned long  size;

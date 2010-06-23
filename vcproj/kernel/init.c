@@ -568,10 +568,10 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						init.mapUserVA       = (__u8*)mapMemInfo->userVAaddress;
 						mapMemInfo->npages   = init.npages;
 						mapMemInfo->base_gfn = init.base_gfn;
-						printk(KERN_ALERT "slot [%d] memory mapping: %x ... %x (%d [pages])\n", 
+						printk(KERN_ALERT "slot [%d] memory mapping: %llx ... %llx (%d [pages])\n", 
 							init.slot,
-							mapMemInfo->base_gfn << PAGE_SHIFT,
-							(mapMemInfo->base_gfn + mapMemInfo->npages) << PAGE_SHIFT,
+							(u64)mapMemInfo->base_gfn << PAGE_SHIFT,
+							(u64)(mapMemInfo->base_gfn + mapMemInfo->npages) << PAGE_SHIFT,
 							mapMemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
@@ -598,7 +598,6 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					if (pvmap.tablesize == 0) {
 						p         = &pvmap;
 						RetLength = sizeof(pvmap);
-
 						pvmap.tablesize = 
 							(__u32)(extension->mapMemInfo[pvmap.slot].npages)
 							* sizeof(struct winkvm_pfmap);
@@ -616,13 +615,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						for (i = 0 ; i < (p->tablesize / sizeof(struct winkvm_pfmap)) ; i++) {
 							addr = (unsigned long)((__u8*)extension->mapMemInfo[p->slot].userVAaddress + i * PAGE_SIZE);
 							p->maptable[i].virt = addr;
-							RtlFillMemory((__u8*)sysAddr + i * PAGE_SIZE, PAGE_SIZE, 'a');
-							p->maptable[i].phys = __pa(addr);
-							/*
-							printk(KERN_ALERT "(virt) 0x%x ... (phys) 0x%x\n",
-								(unsigned long)p->maptable[i].virt, 
-								(unsigned long)p->maptable[i].phys);
-								*/
+							p->maptable[i].phys = (unsigned long)__pa(addr);
+							RtlZeroMemory((__u8*)sysAddr + i * PAGE_SIZE, PAGE_SIZE);
 						}
 					}
 				} RtlCopyMemory(outBuf, p, RetLength);
