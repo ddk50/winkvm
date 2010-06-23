@@ -206,8 +206,7 @@ extern struct page *alloc_pages_node(int nid, unsigned int gfp_mask,
 									 unsigned int order);
 
 /* winkvm special function */
-extern struct page *wk_alloc_page(unsigned long gpfn, unsigned int flags);
-extern void wk_free_page(unsigned long gpfn, struct page *page);
+extern struct page *wk_alloc_page(unsigned long g_basefn, unsigned long i, unsigned int flags);
 /* end */
 
 extern void __free_page(struct page *page);

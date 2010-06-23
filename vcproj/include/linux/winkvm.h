@@ -8,17 +8,35 @@
 
 #pragma pack(1)
 
+struct page;
+
+struct page_mapped {
+	unsigned long  size;
+	void           *systemVA;
+	unsigned long  h_pfn;
+	unsigned long  g_pfn;
+	void           *pMdl;
+	void           *userVA;
+};
+
+struct page_independed {
+	unsigned long  size;
+	void           *systemVA;
+	unsigned long  h_pfn;
+	struct page    *head_page;
+};
+
 struct page {
 	union {
-		unsigned long private;	  
-		void *__mapping;		
-	};	
+		unsigned long private;
+		void *__mapping;
+	};
 	unsigned long index;
-	void *__nt_mem;
-	unsigned long __nt_memsize;	
-	/* hfn_t __wpfn; */
-	unsigned long __wpfn;
-	unsigned long __ppfn;
+	int   page_type;	
+	union {
+		struct page_mapped      mapped;
+		struct page_independed  independed;
+	};
 };
 
 struct inode {	
