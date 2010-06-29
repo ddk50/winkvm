@@ -326,11 +326,17 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
 				kvm_mem = &winkvm_mem.kvm_memory_region;
 
-				printk(KERN_ALERT "VM_FD : 0x%08x\n", winkvm_mem.vm_fd);
-				printk(KERN_ALERT "MEMORY REGION (flag) : 0x%08x\n", kvm_mem->flags);
-				printk(KERN_ALERT "MEMORY REGION (memory_size) : %d [bytes]\n", kvm_mem->memory_size);
-				printk(KERN_ALERT "MEMORY REGION (slot) : %d\n", kvm_mem->slot);
-				printk(KERN_ALERT "MEMORY REGION (guest_phys_addr) : 0x%08lx\n", kvm_mem->guest_phys_addr);
+				printk(KERN_ALERT 
+					"VM_FD : 0x%08x\n"
+					" MEMORY REGION (flag) : 0x%08x\n"
+					" MEMORY REGION (memory_size) : %d [bytes]\n"
+					" MEMORY REGION (slot) : %d\n"
+					" MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
+					winkvm_mem.vm_fd,
+					kvm_mem->flags,
+					kvm_mem->memory_size,
+					kvm_mem->slot,
+					kvm_mem->guest_phys_addr);
 
 				ret = kvm_vm_ioctl_set_memory_region(get_kvm(winkvm_mem.vm_fd), kvm_mem);
 
