@@ -94,27 +94,27 @@ CreateUserMapping(IN SIZE_T npages,
 	SIZE_T              ViewSize;
 
 	RtlInitUnicodeString(
-		mapMemInfo->section_name, 
+		&mapMemInfo->section_name, 
 		L"\\BaseNamedObjects\\UserKernelSharedSection");
 
 	status = RtlUnicodeStringPrintf(
-		mapMemInfo->section_name, 
+		&mapMemInfo->section_name, 
 		SECTION_BASENAME, 
 		slot);
 
 	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Create %s Section: 0x%x\n", 
-			mapMemInfo->section_name,
+		printk(KERN_ALERT "Could not Create %d Section: 0x%x\n", 
+			slot,
 			status);
 		goto error;
 	} else {
-		printk(KERN_ALERT "CreateUserMappingSection: %s\n", 
-			mapMemInfo->section_name);
+		printk(KERN_ALERT "CreateUserMappingSection: %d\n", 
+			slot);
 	}
 
 	InitializeObjectAttributes(
-		&objAttributes, 
-		mapMemInfo->section_name, 
+		&objAttributes,
+		&mapMemInfo->section_name, 
 		OBJ_CASE_INSENSITIVE, 
 		NULL, 
 		NULL);

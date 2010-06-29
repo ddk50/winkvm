@@ -568,7 +568,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case WINKVM_MAPMEM_INITIALIZE:
 			{
-				struct winkvm_mapmem_initialize  init;
+				struct winkvm_mapmem_initialize init;
 				MAPMEM *mapMemInfo;
 
 				RtlCopyMemory(&init, inBuf, sizeof(init)); {

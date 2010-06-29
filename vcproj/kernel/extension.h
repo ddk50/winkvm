@@ -31,8 +31,8 @@ typedef struct _MAPMEM {
 	unsigned long    npages;
 	unsigned long    base_gfn;
 	PVOID            userVAaddress;
-	PVOID            sysVAaddress;
-	PUNICODE_STRING  section_name;
+	PVOID            sysVAaddress;	
+	UNICODE_STRING   section_name;
 	HANDLE           hSection;
 } MAPMEM;
 #endif
