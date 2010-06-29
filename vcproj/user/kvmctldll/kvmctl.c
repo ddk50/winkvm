@@ -40,6 +40,10 @@ static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map);
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map);
 
 struct winkvm_memmap {
+#ifndef USE_MDL
+	HANDLE hMapHandle;
+	PVOID  ptr;
+#endif
 	struct winkvm_getpvmap *mapping_pvmap;
 	struct winkvm_mapmem_initialize init;
 };
@@ -227,7 +231,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	
     kvm->vcpu_fd[0] = -1;
 
-	printf("Create VM ... \n");
+	fprintf(stderr, "Create VM ... \n");
 	ret = DeviceIoControl(
 		      hnd,			  
 			  KVM_CREATE_VM,
@@ -244,17 +248,23 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
         return -1;		
     }
     kvm->vm_fd = fd;	
-	printf(" Done\n");
+	fprintf(stderr, " Done\n");
 
-	printf("Set Memory Region ... \n");
+	fprintf(stderr, "Set Memory Region ... \n");
 	low_memory.vm_fd      = fd;
 	extended_memory.vm_fd = fd;
 
-	printf(" VM_FD : %d\n", low_memory.vm_fd);
-	printf(" MEMORY REGION (flag) : 0x%08x\n", low_memory.kvm_memory_region.flags);
-	printf(" MEMORY REGION (memory_size) : %d [bytes]\n", low_memory.kvm_memory_region.memory_size); 
-	printf(" MEMORY REGION (slot) : %d\n", low_memory.kvm_memory_region.slot);
-	printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", low_memory.kvm_memory_region.guest_phys_addr);
+	fprintf(stderr, 
+		" VM_FD : %d\n"
+		" MEMORY REGION (flag) : 0x%08x\n"
+		" MEMORY REGION (memory_size) : %d [bytes]\n"
+		" MEMORY REGION (slot) : %d\n"
+		" MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
+		low_memory.vm_fd,
+		low_memory.kvm_memory_region.flags,
+		low_memory.kvm_memory_region.memory_size,
+		low_memory.kvm_memory_region.slot,
+		low_memory.kvm_memory_region.guest_phys_addr);
 
     /* 640K should be enough. */
 	//    r = ioctl(fd, KVM_SET_MEMORY_REGION, &low_memory);
@@ -278,11 +288,17 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
     if (extended_memory.kvm_memory_region.memory_size) {
 //        r = ioctl(fd, KVM_SET_MEMORY_REGION, &extended_memory);
 
-		printf("Set Another memory region ... \n");
-		printf(" MEMORY REGION (flag) : 0x%08x\n", extended_memory.kvm_memory_region.flags);
-		printf(" MEMORY REGION (memory_size) : %d [bytes]\n", extended_memory.kvm_memory_region.memory_size);		   
-		printf(" MEMORY REGION (slot) : %d\n", extended_memory.kvm_memory_region.slot);
-		printf(" MEMORY REGION (guest_phys_addr) : 0x%08lx\n", extended_memory.kvm_memory_region.guest_phys_addr);
+		fprintf(stderr, 
+			" VM_FD : %d\n"
+			" MEMORY REGION (flag) : 0x%08x\n"
+			" MEMORY REGION (memory_size) : %d [bytes]\n"
+			" MEMORY REGION (slot) : %d\n"
+			" MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
+			extended_memory.vm_fd,
+			extended_memory.kvm_memory_region.flags,
+			extended_memory.kvm_memory_region.memory_size,
+			extended_memory.kvm_memory_region.slot,
+			extended_memory.kvm_memory_region.guest_phys_addr);
 
 		ret = DeviceIoControl(
 			     hnd,
@@ -298,7 +314,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
             fprintf(stderr, "kvm_create_memory_region: %m\n");
             return -1; 
         }
-		printf(" Done\n");
+		fprintf(stderr, " Done\n");
     }
 
 	kvm_memory_region_save_params(kvm, &low_memory.kvm_memory_region);
@@ -318,7 +334,7 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
 	create_vcpu.vcpu_fd  = 0;
 
 	vcpufd = -1;
-	printf("Create VCPU ... \n");
+	fprintf(stderr, "Create VCPU ... \n");
 	ret = DeviceIoControl(
 		      hnd,
 			  KVM_CREATE_VCPU,
@@ -333,8 +349,8 @@ int kvm_create(kvm_context_t kvm, unsigned long memory, void **vm_mem)
          fprintf(stderr, " kvm_create_vcpu: %m\n");
          return -1;
      }
-	 printf(" vcpu fd : %d\n", vcpufd);
-	 printf(" Done\n");
+	 fprintf(stderr, " vcpu fd : %d\n", vcpufd);
+	 fprintf(stderr, " Done\n");
 	 kvm->vcpu_fd[0] = vcpufd;
 
 	 return 0;
@@ -890,7 +906,7 @@ again:
 			NULL);
 
 	if (retlen != sizeof(kvm_run)) {
-		printf("kvm_run: invalid return value\n");
+		fprintf(stderr, "kvm_run: invalid return value\n");
 		return r;
 	}
 
@@ -899,12 +915,12 @@ again:
 	kvm_run.mmio_completed = 0;
 
 	if (!ret) {
-		printf("kvm_run: failed\n");
+		fprintf(stderr, "kvm_run: failed\n");
 		return -1;
 	}
 	if (kvm_run.ioctl_r == -1 && kvm_run._errno != EINTR) {
 		r = -(kvm_run._errno);
-		printf("kvm_run: %d\n", kvm_run._errno);
+		fprintf(stderr, "kvm_run: %d\n", kvm_run._errno);
 		return r;
 	}
 	if (kvm_run.ioctl_r == -1) {
@@ -1142,7 +1158,7 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
 
 int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-//	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 /*
 	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
     int r, e;
@@ -1178,7 +1194,7 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 
 int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	/*
 	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
     int r, e;
@@ -1202,25 +1218,25 @@ int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 
 int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	return -1;
 }
 
 int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	return -1;
 }
 
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	return -1;
 }
 
 int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	return -1;
 }
 
@@ -1252,7 +1268,7 @@ int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq)
 
 int __cdecl kvm_guest_debug(kvm_context_t kvm, int vcpu, struct kvm_debug_guest *dbg)
 {
-	printf(" %s implement me\n", __FUNCTION__);
+	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	return -1;
 }
 
@@ -1449,6 +1465,10 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 	BOOL Result;
 	ULONG ReturnedLength;
 	ULONG npages;
+#ifndef USE_MDL
+	PVOID ptr;
+	WCHAR SecName[100];
+#endif
 
 	npages = map->init.npages;
 	map->init.mapUserVA = NULL;
@@ -1468,12 +1488,12 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 		goto error;
 	}
 
+#ifdef USE_MDL
 	if (map->init.mapUserVA == NULL) {
 		fprintf(stderr, "Could not map shared region\n");
 		goto error;
 	}
-
-	/*
+#else /* USE Section */
 	wsprintf(SecName, MAP, map->init.slot);
 
 	map->hMapHandle = OpenFileMapping(FILE_MAP_WRITE, FALSE, SecName);
@@ -1494,7 +1514,7 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 	}
 
 	map->ptr = ptr;
-	*/
+#endif  
 
 	return TRUE;
 
@@ -1506,10 +1526,14 @@ error:
 static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map)
 {
 	GetPhysicalMap(kvm, map);
+#ifdef USE_MDL
 	return (map->init.mapUserVA);
+#else
+	return (map->ptr);
+#endif
 }
 
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map)
 {
-	printf("%s implement me\n", __FUNCTION__);
+	fprintf(stderr, "%s implement me\n", __FUNCTION__);
 }
