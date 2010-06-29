@@ -60,12 +60,13 @@ CreateUserMapping(IN SIZE_T npages,
 
 	/* The preferred V5 way to map the buffer into user space */
 	userVAToReturn = MmMapLockedPagesSpecifyCache(
-		                     mdl,        // MDL
-							 UserMode,   // Mode
-							 MmCached,   // Caching
-							 NULL,       // Address
-							 FALSE,      // Bugcheck ?
-							 NormalPagePriority); // Priority
+		mdl,        // MDL
+		UserMode,   // Mode
+		MmCached,   // Caching
+		NULL,       // Address
+		FALSE,      // Bugcheck ?
+		NormalPagePriority); // Priority
+
 	if (!userVAToReturn) {
 		MmFreePagesFromMdl(mdl);
 		IoFreeMdl(mdl);
