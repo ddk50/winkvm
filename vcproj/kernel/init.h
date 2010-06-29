@@ -53,6 +53,6 @@
 	   } \
 	} while(0);
 
-#define USE_MDL
+#define USE_SECTION
 
 #endif

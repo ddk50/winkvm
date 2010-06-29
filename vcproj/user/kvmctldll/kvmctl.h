@@ -5,6 +5,8 @@
 #ifndef KVMCTL_H
 #define KVMCTL_H
 
+#define USE_SECTION
+
 #define __user /* temporary, until installed via make headers_install */
 #include <linux/winkvmint.h>
 #include <linux/kvm.h>
