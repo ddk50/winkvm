@@ -96,7 +96,9 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	if (NT_SUCCESS(status)) {
 		DriverObject->MajorFunction[IRP_MJ_CREATE]  = __winkvmstab_create;
 		DriverObject->MajorFunction[IRP_MJ_CLOSE]   = __winkvmstab_close;
+#ifdef USE_MDL
 		DriverObject->MajorFunction[IRP_MJ_CLEANUP] = __winkvmstab_cleanup;
+#endif
 		DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = __winkvmstab_ioctl;
 		DriverObject->DriverUnload = __winkvmstab_release;
 
@@ -177,6 +179,7 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
     return;
 } /* winkvm release */
 
+#ifdef USE_MDL
 NTSTATUS
 __winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
 					 IN PIRP Irp)
@@ -186,12 +189,11 @@ __winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
 
 	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
 		if (ext->mapMemInfo[i].npages > 0)
-			UnMapAndFreeMemory(
-			        ext->mapMemInfo[i].apMdl[0], 
-					ext->mapMemInfo[i].userVAaddress);
+			CloseUserMapping(ext->mapMemInfo[i].npages, i, &ext->mapMemInfo[i]);
 	}
 	return STATUS_SUCCESS;
 }
+#endif
 
 NTSTATUS 
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
@@ -581,11 +583,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-					ntStatus = CreateUserMappingSectionWithMdl(
-						           &mapMemInfo->apMdl[0],
-								   init.slot,
-								   init.npages,
-								   &mapMemInfo->userVAaddress);
+
+					ntStatus = CreateUserMapping(
+						init.npages,
+						init.slot,
+						mapMemInfo);
+
 					if (!NT_SUCCESS(ntStatus)) {
 						init.mapUserVA       = NULL;
 						init.npages          = 0;
@@ -631,9 +634,13 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
 						/* get system address */
+#ifdef USE_MDL
 						sysAddr = MmGetSystemAddressForMdlSafe(
 							          extension->mapMemInfo[pvmap.slot].apMdl[0], 
 									  NormalPagePriority);
+#else
+						sysAddr = extension->mapMemInfo[pvmap.slot].sysVAaddress;
+#endif
 						SAFE_ASSERT(sysAddr != NULL);
 
 						p         = (struct winkvm_getpvmap*)inBuf;
@@ -662,12 +669,10 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
-					if (extension->mapMemInfo[pvmap.slot].npages > 0 &&						
-						extension->mapMemInfo[pvmap.slot].userVAaddress != NULL) {
-							UnMapAndFreeMemory(
-								extension->mapMemInfo[pvmap.slot].apMdl[0],
-								extension->mapMemInfo[pvmap.slot].userVAaddress);
-					}
+					CloseUserMapping(
+						extension->mapMemInfo[pvmap.slot].npages,
+						pvmap.slot,
+						&extension->mapMemInfo[pvmap.slot]);
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
 				Irp->IoStatus.Information = sizeof(pvmap);
 
