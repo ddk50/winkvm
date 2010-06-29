@@ -49,6 +49,10 @@ __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 void 
 __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
 
+NTSTATUS
+__winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
+					 IN PIRP Irp);
+
 NTSTATUS 
 __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 					IN PIRP Irp);
@@ -92,6 +96,7 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	if (NT_SUCCESS(status)) {
 		DriverObject->MajorFunction[IRP_MJ_CREATE]  = __winkvmstab_create;
 		DriverObject->MajorFunction[IRP_MJ_CLOSE]   = __winkvmstab_close;
+		DriverObject->MajorFunction[IRP_MJ_CLEANUP] = __winkvmstab_cleanup;
 		DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = __winkvmstab_ioctl;
 		DriverObject->DriverUnload = __winkvmstab_release;
 
@@ -171,6 +176,22 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 
     return;
 } /* winkvm release */
+
+NTSTATUS
+__winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
+					 IN PIRP Irp)
+{
+	PWINKVM_DEVICE_EXTENSION ext = DeviceObject->DeviceExtension;
+	int  i;
+
+	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
+		if (ext->mapMemInfo[i].npages > 0)
+			UnMapAndFreeMemory(
+			        ext->mapMemInfo[i].apMdl[0], 
+					ext->mapMemInfo[i].userVAaddress);
+	}
+	return STATUS_SUCCESS;
+}
 
 NTSTATUS 
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
@@ -638,7 +659,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					if (extension->mapMemInfo[pvmap.slot].npages > 0 &&						
 						extension->mapMemInfo[pvmap.slot].userVAaddress != NULL) {
 							UnMapAndFreeMemory(
-								extension->mapMemInfo[pvmap.slot].apMdl[1],
+								extension->mapMemInfo[pvmap.slot].apMdl[0],
 								extension->mapMemInfo[pvmap.slot].userVAaddress);
 					}
 				} RtlCopyMemory(outBuf, &pvmap, sizeof(pvmap));
