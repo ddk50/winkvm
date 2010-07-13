@@ -1,3 +1,3 @@
 PREFIX=/usr/local
-KERNELDIR=../../../../linux
+KERNELDIR=../../windows-linux-compat
 WANT_MODULE=1
