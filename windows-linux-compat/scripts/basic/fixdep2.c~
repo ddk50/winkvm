@@ -1,0 +1,17 @@
+
+int main(int argc, char *argv[])
+{
+	traps();
+
+	if (argc != 4)
+		usage();
+
+	depfile = argv[1];
+	target = argv[2];
+	cmdline = argv[3];
+
+	print_cmdline();
+	print_deps();
+
+	return 0;
+}

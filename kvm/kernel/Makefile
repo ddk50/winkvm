@@ -8,42 +8,42 @@ INSTALLDIR = $(patsubst %/build,%/extra,$(KERNELDIR))
 
 rpmrelease = devel
 
-LINUX = ../../../../linux
+LINUX = ../../windows-linux-compat
 
 EXTRA_CFLAGS +=
 
-all:: sync
+all::
 	$(MAKE) CC="gcc -D__WINKVM__ -save-temps" -C $(KERNELDIR) V=1 M=`pwd` "$$@"
 
-sync:
-##	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
-	rsync "$(LINUX)"/include/linux/kvm.h \
-          "$(LINUX)"/include/linux/kvm_para.h \
-	      include/linux
-	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
-          "$(LINUX)"/include/asm/msr-index.h \
-          "$(LINUX)"/include/asm/processor-flags.h \
-          "$(LINUX)"/include/asm/errno.h \
-          "$(LINUX)"/include/asm/winkvm86.h \
-           ../../windows-linux-compat/asm
-	rsync "$(LINUX)"/include/asm-generic/errno.h \
-           ../../windows-linux-compat/asm-generic
-	rsync "$(LINUX)"/include/linux/winwdm.h \
-          "$(LINUX)"/include/linux/winkvmint.h \
-          "$(LINUX)"/include/linux/winkvmlist.h \
-          "$(LINUX)"/include/linux/winkvmstab.h \
-          "$(LINUX)"/include/linux/winkvmtypes.h \
-          "$(LINUX)"/include/linux/winkvmgfp.h \
-          ../../windows-linux-compat/linux
-	rsync "$(LINUX)"/include/linux/winkvmint.h \
-		  "$(LINUX)"/include/linux/winkvmgfp.h \
-		  "$(LINUX)"/include/linux/winkvm.h \
-          ../../vcproj/include/linux
-	rsync ./vmx.h \
-		  ../../vcproj/include/linux
-	rsync "$(LINUX)"/include/linux/kvm.h \
-		  "$(LINUX)"/include/linux/winkvmtypes.h \
-		   ../../vcproj/include/linux
+# sync:
+# ##	rsync --exclude='*.mod.c' "$(LINUX)"/drivers/kvm/*.[ch] .
+# 	rsync "$(LINUX)"/include/linux/kvm.h \
+#           "$(LINUX)"/include/linux/kvm_para.h \
+# 	      include/linux
+# 	rsync "$(LINUX)"/include/asm/winkvmmisc.h \
+#           "$(LINUX)"/include/asm/msr-index.h \
+#           "$(LINUX)"/include/asm/processor-flags.h \
+#           "$(LINUX)"/include/asm/errno.h \
+#           "$(LINUX)"/include/asm/winkvm86.h \
+#            ../../windows-linux-compat/asm
+# 	rsync "$(LINUX)"/include/asm-generic/errno.h \
+#            ../../windows-linux-compat/asm-generic
+# 	rsync "$(LINUX)"/include/linux/winwdm.h \
+#           "$(LINUX)"/include/linux/winkvmint.h \
+#           "$(LINUX)"/include/linux/winkvmlist.h \
+#           "$(LINUX)"/include/linux/winkvmstab.h \
+#           "$(LINUX)"/include/linux/winkvmtypes.h \
+#           "$(LINUX)"/include/linux/winkvmgfp.h \
+#           ../../windows-linux-compat/linux
+# 	rsync "$(LINUX)"/include/linux/winkvmint.h \
+# 		  "$(LINUX)"/include/linux/winkvmgfp.h \
+# 		  "$(LINUX)"/include/linux/winkvm.h \
+#           ../../vcproj/include/linux
+# 	rsync ./vmx.h \
+# 		  ../../vcproj/include/linux
+# 	rsync "$(LINUX)"/include/linux/kvm.h \
+# 		  "$(LINUX)"/include/linux/winkvmtypes.h \
+# 		   ../../vcproj/include/linux
 # 	sed -i 's/f_path\./f_/' kvm_main.c
 # 	sed -i 's/f_mnt/f_vfsmnt/' kvm_main.c
 # 	mv kvm_main.c kvm_main.c.orig
