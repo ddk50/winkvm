@@ -577,9 +577,13 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 			return NULL;
 	}
 
+#ifdef USE_MDL
 	sysBase = (hva_t)MmGetSystemAddressForMdlSafe(
 		mapMemInfo->apMdl[0], 
 		NormalPagePriority);
+#else
+	sysBase = (hva_t)mapMemInfo->sysVAaddress;
+#endif
 	SAFE_ASSERT(sysBase != 0x0);
 
 	offset = ((g_basefn - mapMemInfo->base_gfn) + pnum) << PAGE_SHIFT;
@@ -597,8 +601,10 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 	entry->mapped.systemVA = (PVOID)sysAddr;
 	entry->mapped.h_pfn    = (unsigned long)(sysPhys >> PAGE_SHIFT);
 	entry->mapped.g_pfn    = gfn;
+#ifdef USE_MDL
 	entry->mapped.pMdl     = &mapMemInfo->apMdl[0];
 	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + offset;
+#endif
 
 	return entry;
 }

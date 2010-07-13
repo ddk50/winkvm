@@ -5,18 +5,18 @@
 #include "init.h"
 #include "extension.h"
 
-NTSTATUS 
-CreateUserMappingSection(IN SIZE_T            npages,
-						 IN int               slot,
-						 OUT PUNICODE_STRING  section_name,
-						 OUT PVOID            *OutBuffer,
-						 OUT HANDLE           *handler);
+#define USE_SECTION
+/* #define USE_MDL */
 
 NTSTATUS
-CloseUserMappingSection(IN HANDLE            handler,
-						IN int               slot,
-						IN PUNICODE_STRING   section_name,
-						IN PVOID             *OutBuffer);
+CreateUserMapping(IN SIZE_T npages,
+				  IN int    slot,
+				  OUT MAPMEM *mapMemInfo);
+
+NTSTATUS
+CloseUserMapping(IN SIZE_T npages,
+				 IN int    slot,
+				 IN MAPMEM *mapMemInfo);
 
 /*
  * Memory mapping routine with MDL
@@ -32,8 +32,6 @@ CreateUserMappingSectionWithMdl(PMDL     *pMemMdl,
  * process and our driver.
  */
 void
-UnMapAndFreeMemory(PMDL  PMdl,
-				   PVOID UserVA);
-
+UnMapAndFreeMemory(PMDL PMdl, PVOID UserVA);
 
 #endif

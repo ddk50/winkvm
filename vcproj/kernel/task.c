@@ -1,7 +1,7 @@
 
 #include <linux/winkvm.h>
 
-#define WAIT_TIME 50
+#define WAIT_TIME 0
 
 struct task_struct current_task = {
 	{0},

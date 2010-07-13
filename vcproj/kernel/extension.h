@@ -18,6 +18,7 @@ typedef struct _MEMALLOCMANTBL {
 	int               page_slot_num;
 } MEMALLOCMANTBL;
 
+#ifdef USE_MDL
 typedef struct _MAPMEM {
 	unsigned long    npages;
 	unsigned long    base_gfn;
@@ -25,6 +26,16 @@ typedef struct _MAPMEM {
 	unsigned long    cMdls;
 	PMDL             apMdl[1];
 } MAPMEM;
+#else
+typedef struct _MAPMEM {
+	unsigned long    npages;
+	unsigned long    base_gfn;
+	PVOID            userVAaddress;
+	PVOID            sysVAaddress;	
+	UNICODE_STRING   section_name;
+	HANDLE           hSection;
+} MAPMEM;
+#endif
 
 /* extension */
 typedef struct _WINKVM_DEVICE_EXTENSION {
