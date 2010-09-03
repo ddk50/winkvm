@@ -276,6 +276,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\desc_emu.h"
+				>
+			</File>
+			<File
 				RelativePath=".\extension.h"
 				>
 			</File>

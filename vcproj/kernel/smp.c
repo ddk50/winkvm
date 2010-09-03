@@ -62,7 +62,7 @@ struct smpf_data {
 } *smpf_data_slot = NULL;
 
 void
-init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
+__INIT(init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 {
 	int i;
 	KAFFINITY aps;
@@ -99,7 +99,7 @@ init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 }
 
 void 
-release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
+__RELEASE(release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 {	
 	int i;
 
@@ -109,9 +109,8 @@ release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn)
 	}
 
 	if (spinlock_emulater_initialized) {
-		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i) {
+		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
 			spinlock_slot[i].used = 0;
-		}
 	}
 
 	if (smpf_data_slot)

@@ -57,8 +57,8 @@ typedef unsigned long  hfn_t;
 //#pragma pack(pop)
 
 ULONG KeQueryActiveProcessorCountCompatible(OUT PKAFFINITY ActiveProcessors);
-int atomic_dec_and_test(int *v);
-int atomic_inc_and_test(int *v);
+int _cdecl atomic_dec_and_test(int *v);
+int _cdecl atomic_inc_and_test(int *v);
 
 #define MEM_TAG 'HmmV'
 
@@ -73,6 +73,9 @@ int atomic_inc_and_test(int *v);
 
 void* _cdecl __va(unsigned long addr);
 u64 _cdecl __pa(hva_t virt);
-hpa_t get_phys(PHYSICAL_ADDRESS *addr);
+hpa_t _cdecl get_phys(PHYSICAL_ADDRESS *addr);
+
+#define __INIT(x) (x) /* This macro declare initializer function to use */
+#define __RELEASE(x) (x) /* This macro declare destructor function to use */
 
 #endif

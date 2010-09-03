@@ -255,7 +255,7 @@ static inline void account_system_vtime(struct task_struct *tsk)
 extern struct file *get_empty_filp(void);
 extern struct inode *new_inode(void);
 extern int get_unused_fd(void);
-extern void fd_install(unsigned int fd, struct file *file);
+extern void fd_install(unsigned int fd, struct file *file, enum private_data_type type);
 
 #ifdef CONFIG_SMP
 #ifndef __WINKVM__			  
@@ -342,11 +342,11 @@ static inline long IS_ERR(const void *ptr)
 	return IS_ERR_VALUE((unsigned long)ptr);	
 }
 
-/* for DEBUG */
-//#define FUNCTION_ENTER()       printk(KERN_ALERT " --> %s\n", __FUNCTION__)
-//#define FUNCTION_EXIT()        printk(KERN_ALERT " <-- %s\n", __FUNCTION__)
-#define FUNCTION_ENTER()
-#define FUNCTION_EXIT()
+extern void function_enter(enum dbgmsg_level, const char*);
+extern void function_exit(enum dbgmsg_level, const char*);
+
+#define FUNCTION_ENTER() function_enter(DBG_MISC, __FUNCTION__);
+#define FUNCTION_EXIT() function_exit(DBG_MISC, __FUNCTION__);
 
 #endif /* __WINKVM__ */
 

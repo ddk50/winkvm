@@ -288,6 +288,7 @@ struct kvm_debug_guest {
 
 /* for KVM_GET_DIRTY_LOG and KVM_GET_MEM_MAP */
 struct kvm_dirty_log {
+	int vm_fd;	
   __u32 slot;
   __u32 padding;
   union {

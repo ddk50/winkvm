@@ -38,6 +38,19 @@ static int current_vcpu = -1;
 static FAST_MUTEX writer_mutex;
 static FAST_MUTEX reader_mutex;
 
+/* initalizer function table */
+static void (*initfunc[])(PWINKVM_DEVICE_EXTENSION) = {
+	&init_smp_emulater,
+	&init_slab_emulater,
+	&init_file_emulater,
+};
+
+static void (*releasefunc[])(PWINKVM_DEVICE_EXTENSION) = {
+	&release_smp_emulater,
+	&release_slab_emulater,
+	&release_file_emulater,
+};
+
 NTSTATUS 
 DriverEntry(IN OUT PDRIVER_OBJECT  DriverObjaect,
 			IN PUNICODE_STRING RegistryPath);
@@ -96,9 +109,7 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	if (NT_SUCCESS(status)) {
 		DriverObject->MajorFunction[IRP_MJ_CREATE]  = __winkvmstab_create;
 		DriverObject->MajorFunction[IRP_MJ_CLOSE]   = __winkvmstab_close;
-#ifdef USE_MDL
 		DriverObject->MajorFunction[IRP_MJ_CLEANUP] = __winkvmstab_cleanup;
-#endif
 		DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = __winkvmstab_ioctl;
 		DriverObject->DriverUnload = __winkvmstab_release;
 
@@ -128,19 +139,14 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	}
 	*/
 
-	init_smp_emulater(extension);
-	init_slab_emulater(extension);
-	init_file_emulater(extension);
-
 	ExInitializeFastMutex(&writer_mutex);
 	ExInitializeFastMutex(&reader_mutex);
 
-	printk(KERN_ALERT "All initialized!\n");
-	printk("call vmx_init()\n");
+	printk(KERN_ALERT 
+		"WinKVM Compiled Date: %s %s\n"
+		"All initialized!\n", __DATE__, __TIME__);
 
 	check_function_pointer_test();
-
-	vmx_init();   
 
     return status;
 
@@ -161,15 +167,8 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 	
 	extension = (PWINKVM_DEVICE_EXTENSION)deviceObject->DeviceExtension;
 
-	vmx_exit();
-
-	release_smp_emulater(extension);
-	release_slab_emulater(extension);
-	release_file_emulater(extension);	
-
-	if (deviceObject != NULL) {
+	if (deviceObject != NULL)
 		IoDeleteDevice(DriverObject->DeviceObject);
-	}
 
 	RtlInitUnicodeString(&Win32NameString, DOS_DEVICE_NAME);
 	IoDeleteSymbolicLink(&Win32NameString);
@@ -179,27 +178,54 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
     return;
 } /* winkvm release */
 
-#ifdef USE_MDL
+
 NTSTATUS
 __winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
 					 IN PIRP Irp)
 {
-	PWINKVM_DEVICE_EXTENSION ext = DeviceObject->DeviceExtension;
-	int  i;
+	PWINKVM_DEVICE_EXTENSION extension = DeviceObject->DeviceExtension;
 
-	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
-		if (ext->mapMemInfo[i].npages > 0)
-			CloseUserMapping(ext->mapMemInfo[i].npages, i, &ext->mapMemInfo[i]);
-	}
+	FUNCTION_ENTER();
+	
+	FUNCTION_EXIT();
+
 	return STATUS_SUCCESS;
-}
-#endif
+} /* cleanup */
 
 NTSTATUS 
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 				   IN PIRP Irp)
 {
+	PWINKVM_DEVICE_EXTENSION extension = DeviceObject->DeviceExtension;
+	struct fd_slot *fds;	
+	int i;
+
 	FUNCTION_ENTER();
+
+	/* vcpu‚Ækvm‚É‚Í‚»‚ê‚¼‚ê“Æ—§‚µ‚½file‚Æinode‚ª“n‚³‚ê‚é */
+	for (i = 0 ; i < MAX_FD_SLOT ; ++i) {
+		fds = &extension->fd_slot[i];
+		if (fds->used && fds->type == WINKVM_VCPU) {
+			fds->file->f_op->release(fds->inode, fds->file);
+			RtlZeroMemory(fds, sizeof(struct fd_slot));
+		}
+	}
+
+	for (i = 0 ; i < MAX_FD_SLOT ; ++i) {
+		fds = &extension->fd_slot[i];
+		if (fds->used && fds->type == WINKVM_KVM) {
+			/* fds->inode is NULL */
+			/* fds->file has the value that seems correct */
+			fds->file->f_op->release(fds->inode, fds->file); 
+			RtlZeroMemory(fds, sizeof(struct fd_slot));
+		}
+	}
+
+	/* currently, only support Intel VT-x only */
+	vmx_exit();
+
+	for (i = 0 ; i < sizeof(releasefunc) / sizeof(*releasefunc) ; i++)
+		releasefunc[i](extension);
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
@@ -215,19 +241,26 @@ NTSTATUS
 __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 					IN PIRP Irp)
 {
+	PWINKVM_DEVICE_EXTENSION extension = DeviceObject->DeviceExtension;
+	int i;
+
 	FUNCTION_ENTER();
+
+	for (i = 0 ; i < sizeof(initfunc) / sizeof(*initfunc) ; i++)
+		initfunc[i](extension);
+
+	/* currently, only support Intel VT-x only */
+	vmx_init();
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
-
-//	Irp->AssociatedIrp.SystemBuffer = NULL;
 
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
 	FUNCTION_EXIT();
 
 	return STATUS_SUCCESS;
-}
+} /* winkvm create */
 
 
 NTSTATUS 
@@ -308,10 +341,10 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct winkvm_create_vcpu vcpu;
 				printk(KERN_ALERT "Call KVM_CREATE_VCPU\n");
 				RtlCopyMemory(&vcpu, inBuf, sizeof(vcpu));
-				ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_fd);
-
-				/* return vcpu value */
-				RtlCopyMemory(outBuf, &ret, sizeof(ret));
+				{
+					ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_fd);
+					/* return vcpu value */
+				} RtlCopyMemory(outBuf, &ret, sizeof(ret));
 				Irp->IoStatus.Information = sizeof(ret);
 				ntStatus = ConvertRetval(ret);
 				break;
@@ -325,28 +358,30 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 				printk(KERN_ALERT "Call KVM_SET_MEMORY_REGION\n");
 
-				RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem));
-				kvm_mem = &winkvm_mem.kvm_memory_region;
-
-				printk(KERN_ALERT 
-					"VM_FD : 0x%08x\n"
-					" MEMORY REGION (flag) : 0x%08x\n"
-					" MEMORY REGION (memory_size) : %d [bytes]\n"
-					" MEMORY REGION (slot) : %d\n"
-					" MEMORY REGION (guest_phys_addr) : 0x%08lx\n",
-					winkvm_mem.vm_fd,
-					kvm_mem->flags,
-					kvm_mem->memory_size,
-					kvm_mem->slot,
-					kvm_mem->guest_phys_addr);
-
-				ret = kvm_vm_ioctl_set_memory_region(get_kvm(winkvm_mem.vm_fd), kvm_mem);
-
-				RtlCopyMemory(outBuf, &winkvm_mem, sizeof(winkvm_mem));
+				RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem)); 
+				{
+					kvm_mem = &winkvm_mem.kvm_memory_region;
+					ret = kvm_vm_ioctl_set_memory_region(get_kvm(winkvm_mem.vm_fd), kvm_mem);
+				} RtlCopyMemory(outBuf, &winkvm_mem, sizeof(winkvm_mem));
 				Irp->IoStatus.Information = sizeof(winkvm_mem);
 				ntStatus = ConvertRetval(ret);
 				break;
 			} /* end KVM_SET_MEMORY_REGION */
+
+		case KVM_GET_DIRTY_LOG:
+			{
+				struct kvm_dirty_log log;
+				int ret;
+
+				RtlCopyMemory(&log, inBuf, sizeof(log));
+				{
+					/* implement me */
+					ret = kvm_vm_ioctl_get_dirty_log(get_kvm(log.vm_fd), &log);
+				} RtlCopyMemory(outBuf, &log, sizeof(log));
+				Irp->IoStatus.Information = sizeof(log);
+				ntStatus = ConvertRetval(ret);
+
+			} /* end KVM_GET_DIRTY_LOG */
 
 		case KVM_GET_REGS: 
 			{
@@ -421,16 +456,17 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				int r;
 
 				RtlCopyMemory(&kvm_sregs, inBuf, sizeof(kvm_sregs));
-
-				vcpu = get_vcpu(kvm_sregs.vcpu_fd);
-				if (!vcpu) {
-					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-					Irp->IoStatus.Information = 0;
-					break;
-				}
-			
-				r = kvm_vcpu_ioctl_set_sregs(vcpu, &kvm_sregs);
+				{
+					vcpu = get_vcpu(kvm_sregs.vcpu_fd);
+					if (!vcpu) {
+						ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+						Irp->IoStatus.Information = 0;
+						break;
+					}
+					r = kvm_vcpu_ioctl_set_sregs(vcpu, &kvm_sregs);
+				};
 				Irp->IoStatus.Information = 0;
+
 				ntStatus = ConvertRetval(r);
 				break;
 			} /* end KVM_SET_SREGS */
@@ -442,18 +478,18 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				int r;
 
 				RtlCopyMemory(&tr, inBuf, sizeof(tr));
+				{
+					vcpu = get_vcpu(tr.vcpu_fd);
+					if (!vcpu) {
+						ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+						Irp->IoStatus.Information = 0;
+						break;
+					}
+					r = kvm_vcpu_ioctl_translate(vcpu, &tr);
 
-				vcpu = get_vcpu(tr.vcpu_fd);
-				if (!vcpu) {
-					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-					Irp->IoStatus.Information = 0;
-					break;
-				}
+					Irp->IoStatus.Information = sizeof(tr);
+				} RtlCopyMemory(outBuf, &tr, sizeof(tr));
 
-				r = kvm_vcpu_ioctl_translate(vcpu, &tr);
-
-				Irp->IoStatus.Information = sizeof(tr);
-				RtlCopyMemory(outBuf, &tr, sizeof(tr));
 				ntStatus = ConvertRetval(r);
 				break;
 			} /* end KVM_TRANSLATE */
@@ -511,7 +547,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 			/* There are specific ioctl handlers for WinKVM */
 		case WINKVM_READ_GUEST:
-			{			
+			{
 				struct winkvm_transfer_mem trans_mem;
 				struct kvm_vcpu *vcpu;
 				int ret;
@@ -571,17 +607,20 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct winkvm_mapmem_initialize init;
 				MAPMEM *mapMemInfo;
 
-				RtlCopyMemory(&init, inBuf, sizeof(init)); {
+				RtlCopyMemory(&init, inBuf, sizeof(init)); 
+				{
 					if (init.slot >= MAX_MEMMAP_SLOT) {
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
 					}
+
 					mapMemInfo = &extension->mapMemInfo[init.slot];
 					if (mapMemInfo->npages > 0) {
-						printk(KERN_ALERT "%d slot has been already mapped memory region\n",
+						printk(KERN_ALERT 
+							"%d slot has been already mapped memory region\n"
+							"So, try to free memory mapping region\n",
 							init.slot);
-						ntStatus = STATUS_UNSUCCESSFUL;
-						break;
+						CloseUserMapping(mapMemInfo->npages, init.slot, mapMemInfo);						
 					}
 
 					ntStatus = CreateUserMapping(
@@ -620,7 +659,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
 
-				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); {
+				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); 
+				{
 					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
 						ntStatus = STATUS_UNSUCCESSFUL;
 						break;
@@ -634,13 +674,11 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
 					} else {
 						/* get system address */
-#ifdef USE_MDL
+
 						sysAddr = MmGetSystemAddressForMdlSafe(
 							          extension->mapMemInfo[pvmap.slot].apMdl[0], 
 									  NormalPagePriority);
-#else
-						sysAddr = extension->mapMemInfo[pvmap.slot].sysVAaddress;
-#endif
+
 						SAFE_ASSERT(sysAddr != NULL);
 
 						p         = (struct winkvm_getpvmap*)inBuf;
@@ -656,7 +694,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				} RtlCopyMemory(outBuf, p, RetLength);
 				Irp->IoStatus.Information = RetLength;
 				ntStatus = STATUS_SUCCESS;
-				printk(KERN_ALERT "End WINKVM_MAPMEM_GETPVMAP\n");
+
 				break;
 			} /* end WINKVM_MAPMEM_GETPVMAP */
 

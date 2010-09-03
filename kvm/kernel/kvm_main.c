@@ -117,10 +117,10 @@ static struct inode *kvmfs_inode(struct file_operations *fops)
 {
 	int error = -ENOMEM;	
 #ifndef __WINKVM__	
-	struct inode *inode = new_inode(kvmfs_mnt->mnt_sb);	
-
+	struct inode *inode = new_inode(kvmfs_mnt->mnt_sb);
+	
 	if (!inode)
-		goto eexit_1;
+		goto eexit_1;	
 
 	inode->i_fop = fops;
 
@@ -144,6 +144,8 @@ eexit_1:
 	
 	if (!inode)		
 		goto eexit_1;
+
+	inode->i_fop = fops;	
 	
 	return inode;
 
@@ -175,11 +177,10 @@ static struct file *kvmfs_file(struct inode *inode, void *private_data, int type
 	file->f_mode = FMODE_READ | FMODE_WRITE;
 	file->f_version = 0;
 	file->private_data = private_data;	
-#else
-	memset(file, 0, sizeof(struct file));   
+#else	
 	file->private_data = private_data;
+	file->f_op = inode->i_fop;	
 	file->__private_data_type = type;	
-	file->__inode = inode;	
 	return file;   
 #endif /* __WINKVM__ */
 }
@@ -368,47 +369,67 @@ static void kvm_free_physmem_slot(struct kvm_memory_slot *free,
 {
 	int i;
 
+	function_enter(DBG_RELEASE, __FUNCTION__);	
+
 	if (!dont || free->phys_mem != dont->phys_mem)
 		if (free->phys_mem) {
 			for (i = 0; i < free->npages; ++i)
 				if (free->phys_mem[i])
 					__free_page(free->phys_mem[i]);
+			printk(KERN_ALERT "first vfree() start\n");			
 			vfree(free->phys_mem);
+			printk(KERN_ALERT "first vfree() end\n");			
 		}
 
-	if (!dont || free->dirty_bitmap != dont->dirty_bitmap)
+	if (!dont || free->dirty_bitmap != dont->dirty_bitmap) {
+		printk(KERN_ALERT "second vfree() start\n");		
 		vfree(free->dirty_bitmap);
+		printk(KERN_ALERT "second vfree() end\n");		
+	}
 
 	free->phys_mem = NULL;
 	free->npages = 0;
 	free->dirty_bitmap = NULL;
+
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 static void kvm_free_physmem(struct kvm *kvm)
 {
 	int i;
+	function_enter(DBG_RELEASE, __FUNCTION__);	
 
 	for (i = 0; i < kvm->nmemslots; ++i)
 		kvm_free_physmem_slot(&kvm->memslots[i], NULL);
+
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 static void kvm_free_vcpu(struct kvm_vcpu *vcpu)
 {
-	if (!vcpu->vmcs)
+	function_enter(DBG_RELEASE, __FUNCTION__);
+	if (!vcpu->vmcs) {
+		function_exit(DBG_RELEASE, __FUNCTION__);		
 		return;
-
+	}
+	
 	vcpu_load(vcpu);
 	kvm_mmu_destroy(vcpu);
 	vcpu_put(vcpu);
 	kvm_arch_ops->vcpu_free(vcpu);
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 static void kvm_free_vcpus(struct kvm *kvm)
 {
 	unsigned int i;
 
+	function_enter(DBG_RELEASE, __FUNCTION__);	
+
 	for (i = 0; i < KVM_MAX_VCPUS; ++i)
 		kvm_free_vcpu(&kvm->vcpus[i]);
+
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 static int kvm_dev_release(struct inode *inode, struct file *filp)
@@ -416,21 +437,24 @@ static int kvm_dev_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static void kvm_destroy_vm(struct kvm *kvm)
+static void kvm_destroy_vm(struct kvm *kvm) 
 {
+	function_enter(DBG_RELEASE, __FUNCTION__);	
 	spin_lock(&kvm_lock);
 	list_del(&kvm->vm_list);
 	spin_unlock(&kvm_lock);
 	kvm_free_vcpus(kvm);
 	kvm_free_physmem(kvm);
-	kfree(kvm);	
+	kfree(kvm);
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
-static int kvm_vm_release(struct inode *inode, struct file *filp)
-{
+int kvm_vm_release(struct inode *inode, struct file *filp) 
+{  
 	struct kvm *kvm = filp->private_data;
-
-	kvm_destroy_vm(kvm);
+	function_enter(DBG_RELEASE, __FUNCTION__);	
+	kvm_destroy_vm(kvm);	
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 	return 0;
 }
 
@@ -822,8 +846,8 @@ out:
 /*
  * Get (and clear) the dirty memory log for a memory slot.
  */
-static int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
-				      struct kvm_dirty_log *log)
+int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+							   struct kvm_dirty_log *log)  
 {
 	struct kvm_memory_slot *memslot;
 	int r, i;
@@ -2046,9 +2070,11 @@ static int kvm_vcpu_ioctl_debug_guest(struct kvm_vcpu *vcpu,
 	return r;
 }
 
-static int kvm_vcpu_release(struct inode *inode, struct file *filp)
+int kvm_vcpu_release(struct inode *inode, struct file *filp)  
 {
 	struct kvm_vcpu *vcpu = filp->private_data;
+
+	printk(KERN_ALERT "%s\n", __FUNCTION__);	
 
 	fput(vcpu->kvm->filp);
 	return 0;
@@ -2073,7 +2099,7 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 
 	atomic_inc(&vcpu->kvm->filp->f_count);	
 	
-	inode = kvmfs_inode(&kvm_vcpu_fops);
+	inode = kvmfs_inode(&kvm_vcpu_fops);	
 	if (IS_ERR(inode)) {
 		r = PTR_ERR(inode);
 		goto out1;
@@ -2093,7 +2119,7 @@ int create_vcpu_fd(struct kvm_vcpu *vcpu)
 	if (r < 0)
 		goto out3;
 	fd = r;
-	fd_install(fd, file);
+	fd_install(fd, file, WINKVM_VCPU);	
 
 	FUNCTION_EXIT();	
 	return fd;
@@ -2423,7 +2449,7 @@ int kvm_dev_ioctl_create_vm(void)
 	if (r < 0)
 		goto out4;
 	fd = r;
-	fd_install(fd, file);	
+	fd_install(fd, file, WINKVM_KVM);
 
 	return fd;
 

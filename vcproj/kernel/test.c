@@ -20,6 +20,7 @@
 #include "cpu.h"
 
 #include <linux/vmx.h>
+#include <linux/winkvm.h>
 
 /* test */
 void do_check(void)
@@ -69,4 +70,26 @@ int _cdecl check_ensure_vmx(void)
 		(CR0_PE_MASK | CR0_NE_MASK | CR0_PG_MASK)) ? 1 : 0;
 
 	return valid;
+}
+
+static enum dbgmsg_level dbgmsg_status[] = {
+    DBG_RELEASE,
+};
+
+void _cdecl function_enter(enum dbgmsg_level x, const char *funcname)
+{
+	int i;
+	for (i = 0 ; i < sizeof(dbgmsg_status) / sizeof(enum dbgmsg_level) ; i++) {
+		if (dbgmsg_status[i] == x)
+			printk(KERN_ALERT " --> %s\n", funcname);
+	}
+}
+
+void _cdecl function_exit(enum dbgmsg_level x, const char *funcname)
+{
+	int i;
+	for (i = 0 ; i < sizeof(dbgmsg_status) / sizeof(enum dbgmsg_level) ; i++) {
+		if (dbgmsg_status[i] == x)
+			printk(KERN_ALERT " <-- %s\n", funcname);
+	}
 }

@@ -46,9 +46,8 @@ get_mapmem_slot(unsigned long gfn)
 		base_gfn = extension->mapMemInfo[i].base_gfn;
 		npages   = extension->mapMemInfo[i].npages;
 
-		if (base_gfn <= gfn && (base_gfn + npages) > gfn) {
+		if (base_gfn <= gfn && (base_gfn + npages) > gfn)
 			return &extension->mapMemInfo[i];
-		}
 	}
 
 	return NULL;
@@ -103,7 +102,7 @@ static dump_page(struct page *page)
 }
 
 void 
-init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
+__INIT(init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn))
 {
 	int i;
 	struct page_root *pgr;
@@ -149,7 +148,7 @@ init_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 }
 
 void 
-release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
+__RELEASE(release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn))
 {
 	int i, j;
 	struct page *pd;
@@ -169,6 +168,25 @@ release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn)
 	}
 
 	extension = NULL;
+}
+
+void flush_memtable(void)
+{
+	int i, j;
+	struct page *pd;
+	PWINKVM_DEVICE_EXTENSION extn = extension;
+
+	for (i = 0 ; i < extn->globalMemTbl.page_slot_num ; i++) {
+		if (extn->globalMemTbl.page_slot_root[i]) {
+			pd = extn->globalMemTbl.page_slot_root[i]->page;
+			/* bug!! */
+			for (j = 0 ; j < 1024 ; j++)  {
+				if (pd[j].page_type == PAGE_NEED_FREE)
+					KeFreePageMemory(pd[j].independed.systemVA, pd[j].independed.size);
+			}
+			RtlZeroMemory(pd, sizeof(struct page));
+		}
+	}
 }
 
 int _cdecl check_page_compatible(unsigned long page_size,
@@ -241,12 +259,16 @@ void* _cdecl kzalloc(size_t size, int flags)
  */
 void* _cdecl vmalloc(unsigned long size)
 {
-	return ExAllocatePoolWithTag(NonPagedPool, size, MEM_TAG);
+	void *ret = ExAllocatePoolWithTag(PagedPool, size, MEM_TAG);
+	SAFE_ASSERT(ret != NULL);
+	return ret;
 } 
 
 void _cdecl vfree(void *addr)
 {
-	ExFreePoolWithTag(addr, MEM_TAG);
+	/* when addr == null, critical error occur */
+	if (addr)
+		ExFreePoolWithTag(addr, MEM_TAG);
 }
 
 unsigned long _cdecl copy_to_user(void *to, const void *from, unsigned long n)
@@ -577,13 +599,9 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 			return NULL;
 	}
 
-#ifdef USE_MDL
 	sysBase = (hva_t)MmGetSystemAddressForMdlSafe(
 		mapMemInfo->apMdl[0], 
 		NormalPagePriority);
-#else
-	sysBase = (hva_t)mapMemInfo->sysVAaddress;
-#endif
 	SAFE_ASSERT(sysBase != 0x0);
 
 	offset = ((g_basefn - mapMemInfo->base_gfn) + pnum) << PAGE_SHIFT;
@@ -601,10 +619,8 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 	entry->mapped.systemVA = (PVOID)sysAddr;
 	entry->mapped.h_pfn    = (unsigned long)(sysPhys >> PAGE_SHIFT);
 	entry->mapped.g_pfn    = gfn;
-#ifdef USE_MDL
 	entry->mapped.pMdl     = &mapMemInfo->apMdl[0];
 	entry->mapped.userVA   = (__u8*)mapMemInfo->userVAaddress + offset;
-#endif
 
 	return entry;
 }

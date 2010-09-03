@@ -41,7 +41,7 @@ int _cdecl printk(const char *s, ...)
 	return 1;
 }
 
-hpa_t get_phys(PHYSICAL_ADDRESS *addr)
+hpa_t _cdecl get_phys(PHYSICAL_ADDRESS *addr)
 {
 	return PAU64(addr);
 }
@@ -109,7 +109,7 @@ int _cdecl cpu_to_node(int cpu)
 	return cpu;
 }
 
-int atomic_dec_and_test(int *v)
+int _cdecl atomic_dec_and_test(int *v)
 {
 	unsigned char c;
 
@@ -125,7 +125,7 @@ int atomic_dec_and_test(int *v)
 	return c != 0;
 }
 
-int atomic_inc_and_test(int *v)
+int _cdecl atomic_inc_and_test(int *v)
 {
 	unsigned char c;
 	FUNCTION_ENTER();

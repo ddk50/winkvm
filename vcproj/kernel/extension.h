@@ -5,6 +5,7 @@
 #include <linux/winkvmint.h>
 
 #include "init.h"
+#include "desc_emu.h"
 
 #define MAX_MEMMAP_SLOT  10
 #define MAX_SECTION_NAME 50
@@ -18,7 +19,6 @@ typedef struct _MEMALLOCMANTBL {
 	int               page_slot_num;
 } MEMALLOCMANTBL;
 
-#ifdef USE_MDL
 typedef struct _MAPMEM {
 	unsigned long    npages;
 	unsigned long    base_gfn;
@@ -26,21 +26,15 @@ typedef struct _MAPMEM {
 	unsigned long    cMdls;
 	PMDL             apMdl[1];
 } MAPMEM;
-#else
-typedef struct _MAPMEM {
-	unsigned long    npages;
-	unsigned long    base_gfn;
-	PVOID            userVAaddress;
-	PVOID            sysVAaddress;	
-	UNICODE_STRING   section_name;
-	HANDLE           hSection;
-} MAPMEM;
-#endif
 
 /* extension */
 typedef struct _WINKVM_DEVICE_EXTENSION {
 	MAPMEM          mapMemInfo[MAX_MEMMAP_SLOT];
 	MEMALLOCMANTBL  globalMemTbl; /* host physical address bitmap */
+	struct inode_slot   inode_slot[MAX_INODE_SLOT];
+	struct file_slot    file_slot[MAX_FILE_SLOT];
+	struct fd_slot      fd_slot[MAX_FD_SLOT];
+	FAST_MUTEX          fd_slot_mutex;
 } WINKVM_DEVICE_EXTENSION;
 
 typedef WINKVM_DEVICE_EXTENSION* PWINKVM_DEVICE_EXTENSION;

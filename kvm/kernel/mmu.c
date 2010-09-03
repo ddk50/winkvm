@@ -1157,11 +1157,13 @@ static int init_kvm_mmu(struct kvm_vcpu *vcpu)
 
 static void destroy_kvm_mmu(struct kvm_vcpu *vcpu)
 {
+	function_enter(DBG_DESTROY_KVM_MMU, __FUNCTION__);	
 	ASSERT(vcpu);
 	if (VALID_PAGE(vcpu->mmu.root_hpa)) {
 		vcpu->mmu.free(vcpu);
 		vcpu->mmu.root_hpa = INVALID_PAGE;
 	}
+	function_exit(DBG_DESTROY_KVM_MMU, __FUNCTION__);	
 }
 
 int kvm_mmu_reset_context(struct kvm_vcpu *vcpu)
@@ -1300,6 +1302,7 @@ EXPORT_SYMBOL_GPL(kvm_mmu_free_some_pages);
 static void free_mmu_pages(struct kvm_vcpu *vcpu)
 {
 	struct kvm_mmu_page *page;
+	function_enter(DBG_RELEASE, __FUNCTION__);	
 
 	while (!list_empty(&vcpu->kvm->active_mmu_pages)) {
 		page = container_of(vcpu->kvm->active_mmu_pages.next,
@@ -1314,6 +1317,7 @@ static void free_mmu_pages(struct kvm_vcpu *vcpu)
 		page->page_hpa = INVALID_PAGE;
 	}
 	free_page((unsigned long)vcpu->mmu.pae_root);
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 static int alloc_mmu_pages(struct kvm_vcpu *vcpu)
@@ -1379,11 +1383,13 @@ int kvm_mmu_setup(struct kvm_vcpu *vcpu)
 
 void kvm_mmu_destroy(struct kvm_vcpu *vcpu)
 {
+	function_enter(DBG_RELEASE, __FUNCTION__);	
 	ASSERT(vcpu);
 
 	destroy_kvm_mmu(vcpu);
 	free_mmu_pages(vcpu);
 	mmu_free_memory_caches(vcpu);
+	function_exit(DBG_RELEASE, __FUNCTION__);	
 }
 
 void kvm_mmu_slot_remove_write_access(struct kvm_vcpu *vcpu, int slot)

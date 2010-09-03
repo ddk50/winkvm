@@ -33,7 +33,6 @@ CreateUserMapping(IN SIZE_T npages,
 				  IN int    slot,
 				  OUT MAPMEM *mapMemInfo)
 {
-#ifdef USE_MDL
 	PMDL               mdl;
 	PVOID              userVAToReturn;
 	PHYSICAL_ADDRESS   lowAddress;
@@ -60,12 +59,12 @@ CreateUserMapping(IN SIZE_T npages,
 
 	/* The preferred V5 way to map the buffer into user space */
 	userVAToReturn = MmMapLockedPagesSpecifyCache(
-		mdl,        // MDL
-		UserMode,   // Mode
-		MmCached,   // Caching
-		NULL,       // Address
-		FALSE,      // Bugcheck ?
-		NormalPagePriority); // Priority
+		        mdl,        // MDL
+				UserMode,   // Mode
+				MmCached,   // Caching
+				NULL,       // Address
+				FALSE,      // Bugcheck ?
+				NormalPagePriority); // Priority
 
 	if (!userVAToReturn) {
 		MmFreePagesFromMdl(mdl);
@@ -85,105 +84,6 @@ CreateUserMapping(IN SIZE_T npages,
 		userVAToReturn);
 
 	return STATUS_SUCCESS;
-#else /* for USE_SECTION */
-	LARGE_INTEGER       size;
-	OBJECT_ATTRIBUTES   objAttributes;
-	NTSTATUS            status;
-	HANDLE              g_hSection;
-	PVOID               pSharedSection;
-	SIZE_T              ViewSize;
-
-	RtlInitUnicodeString(
-		&mapMemInfo->section_name, 
-		L"\\BaseNamedObjects\\UserKernelSharedSection");
-
-	status = RtlUnicodeStringPrintf(
-		&mapMemInfo->section_name, 
-		SECTION_BASENAME, 
-		slot);
-
-	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Create %d Section: 0x%x\n", 
-			slot,
-			status);
-		goto error;
-	} else {
-		printk(KERN_ALERT "CreateUserMappingSection: %d\n", 
-			slot);
-	}
-
-	InitializeObjectAttributes(
-		&objAttributes,
-		&mapMemInfo->section_name, 
-		OBJ_CASE_INSENSITIVE, 
-		NULL, 
-		NULL);
-
-	size.HighPart  = 0;
-	size.LowPart   = npages << PAGE_SHIFT;
-	g_hSection     = NULL;
-
-	status = ZwCreateSection(
-		&g_hSection,
-		SECTION_ALL_ACCESS, 
-		&objAttributes,
-		&size,
-		PAGE_READWRITE,
-		0x8000000,
-		NULL);
-
-	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Create %s Section: 0x%x\n", 
-			mapMemInfo->section_name,
-			status);
-		goto error;
-	}
-
-	/* for pSharedSection */
-	pSharedSection = NULL;
-	ViewSize = npages << PAGE_SHIFT;
-
-	status = ZwMapViewOfSection(
-		g_hSection,
-		NtCurrentProcess(),
-		&pSharedSection,
-		0,
-		ViewSize,
-		NULL,
-		&ViewSize,
-		ViewShare,
-		MEM_PHYSICAL,
-		PAGE_READWRITE | PAGE_NOCACHE);
-
-	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not %s Map Section: 0x%x\n", 
-			mapMemInfo->section_name,
-			status);
-		goto error;
-	}
-
-	printk(KERN_ALERT "slot [%d] Pointer: 0x%x\n", 
-		slot,
-		pSharedSection);
-
-	/*
-	RtlFillMemory(pSharedSection, shared_size, 'a');	
-	((char*)pSharedSection)[shared_size - 1] = '\0';
-	*/
-
-	mapMemInfo->sysVAaddress  = pSharedSection;
-	mapMemInfo->userVAaddress = NULL;
-	mapMemInfo->hSection      = g_hSection;
-	mapMemInfo->npages        = npages;
-	return STATUS_SUCCESS;
-
-error:
-	mapMemInfo->sysVAaddress  = NULL;
-	mapMemInfo->userVAaddress = NULL;
-	mapMemInfo->hSection      = NULL;
-	mapMemInfo->npages        = 0;
-	return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 
@@ -196,13 +96,8 @@ CloseUserMapping(IN SIZE_T npages,
 				 IN int    slot,
 				 IN MAPMEM *mapMemInfo)
 {
-#ifdef USE_MDL
-
-	if (!mapMemInfo->apMdl[0]) {
-		printk(KERN_ALERT "%s: invalid PMdl",
-			__FUNCTION__);
+	if (!mapMemInfo->apMdl[0])
 		return STATUS_UNSUCCESSFUL;
-	}
 
 	/* Unmap the pages */
 	MmUnmapLockedPages(
@@ -215,26 +110,9 @@ CloseUserMapping(IN SIZE_T npages,
 	/* Release the MDL. */
 	IoFreeMdl(mapMemInfo->apMdl[0]);
 
-	return STATUS_SUCCESS;
-#else
-	NTSTATUS status;
-
-	status = ZwUnmapViewOfSection(
-		mapMemInfo->hSection, 
-		mapMemInfo->sysVAaddress);
-
-	if (!NT_SUCCESS(status)) {
-		printk(KERN_ALERT "Could not Unmap Section: %w %p 0x%x\n", 
-			mapMemInfo->section_name, 
-			mapMemInfo->sysVAaddress, 
-			status);
-		return STATUS_UNSUCCESSFUL;
-	}
-
-	ZwClose(mapMemInfo->hSection);
-
 	RtlZeroMemory(mapMemInfo, sizeof(MAPMEM));
 
+	flush_memtable();
+
 	return STATUS_SUCCESS;
-#endif
 } /* Close CreateMapSection */

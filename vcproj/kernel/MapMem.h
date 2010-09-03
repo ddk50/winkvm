@@ -34,4 +34,6 @@ CreateUserMappingSectionWithMdl(PMDL     *pMemMdl,
 void
 UnMapAndFreeMemory(PMDL PMdl, PVOID UserVA);
 
+void flush_memtable(void);
+
 #endif
