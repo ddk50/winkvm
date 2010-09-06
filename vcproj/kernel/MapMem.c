@@ -99,9 +99,16 @@ CloseUserMapping(IN SIZE_T npages,
 	if (!mapMemInfo->apMdl[0] || mapMemInfo->npages <= 0)
 		return STATUS_UNSUCCESSFUL;
 
-	/* Unmap the pages */
+	printk(KERN_ALERT "Call Close User Mapping\n");
+
+	/* Unmap userVA pages */
 	MmUnmapLockedPages(
 		mapMemInfo->userVAaddress, 
+		mapMemInfo->apMdl[0]);
+
+	/* Unmap kernelVA pages */
+	MmUnmapLockedPages(
+		mapMemInfo->kernelVAaddress,
 		mapMemInfo->apMdl[0]);
 
 	/* Free the pages from the MDL */

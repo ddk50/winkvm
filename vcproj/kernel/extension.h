@@ -23,6 +23,7 @@ typedef struct _MAPMEM {
 	unsigned long    npages;
 	unsigned long    base_gfn;
 	PVOID            userVAaddress;
+	PVOID            kernelVAaddress;
 	unsigned long    cMdls;
 	PMDL             apMdl[1];
 } MAPMEM;
