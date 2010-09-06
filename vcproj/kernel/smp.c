@@ -112,7 +112,7 @@ __RELEASE(release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
 			spinlock_slot[i].used = 0;
 	}
-	ExAcquireFastMutex(&emulater_spinlock);
+	ExReleaseFastMutex(&emulater_spinlock);
 
 	return;
 }
