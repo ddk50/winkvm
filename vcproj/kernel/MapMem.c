@@ -96,7 +96,7 @@ CloseUserMapping(IN SIZE_T npages,
 				 IN int    slot,
 				 IN MAPMEM *mapMemInfo)
 {
-	if (!mapMemInfo->apMdl[0])
+	if (!mapMemInfo->apMdl[0] || mapMemInfo->npages <= 0)
 		return STATUS_UNSUCCESSFUL;
 
 	/* Unmap the pages */

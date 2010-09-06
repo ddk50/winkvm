@@ -18,6 +18,7 @@
 #include "slab.h"
 #include "kernel.h"
 #include "extension.h"
+#include "MapMem.h"
 
 #define PAGE_NOT_USED        0x0
 #define PAGE_NEED_FREE       0x1
@@ -165,6 +166,11 @@ __RELEASE(release_slab_emulater(PWINKVM_DEVICE_EXTENSION extn))
 			ExFreePoolWithTag(extn->globalMemTbl.page_slot_root[i], MEM_TAG);
 			extn->globalMemTbl.page_slot_root[i] = NULL;
 		}
+	}
+
+	for (i = 0 ; i < MAX_MEMMAP_SLOT ; i++) {
+		CloseUserMapping(extn->mapMemInfo[i].npages, i, &extn->mapMemInfo[i]);
+		RtlZeroMemory(&extn->mapMemInfo[i], sizeof(MAPMEM));
 	}
 
 	extension = NULL;
@@ -600,8 +606,8 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 	}
 
 	sysBase = (hva_t)MmGetSystemAddressForMdlSafe(
-		mapMemInfo->apMdl[0], 
-		NormalPagePriority);
+		                mapMemInfo->apMdl[0], 
+						HighPagePriority);
 	SAFE_ASSERT(sysBase != 0x0);
 
 	offset = ((g_basefn - mapMemInfo->base_gfn) + pnum) << PAGE_SHIFT;

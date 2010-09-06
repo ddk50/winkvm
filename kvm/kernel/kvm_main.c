@@ -376,15 +376,11 @@ static void kvm_free_physmem_slot(struct kvm_memory_slot *free,
 			for (i = 0; i < free->npages; ++i)
 				if (free->phys_mem[i])
 					__free_page(free->phys_mem[i]);
-			printk(KERN_ALERT "first vfree() start\n");			
 			vfree(free->phys_mem);
-			printk(KERN_ALERT "first vfree() end\n");			
 		}
 
 	if (!dont || free->dirty_bitmap != dont->dirty_bitmap) {
-		printk(KERN_ALERT "second vfree() start\n");		
 		vfree(free->dirty_bitmap);
-		printk(KERN_ALERT "second vfree() end\n");		
 	}
 
 	free->phys_mem = NULL;

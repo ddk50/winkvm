@@ -62,10 +62,6 @@ __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,
 void 
 __winkvmstab_release(IN PDRIVER_OBJECT DriverObject);
 
-NTSTATUS
-__winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
-					 IN PIRP Irp);
-
 NTSTATUS 
 __winkvmstab_create(IN PDEVICE_OBJECT DeviceObject,
 					IN PIRP Irp);
@@ -109,7 +105,6 @@ DriverEntry(IN OUT PDRIVER_OBJECT  DriverObject,
 	if (NT_SUCCESS(status)) {
 		DriverObject->MajorFunction[IRP_MJ_CREATE]  = __winkvmstab_create;
 		DriverObject->MajorFunction[IRP_MJ_CLOSE]   = __winkvmstab_close;
-		DriverObject->MajorFunction[IRP_MJ_CLEANUP] = __winkvmstab_cleanup;
 		DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = __winkvmstab_ioctl;
 		DriverObject->DriverUnload = __winkvmstab_release;
 
@@ -177,20 +172,6 @@ __winkvmstab_release(IN PDRIVER_OBJECT DriverObject)
 
     return;
 } /* winkvm release */
-
-
-NTSTATUS
-__winkvmstab_cleanup(IN PDEVICE_OBJECT DeviceObject,
-					 IN PIRP Irp)
-{
-	PWINKVM_DEVICE_EXTENSION extension = DeviceObject->DeviceExtension;
-
-	FUNCTION_ENTER();
-	
-	FUNCTION_EXIT();
-
-	return STATUS_SUCCESS;
-} /* cleanup */
 
 NTSTATUS 
 __winkvmstab_close(IN PDEVICE_OBJECT DeviceObject,

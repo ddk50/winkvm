@@ -51,6 +51,8 @@ static FAST_MUTEX emulater_mutex;
 static int spinlock_emulater_initialized = 0;
 static FAST_MUTEX emulater_spinlock;
 
+#define SMPF_SLOTNUM 20
+
 /*
  * for smp_call_function;
  * per cpu;
@@ -59,7 +61,7 @@ struct smpf_data {
 	void (_cdecl *func)(void *info);
 	void *info;
 	int mycpu_num;
-} *smpf_data_slot = NULL;
+} smpf_data_slot[SMPF_SLOTNUM];
 
 void
 __INIT(init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
@@ -80,13 +82,8 @@ __INIT(init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 		}
 	}
 
-	if (!smpf_data_slot) {
-		smpf_data_slot = ExAllocatePoolWithTag(NonPagedPool, 
-			                                   sizeof(struct smpf_data) * cpus,
-											   MEM_TAG);
-		SAFE_ASSERT(smpf_data_slot);
-		RtlZeroMemory(smpf_data_slot, sizeof(struct smpf_data) * cpus);
-	}
+	for (i = 0 ; i < SMPF_SLOTNUM ; i++)
+		RtlZeroMemory(&smpf_data_slot[i], sizeof(struct smpf_data));
 
 	ExInitializeFastMutex(&emulater_mutex);
 	ExInitializeFastMutex(&emulater_spinlock);
@@ -103,18 +100,19 @@ __RELEASE(release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 {	
 	int i;
 
+	ExAcquireFastMutex(&emulater_mutex);
 	if (mutex_emulater_initialized) {		
 		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i)
 			mutex_slot[i].used = 0;
 	}
+	ExReleaseFastMutex(&emulater_mutex);
 
+	ExAcquireFastMutex(&emulater_spinlock);
 	if (spinlock_emulater_initialized) {
 		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
 			spinlock_slot[i].used = 0;
 	}
-
-	if (smpf_data_slot)
-		ExFreePoolWithTag(smpf_data_slot, MEM_TAG);
+	ExAcquireFastMutex(&emulater_spinlock);
 
 	return;
 }
