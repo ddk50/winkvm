@@ -605,14 +605,12 @@ struct page* _cdecl wk_alloc_page(unsigned long g_basefn, unsigned long pnum, un
 			return NULL;
 	}
 
-	if (!mapMemInfo->kernelVAaddress) {
+	if (!mapMemInfo->kernelVAaddress)
 		mapMemInfo->kernelVAaddress = MmGetSystemAddressForMdlSafe(
 			                             mapMemInfo->apMdl[0], 
 										 HighPagePriority);
-	}
 
 	sysBase = (hva_t)mapMemInfo->kernelVAaddress;
-
 	SAFE_ASSERT(sysBase != 0x0);
 
 	offset = ((g_basefn - mapMemInfo->base_gfn) + pnum) << PAGE_SHIFT;
