@@ -21,47 +21,11 @@
 
 ULONG_PTR NTAPI smp_call_function_wrapper(IN ULONG_PTR Context);
 
-#define MAX_MUTEX_COUNT    50
-#define MAX_SPINLOCK_COUNT 50
-
+/* for mmu.obj */
 unsigned long bad_page_address;
 
-/* 
-  FIXME!: 未使用Mutexがどんどんふえていくのでこの実装はまずい
-  kvm側で使用しているmutexスロットを開放するようにプログラミングすること！
-*/
-struct mutex_emulater_slot {	
-	int used;
-	FAST_MUTEX mutex;	
-} mutex_slot[MAX_MUTEX_COUNT];
-
-/* 
-  FIXME!: 未使用spinlockがどんどんふえていくのでこの実装はまずい
-  kvm側で使用しているspinlockスロットを開放するようにプログラミングすること！
-*/
-struct spinlock_emulater_slot {
-	int used;
-	KIRQL IrqL;
-	KSPIN_LOCK spinlock;	
-} spinlock_slot[MAX_SPINLOCK_COUNT];
-
-static int mutex_emulater_initialized = 0;
-static FAST_MUTEX emulater_mutex;
-
-static int spinlock_emulater_initialized = 0;
-static FAST_MUTEX emulater_spinlock;
-
-#define SMPF_SLOTNUM 20
-
-/*
- * for smp_call_function;
- * per cpu;
- */
-struct smpf_data {
-	void (_cdecl *func)(void *info);
-	void *info;
-	int mycpu_num;
-} smpf_data_slot[SMPF_SLOTNUM];
+/* ToDo: use extern value */
+static PWINKVM_DEVICE_EXTENSION extension = NULL;
 
 void
 __INIT(init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
@@ -70,29 +34,27 @@ __INIT(init_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 	KAFFINITY aps;
 	ULONG cpus = KeQueryActiveProcessorCountCompatible(&aps);
 
-	if (!mutex_emulater_initialized) {
-		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i) {
-			mutex_slot[i].used = 0;
-		}
-	}
+	if (!extn->mutex_emulater_initialized)
+		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i)
+			extn->mutex_slot[i].used = 0;
 
-	if (!spinlock_emulater_initialized) {
-		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i) {
-			spinlock_slot[i].used = 0;
-		}
-	}
+	if (!extn->spinlock_emulater_initialized)
+		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
+			extn->spinlock_slot[i].used = 0;
 
 	for (i = 0 ; i < SMPF_SLOTNUM ; i++)
-		RtlZeroMemory(&smpf_data_slot[i], sizeof(struct smpf_data));
+		RtlZeroMemory(&extn->smpf_data_slot[i], sizeof(struct smpf_data));
 
-	ExInitializeFastMutex(&emulater_mutex);
-	ExInitializeFastMutex(&emulater_spinlock);
+	ExInitializeFastMutex(&extn->emulater_mutex);
+	ExInitializeFastMutex(&extn->emulater_spinlock);
 
-	mutex_emulater_initialized    = 1;
-	spinlock_emulater_initialized = 1;
+	extn->mutex_emulater_initialized    = 1;
+	extn->spinlock_emulater_initialized = 1;
 
 	/* for debug */
 	printk(KERN_ERR "Number Processors: %d\n", get_nr_cpus());
+
+	extension = extn;
 }
 
 void 
@@ -100,19 +62,21 @@ __RELEASE(release_smp_emulater(IN WINKVM_DEVICE_EXTENSION *extn))
 {	
 	int i;
 
-	ExAcquireFastMutex(&emulater_mutex);
-	if (mutex_emulater_initialized) {		
-		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i)
-			mutex_slot[i].used = 0;
-	}
-	ExReleaseFastMutex(&emulater_mutex);
+	ExAcquireFastMutex(&extn->emulater_mutex);
+	{
+		if (extn->mutex_emulater_initialized)
+			for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i)
+				extn->mutex_slot[i].used = 0;
+	} ExReleaseFastMutex(&extn->emulater_mutex);
 
-	ExAcquireFastMutex(&emulater_spinlock);
-	if (spinlock_emulater_initialized) {
-		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
-			spinlock_slot[i].used = 0;
-	}
-	ExReleaseFastMutex(&emulater_spinlock);
+	ExAcquireFastMutex(&extn->emulater_spinlock);
+	{
+		if (extn->spinlock_emulater_initialized)
+			for (i = 0 ; i < MAX_SPINLOCK_COUNT ; ++i)
+				extn->spinlock_slot[i].used = 0;
+	} ExReleaseFastMutex(&extn->emulater_spinlock);
+
+	extension = NULL;
 
 	return;
 }
@@ -124,20 +88,19 @@ void _cdecl mutex_init(struct mutex *lock)
 
 	FUNCTION_ENTER();
 
-	SAFE_ASSERT(mutex_emulater_initialized);
+	SAFE_ASSERT(extension->mutex_emulater_initialized);
 
-	ExAcquireFastMutex(&emulater_mutex);
-
-	for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i) {
-		if(!mutex_slot[i].used) {
-			get_mutex = &mutex_slot[i].mutex;
-			mutex_slot[i].used = 1;
-			lock->mutex_number = i;
-			break;
+	ExAcquireFastMutex(&extension->emulater_mutex);
+	{
+		for (i = 0 ; i < MAX_MUTEX_COUNT ; ++i) {
+			if(!extension->mutex_slot[i].used) {
+				get_mutex = &extension->mutex_slot[i].mutex;
+				extension->mutex_slot[i].used = 1;
+				lock->mutex_number = i;
+				break;
+			}
 		}
-	}
-
-	ExReleaseFastMutex(&emulater_mutex);
+	} ExReleaseFastMutex(&extension->emulater_mutex);
 
 	SAFE_ASSERT(get_mutex != NULL);
 	ExInitializeFastMutex(get_mutex);
@@ -151,10 +114,10 @@ void _cdecl mutex_lock(struct mutex *lock)
 {
 	FAST_MUTEX *mutex;
 	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	SAFE_ASSERT(mutex_slot[lock->mutex_number].used);
+	SAFE_ASSERT(extension->mutex_slot[lock->mutex_number].used);
 	FUNCTION_ENTER();
 
-	mutex = &(mutex_slot[lock->mutex_number].mutex);
+	mutex = &(extension->mutex_slot[lock->mutex_number].mutex);
 
 	ExAcquireFastMutex(mutex);
 
@@ -168,9 +131,9 @@ void _cdecl mutex_unlock(struct mutex *lock)
 	FUNCTION_ENTER();
 
 	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	SAFE_ASSERT(mutex_slot[lock->mutex_number].used);
+	SAFE_ASSERT(extension->mutex_slot[lock->mutex_number].used);
 
-	mutex = &(mutex_slot[lock->mutex_number].mutex);
+	mutex = &(extension->mutex_slot[lock->mutex_number].mutex);
 
 	ExReleaseFastMutex(mutex);
 
@@ -184,9 +147,10 @@ int _cdecl mutex_trylock(struct mutex *lock)
 	FUNCTION_ENTER();
 
 	SAFE_ASSERT(lock->mutex_number < MAX_MUTEX_COUNT);
-	SAFE_ASSERT(mutex_slot[lock->mutex_number].used == 1);
+	SAFE_ASSERT(extension->mutex_slot[lock->mutex_number].used == 1);
 
-	mutex = &mutex_slot[lock->mutex_number].mutex;
+	mutex = &(extension->mutex_slot[lock->mutex_number].mutex);
+
 	if (ExTryToAcquireFastMutex(mutex)) {
 		FUNCTION_EXIT();
 		return 1;
@@ -203,18 +167,18 @@ void _cdecl spin_lock_init(spinlock_t *lock)
 
 	FUNCTION_ENTER();
 
-	ExAcquireFastMutex(&emulater_spinlock); 
-
-	for (i = 0 ; i < MAX_SPINLOCK_COUNT ; i++) {
-		if (!spinlock_slot[i].used) {
-			new_slot = &spinlock_slot[lock->spinlock_number];			
-			lock->spinlock_number = i;
-			spinlock_slot[i].used = 1;
-			break;
+	ExAcquireFastMutex(&extension->emulater_spinlock); 
+	{
+		for (i = 0 ; i < MAX_SPINLOCK_COUNT ; i++) {
+			if (!extension->spinlock_slot[i].used) {
+				new_slot = &extension->spinlock_slot[lock->spinlock_number]; 
+				lock->spinlock_number = i;
+				extension->spinlock_slot[i].used = 1;
+				break;
+			}
 		}
-	}
+	} ExReleaseFastMutex(&extension->emulater_spinlock);
 
-	ExReleaseFastMutex(&emulater_spinlock);
 	SAFE_ASSERT(new_slot);
 
 	KeInitializeSpinLock(&new_slot->spinlock);
@@ -227,7 +191,7 @@ void _cdecl spin_lock(spinlock_t *lock)
 	struct spinlock_emulater_slot *slot;
 	FUNCTION_ENTER();
 	SAFE_ASSERT(lock->spinlock_number < MAX_SPINLOCK_COUNT);   	
-	slot = &spinlock_slot[lock->spinlock_number];
+	slot = &extension->spinlock_slot[lock->spinlock_number];
 	SAFE_ASSERT(slot->used);
 	KeAcquireSpinLock(&slot->spinlock, &slot->IrqL);
 	FUNCTION_EXIT();
@@ -238,7 +202,7 @@ void _cdecl spin_unlock(spinlock_t *lock)
 	struct spinlock_emulater_slot *slot;
 	FUNCTION_ENTER();
 	SAFE_ASSERT(lock->spinlock_number < MAX_SPINLOCK_COUNT);   
-	slot = &spinlock_slot[lock->spinlock_number];
+	slot = &extension->spinlock_slot[lock->spinlock_number];
 	SAFE_ASSERT(slot->used);
 	KeReleaseSpinLock(&slot->spinlock, slot->IrqL);
 	FUNCTION_EXIT();

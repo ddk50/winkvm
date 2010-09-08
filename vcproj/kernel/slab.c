@@ -54,7 +54,7 @@ get_mapmem_slot(unsigned long gfn)
 	return NULL;
 }
 
-static dump_page(struct page *page)
+static void dump_page(struct page *page)
 {
 	static char *page_type[] = {
 		"PAGE_NOT_USED",
