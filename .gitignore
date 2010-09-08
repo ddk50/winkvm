@@ -58,3 +58,5 @@ GTAGS
 *.stackdump
 *.o.cmd
 *.idc
+*.d
+*.a

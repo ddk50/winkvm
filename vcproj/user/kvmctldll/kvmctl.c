@@ -1078,7 +1078,7 @@ static void pre_kvm_run(kvm_context_t kvm, struct kvm_run *kvm_run)
 
 void __cdecl kvmctl_msgbox(const char *msg)
 {
-	MessageBoxA(NULL, msg, "kvmctl", MB_OK);
+	//MessageBoxA(NULL, msg, "kvmctl", MB_OK);
 }
 
 int __cdecl kvm_dump_vcpu(kvm_context_t kvm, int vcpu)
@@ -1158,7 +1158,7 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
 
 int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
+//	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 /*
 	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
     int r, e;
@@ -1194,7 +1194,7 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 
 int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
+//	fprintf(stderr, " %s implement me\n", __FUNCTION__);
 	/*
 	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
     int r, e;

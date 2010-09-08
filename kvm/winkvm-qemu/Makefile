@@ -15,7 +15,7 @@ BASE_LDFLAGS += $(OS_LDFLAGS) $(ARCH_LDFLAGS)
 
 CPPFLAGS += -I. -I$(SRC_PATH) -MMD -MP
 CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
-CPPFLAGS += -I/usr/local/directx/include
+CPPFLAGS += -I/usr/local/directx/include -I/usr/local/mingw32/include
 LIBS=
 ifdef CONFIG_STATIC
 BASE_LDFLAGS += -static
