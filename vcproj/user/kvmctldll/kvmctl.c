@@ -448,8 +448,9 @@ void *kvm_create_phys_mem(kvm_context_t kvm, unsigned long phys_start,
 void __cdecl kvm_destroy_phys_mem(kvm_context_t kvm, unsigned long phys_start, 
 								  unsigned long len)
 {
+	kvm_memory_region_clear_params(kvm, 0); /* avoid compiler warning */
 	printf(" %s implement me\n", __FUNCTION__);
-	return;
+	exit(1);
 }
 
 static int handle_io(kvm_context_t kvm, struct kvm_run *run, int vcpu)
@@ -733,14 +734,6 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 		printf("invalid system page size\n");
 		exit(1);
 	}
-
-	/*
-	printf("Systen info:\n");
-	printf(" page size: %d\n page shift: %d\n", dwPageSize, pageshift);
-	printf(" installing SEH handler ... ");
-	SetSEHhandler(SEHHandler);
-	printf(" Done\n");
-	*/
 
 	return kvm;
 }
@@ -1216,28 +1209,146 @@ int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 	return -1;
 }
 
-int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *bitmap)
+
+/* 
+ * dirty pages logging control 
+ */
+static int __cdecl kvm_dirty_pages_log_change(kvm_context_t kvm, int regnum, __u32 flag)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-	return -1;
+//	int r;
+	struct kvm_memory_region *mem;
+	unsigned long retlen;
+	BOOL ret;
+
+	if (regnum >= KVM_MAX_NUM_MEM_REGIONS) {
+		fprintf(stderr, "BUG: %s: invalid parameters\n", __FUNCTION__);
+		return 1;
+	}
+	mem = &kvm->mem_regions[regnum];
+	if (mem->memory_size == 0) /* not used */
+		return 0;
+	if (mem->flags & KVM_MEM_LOG_DIRTY_PAGES) /* log already enabled */
+		return 0;
+	mem->flags |= flag;  /* temporary turn on flag */
+
+	/* r = ioctl(kvm->vm_fd, KVM_SET_MEMORY_REGION, mem); */
+	ret = DeviceIoControl(
+			 kvm->hnd,
+			 KVM_SET_MEMORY_REGION,
+			 mem,
+			 sizeof(struct kvm_memory_region),
+			 mem,
+			 sizeof(struct kvm_memory_region),
+			 &retlen,
+			 NULL);
+
+	mem->flags &= ~flag; /* back to previous value */
+	if (!ret) {
+		fprintf(stderr, "%s: %m\n", __FUNCTION__);
+	}
+/*	return r; */
+	return 1;
 }
 
+static int __cdecl kvm_dirty_pages_log_change_all(kvm_context_t kvm, __u32 flag)
+{
+	int i, r;
+
+	for (i=r=0; i<KVM_MAX_NUM_MEM_REGIONS && r==0; i++) {
+		r = kvm_dirty_pages_log_change(kvm, i, flag);
+	}
+	return r;
+}
+
+/**
+ * Enable dirty page logging for all memory regions
+ */
 int __cdecl kvm_dirty_pages_log_enable_all(kvm_context_t kvm)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-	return -1;
+	if (kvm->dirty_pages_log_all)
+		return 0;
+	kvm->dirty_pages_log_all = 1;
+	return kvm_dirty_pages_log_change_all(kvm, KVM_MEM_LOG_DIRTY_PAGES);
 }
 
+/**
+ * Enable dirty page logging only for memory regions that were created with
+ *     dirty logging enabled (disable for all other memory regions).
+ */
 int __cdecl kvm_dirty_pages_log_reset(kvm_context_t kvm)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-	return -1;
+	if (!kvm->dirty_pages_log_all)
+		return 0;
+	kvm->dirty_pages_log_all = 0;
+	return kvm_dirty_pages_log_change_all(kvm, 0);
+}
+
+static int __cdecl kvm_get_map(kvm_context_t kvm, int ioctl_num, int slot, void *buf)
+{
+//	int r;
+	unsigned long retlen;
+	BOOL ret;
+	/*
+	struct kvm_dirty_log log = {
+		.slot = slot,
+	};
+	*/
+
+	struct kvm_dirty_log log;
+
+	log.slot = slot;
+	log.dirty_bitmap = buf;
+
+	ret = DeviceIoControl(
+			 kvm->hnd,
+			 ioctl_num,
+			 &log,
+			 sizeof(log),
+			 &log,
+			 sizeof(log),
+			 &retlen,
+			 NULL);
+
+/*	r = ioctl(kvm->vm_fd, ioctl_num, &log); */
+/*	if (r == -1)
+		return -errno;
+		*/
+
+	if (!ret)
+		return -1;
+
+	return 1;
 }
 
 int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 {
-	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-	return -1;
+	fprintf(stderr, "implement me: %s\n", __FUNCTION__);
+	return kvm_get_map(kvm, KVM_GET_DIRTY_LOG, slot, buf);
+}
+
+int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *buf)
+{
+#ifdef KVM_GET_MEM_MAP
+	return kvm_get_map(kvm, KVM_GET_MEM_MAP, slot, buf);
+#else /* not KVM_GET_MEM_MAP ==> fake it: all pages exist */
+	unsigned long i, n, m, npages;
+	unsigned char v;
+
+	if (slot >= KVM_MAX_NUM_MEM_REGIONS) {
+		errno = -EINVAL;
+		return -1;
+	}
+	npages = kvm->mem_regions[slot].memory_size / PAGE_SIZE;
+	n = npages / 8;
+	m = npages % 8;
+	memset(buf, 0xff, n); /* all pages exist */
+	v = 0;
+	for (i=0; i<=m; i++) /* last byte may not be "aligned" */
+		v |= 1<<(7-i);
+	if (v)
+		*(unsigned char*)(buf+n) = v;
+	return 0;
+#endif /* KVM_GET_MEM_MAP */
 }
 
 int __cdecl kvm_inject_irq(kvm_context_t kvm, int vcpu, unsigned irq)
