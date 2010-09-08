@@ -526,7 +526,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				break;
 			} /* end KVM_RUN */
 
-			/* There are specific ioctl handlers for WinKVM */
+			/* Specific ioctl handlers for WinKVM as follow: */
 		case WINKVM_READ_GUEST:
 			{
 				struct winkvm_transfer_mem trans_mem;
@@ -604,11 +604,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						CloseUserMapping(mapMemInfo->npages, init.slot, mapMemInfo);						
 					}
 
-					ntStatus = CreateUserMapping(
-						init.npages,
-						init.slot,
-						mapMemInfo);
-
+					ntStatus = CreateUserMapping(init.npages, init.slot, mapMemInfo);
 					if (!NT_SUCCESS(ntStatus)) {
 						init.mapUserVA       = NULL;
 						init.npages          = 0;
@@ -618,10 +614,11 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						init.mapUserVA       = (__u8*)mapMemInfo->userVAaddress;
 						mapMemInfo->npages   = init.npages;
 						mapMemInfo->base_gfn = init.base_gfn;
-						printk(KERN_ALERT "slot [%d] memory mapping: %llx ... %llx (%d [pages])\n", 
+						printk(KERN_ALERT 
+							"slot [%d] memory mapping: %x (PN) ... %x (PN) (%d [pages])\n", 
 							init.slot,
-							(u64)mapMemInfo->base_gfn << PAGE_SHIFT,
-							(u64)(mapMemInfo->base_gfn + mapMemInfo->npages) << PAGE_SHIFT,
+							mapMemInfo->base_gfn,
+							mapMemInfo->base_gfn + mapMemInfo->npages,
 							mapMemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
@@ -629,57 +626,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				break;
 			} /* end WINKVM_MAPMEM_INITIALIZE */
 
-		case WINKVM_MAPMEM_GETPVMAP:
-			{
-				unsigned int            i;
-				unsigned long           addr;
-				unsigned long           RetLength;
-				struct winkvm_getpvmap  pvmap;
-				struct winkvm_getpvmap  *p;
-				PVOID                   sysAddr;
-
-				printk(KERN_ALERT "Call WINKVM_MAPMEM_GETPVMAP\n");
-
-				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); 
-				{
-					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
-						ntStatus = STATUS_UNSUCCESSFUL;
-						break;
-					}
-					if (pvmap.tablesize == 0) {
-						p         = &pvmap;
-						RetLength = sizeof(pvmap);
-						pvmap.tablesize = 
-							(__u32)(extension->mapMemInfo[pvmap.slot].npages)
-							* sizeof(struct winkvm_pfmap);
-						printk(KERN_ALERT "pvmap table size: %d\n", pvmap.tablesize);
-					} else {
-						/* get system address */
-
-						sysAddr = MmGetSystemAddressForMdlSafe(
-							          extension->mapMemInfo[pvmap.slot].apMdl[0], 
-									  NormalPagePriority);
-
-						SAFE_ASSERT(sysAddr != NULL);
-
-						p         = (struct winkvm_getpvmap*)inBuf;
-						RetLength = p->tablesize + sizeof(struct winkvm_pfmap);
-
-						for (i = 0 ; i < (p->tablesize / sizeof(struct winkvm_pfmap)) ; i++) {
-							addr = (unsigned long)((__u8*)extension->mapMemInfo[p->slot].userVAaddress + i * PAGE_SIZE);
-							p->maptable[i].virt = addr;
-							p->maptable[i].phys = (unsigned long)__pa(addr);
-							RtlZeroMemory((__u8*)sysAddr + i * PAGE_SIZE, PAGE_SIZE);
-						}
-					}
-				} RtlCopyMemory(outBuf, p, RetLength);
-				Irp->IoStatus.Information = RetLength;
-				ntStatus = STATUS_SUCCESS;
-
-				break;
-			} /* end WINKVM_MAPMEM_GETPVMAP */
-
-		case WINKVM_UNMAPMEM_GETPVMAP:
+		case WINKVM_MAPMEM_RELEASE:
 			{
 				struct winkvm_getpvmap  pvmap;
 
@@ -696,7 +643,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = sizeof(pvmap);
 
 				ntStatus = STATUS_SUCCESS;
-			} /* end WINKVM_UNMAPMEM_GETPVMAP */
+			} /* end WINKVM_MAPMEM_RELEASE */
 
 		default:
 			ntStatus = STATUS_UNSUCCESSFUL;
