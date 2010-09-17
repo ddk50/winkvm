@@ -1326,6 +1326,12 @@ static term_cmd_t term_cmds[] = {
        "capture index", "stop capture" },
     { "memsave", "lis", do_memory_save,
       "addr size file", "save to disk virtual memory dump starting at 'addr' of size 'size'", },
+    { "migrate", "-ds", do_migrate,
+      "[-d] command", "migrate the VM using command (use -d to not wait for command to complete)" },
+    { "migrate_cancel", "", do_migrate_cancel,
+      "", "cancel the current VM migration" },
+    { "migrate_set_speed", "s", do_migrate_set_speed,
+      "value", "set maximum speed (in bytes) for migrations" },
     { NULL, NULL, },
 };
 
@@ -2543,12 +2549,26 @@ static void term_read(void *opaque, const uint8_t *buf, int size)
         readline_handle_byte(buf[i]);
 }
 
+static int monitor_suspended;
+
+void monitor_suspend(void)
+{
+	monitor_suspended = 1;
+}
+
+void monitor_resume(void)
+{
+	monitor_suspended = 0;
+	monitor_start_input();
+}
+
 static void monitor_start_input(void);
 
 static void monitor_handle_command1(void *opaque, const char *cmdline)
 {
     monitor_handle_command(cmdline);
-    monitor_start_input();
+    if (!monitor_suspended)
+      monitor_start_input();
 }
 
 static void monitor_start_input(void)

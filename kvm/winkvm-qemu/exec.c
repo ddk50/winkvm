@@ -99,6 +99,7 @@ int phys_ram_fd;
 uint8_t *phys_ram_base;
 uint8_t *phys_ram_dirty;
 uint8_t *bios_mem;
+static int in_migration;
 
 static ram_addr_t phys_ram_alloc_offset = 0;
 
@@ -1569,6 +1570,22 @@ void cpu_physical_memory_reset_dirty(ram_addr_t start, ram_addr_t end,
 #endif
 }
 
+int cpu_physical_memory_set_dirty_tracking(int enable)
+{
+    int r=0;
+
+#ifdef USE_KVM
+    r = kvm_physical_memory_set_dirty_tracking(enable);
+#endif
+    in_migration = enable;
+    return r;
+}
+
+int cpu_physical_memory_get_dirty_tracking(void)
+{
+    return in_migration;
+}
+
 static inline void tlb_update_dirty(CPUTLBEntry *tlb_entry)
 {
     ram_addr_t ram_addr;
@@ -2808,12 +2825,25 @@ void stl_phys_notdirty(target_phys_addr_t addr, uint32_t val)
         io_index = (pd >> IO_MEM_SHIFT) & (IO_MEM_NB_ENTRIES - 1);
         io_mem_write[io_index][2](io_mem_opaque[io_index], addr, val);
     } else {
-        ptr = phys_ram_base + (pd & TARGET_PAGE_MASK) +
-            (addr & ~TARGET_PAGE_MASK);
-        stl_p(ptr, val);
+		unsigned long addr1;
+		addr1 = (pd & TARGET_PAGE_MASK) + (addr & ~TARGET_PAGE_MASK);
+		
+		ptr = phys_ram_base + addr1;
+		stl_p(ptr, val);	 
+
+		if (unlikely(in_migration)) {
+			if (!cpu_physical_memory_is_dirty(addr1)) {
+				/* invalidate code */
+				tb_invalidate_phys_page_range(addr1, addr1 + 4, 0);
+				/* set dirty bit */
+				phys_ram_dirty[addr1 >> TARGET_PAGE_BITS] |=
+					(0xff & ~CODE_DIRTY_FLAG);
+			}
+        }		
     }
 }
 
+/*
 void stq_phys_notdirty(target_phys_addr_t addr, uint64_t val)
 {
     int io_index;
@@ -2843,6 +2873,7 @@ void stq_phys_notdirty(target_phys_addr_t addr, uint64_t val)
         stq_p(ptr, val);
     }
 }
+*/
 
 /* warning: addr must be aligned */
 void stl_phys(target_phys_addr_t addr, uint32_t val)

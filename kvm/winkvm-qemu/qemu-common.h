@@ -1,3 +1,4 @@
+
 /* Common header file that is included by all of qemu.  */
 #ifndef QEMU_COMMON_H
 #define QEMU_COMMON_H
@@ -82,6 +83,7 @@ char *pstrcat(char *buf, int buf_size, const char *s);
 int strstart(const char *str, const char *val, const char **ptr);
 int stristart(const char *str, const char *val, const char **ptr);
 time_t mktimegm(struct tm *tm);
+char *urldecode(const char *ptr);
 
 /* Error handling.  */
 
@@ -120,5 +122,56 @@ typedef struct PCIDevice PCIDevice;
 typedef struct SerialState SerialState;
 typedef struct IRQState *qemu_irq;
 struct pcmcia_card_s;
+
+/* addition for ddk */
+void do_migrate(int detach, const char *uri);
+void do_migrate_set_speed(const char *value);
+void do_migrate_cancel(void);
+
+/* few addition for ddk  */
+int migrate_incoming(const char *device);
+
+/* defined at vl.c */
+void vm_start(void);
+void vm_stop(int reason);
+
+/* migration.c */
+void do_info_migration(void);
+void do_migrate(int detach, const char *uri);
+void do_migrate_cancel(void);
+void do_migrate_set_speed(const char *value);
+int migrate_incoming(const char *device);
+
+/* monitor.c */
+void monitor_init(CharDriverState *hd, int show_banner);
+void term_puts(const char *str);
+void term_vprintf(const char *fmt, va_list ap);
+void term_printf(const char *fmt, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+void term_print_filename(const char *filename);
+void term_flush(void);
+void term_print_help(void);
+void monitor_readline(const char *prompt, int is_password,
+                      char *buf, int buf_size);
+void monitor_suspend(void);
+void monitor_resume(void);
+
+/* vl.c */
+void qemu_get_launch_info(int *argc, char ***argv, int *opt_daemonize, const char **opt_incoming);
+
+//struct QEMUFile;
+
+int qemu_live_savevm_state(QEMUFile *f);
+int qemu_live_loadvm_state(QEMUFile *f);
+
+//typedef struct QEMUFile QEMUFile;
+
+typedef void (QEMUFilePutBufferFunc)(void *opaque, const uint8_t *buf, int64_t pos, int size);
+typedef int (QEMUFileGetBufferFunc)(void *opaque, uint8_t *buf, int64_t pos, int size);
+typedef void (QEMUFileCloseFunc)(void *opaque);
+
+QEMUFile *qemu_fopen_compat(void *opaque, QEMUFilePutBufferFunc *put_buffer,
+			    QEMUFileGetBufferFunc *get_buffer, QEMUFileCloseFunc *close);
+
+QEMUFile *qemu_fopen_fd(int fd);
 
 #endif

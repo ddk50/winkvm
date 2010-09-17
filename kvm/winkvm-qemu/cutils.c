@@ -82,6 +82,45 @@ int stristart(const char *str, const char *val, const char **ptr)
     return 1;
 }
 
+int hex2bin(char ch)
+{
+    if (ch >= '0' && ch <= '9')
+        return ch - '0';
+    else if (ch >= 'A' && ch <= 'Z')
+        return 10 + ch - 'A';
+    else if (ch >= 'a' && ch <= 'z')
+        return 10 + ch - 'a';
+
+    return -1;
+}
+
+char *urldecode(const char *ptr)
+{
+	char *ret;
+	int i;
+	
+	ret = qemu_mallocz(strlen(ptr) + 1);
+	if (ret == NULL)
+		return NULL;
+	
+	for (i = 0; *ptr; ptr++, i++) {
+		switch (*ptr) {
+		case '%':
+			if (ptr[1] == 0 || ptr[2] == 0)
+				break;
+			ret[i] = hex2bin(ptr[1]) << 4 | hex2bin(ptr[2]);
+			ptr += 2;
+			break;
+		default:
+			ret[i] = *ptr;
+			break;
+		}
+	}
+	ret[i] = 0;
+	
+	return ret;
+}
+
 time_t mktimegm(struct tm *tm)
 {
     time_t t;

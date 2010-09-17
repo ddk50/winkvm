@@ -129,7 +129,6 @@ QEMU_IMG_BLOCK_OBJS += qemu-img-block-raw-posix.o
 endif
 
 ######################################################################
-
 qemu-img$(EXESUF): qemu-img.o qemu-img-block.o $(QEMU_IMG_BLOCK_OBJS)
 	$(CC) $(LDFLAGS) $(BASE_LDFLAGS) -o $@ $^ -lz $(LIBS)
 

@@ -22,17 +22,56 @@
  * THE SOFTWARE.
  */
 
-#include "vl.h"
-#include "qemu_socket.h"
+#include "config.h"
+
 #ifdef USE_KVM
-#include "qemu-kvm.h"
+
+#include <stdarg.h>
+#include <signal.h>
+#include <time.h>
+#include <errno.h>
+#include <sys/time.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <string.h>
+
+#include <sys/types.h>
+#ifdef __linux__
+   #include <linux/in.h>
+#endif
+#ifdef __CYGWIN__
+   #include <cygwin/in.h>
 #endif
 
-#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include "hw/hw.h"
+#include "block.h"
+#include "qemu-common.h"
+#include "qemu-timer.h"
+#include "qemu-char.h"
+
+#include "qemu_socket.h"
+
+#define ALIGN(x, y)  (((x)+(y)-1) & ~((y)-1))
+#define BITMAP_SIZE(m) (ALIGN(((m)>>TARGET_PAGE_BITS), HOST_LONG_BITS) / 8)
+#define KVM_EXTRA_PAGES 3
 
 #define MIN_FINALIZE_SIZE	(200 << 10)
 #define MAX_ITERATIONS           30
 #define MAX_RAPID_WRITES          2
+
+/* qemu-kvm.c */
+extern int kvm_update_dirty_pages_log(void);
+extern int kvm_get_phys_ram_page_bitmap(unsigned char *bitmap);
+
+/* vl.c */
+extern int parse_host_port(struct sockaddr_in *saddr, const char *str);
+
+#define __CYGWIN__
 
 typedef struct MigrationState
 {
@@ -59,6 +98,8 @@ static uint32_t max_throttle = (32 << 20);
 static MigrationState *current_migration;
 static int wait_for_message_timeout = 3000; /* 3 seconds */
 static int status; /* last migration status */
+
+extern int kvm_allowed;
 
 enum { /* migration status values */
     MIG_STAT_SUCCESS           = 0,
@@ -168,10 +209,10 @@ static void migrate_finish(MigrationState *s)
     int ret = 0;
     int *has_error = s->has_error;
 
-    fcntl(s->fd, F_SETFL, 0);
+    //    fcntl(s->fd, F_SETFL, 0);
 
     if (! *has_error) {
-        f = qemu_fopen(s, migrate_put_buffer, NULL, migrate_close);
+        f = qemu_fopen_compat(s, migrate_put_buffer, NULL, migrate_close);
         qemu_aio_flush();
         vm_stop(0);
         qemu_put_be32(f, 1);
@@ -415,7 +456,7 @@ static int start_migration(MigrationState *s)
             goto out;
     }
 #endif
-    fcntl(s->fd, F_SETFL, O_NONBLOCK);
+    //    fcntl(s->fd, F_SETFL, O_NONBLOCK);
 
     for (addr = 0; addr < phys_ram_size; addr += TARGET_PAGE_SIZE) {
 #ifdef USE_KVM
@@ -493,6 +534,7 @@ typedef struct MigrationCmdState
 
 static int cmd_release(void *opaque)
 {
+#ifndef __CYGWIN__
     MigrationCmdState *c = opaque;
     int status, ret;
 
@@ -512,10 +554,15 @@ again:
      *     status = WEXITSTATUS(status);
      */
     return status;
+#else
+    term_printf("Cygwin does not support waitpid()\n", strerror(errno));
+    return -1;
+#endif
 }
 
 static MigrationState *migration_init_cmd(int detach, const char *command, char **argv)
 {
+#ifndef __CYGWIN__
     int fds[2];
     pid_t pid;
     int i;
@@ -555,6 +602,10 @@ static MigrationState *migration_init_cmd(int detach, const char *command, char 
     }
 
     return s;
+#else
+    term_printf("Cygwin does not support pipe() and fork()\n");
+    return NULL;
+#endif
 }
 
 static MigrationState *migration_init_exec(int detach, const char *command)
@@ -1083,3 +1134,7 @@ static int load_verify_memory(QEMUFile *f, void *opaque, int version_id)
     return 0/* num_errors */;
 }
 #endif /* MIGRATION_VERIFY */
+
+#endif /* USE_KVM */
+
+

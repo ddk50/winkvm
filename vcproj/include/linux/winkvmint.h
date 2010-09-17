@@ -2,6 +2,8 @@
 #ifndef _WINKVMINT_H_
 #define _WINKVMINT_H_
 
+//#ifdef _MSC_VER
+
 /* FIXME */
 #define __WORDSIZE  32
 
@@ -58,5 +60,7 @@ typedef unsigned long long int  uint64_t;
 typedef unsigned int            size_t;
 
 typedef int bool;
+
+//#endif /* _MSC_VER */
 
 #endif /* _WINKVMINT_H_ */

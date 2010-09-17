@@ -387,7 +387,7 @@ endif
 all: $(PROGS)
 
 # few addition by Kazushi
-LDFLAGS+=-mno-cygwin
+#LDFLAGS+=-mno-cygwin
 $(QEMU_USER): $(OBJS)
 	$(CC) $(LDFLAGS) $(BASE_LDFLAGS) -o $@ $^  $(LIBS)	
 ifeq ($(ARCH),alpha)
@@ -397,8 +397,9 @@ ifeq ($(ARCH),alpha)
 endif
 
 # must use static linking to avoid leaving stuff in virtual address space
-VL_OBJS=vl.o osdep.o monitor.o pci.o loader.o isa_mmio.o
+VL_OBJS=vl.o osdep.o monitor.o pci.o loader.o isa_mmio.o migration.o
 # few addition for Kazushi
+# VL_OBJS+=migration.o
 BASE_CFLAGS+=-I../../../vcproj/include
 # XXX: suppress QEMU_TOOL tests
 ifdef CONFIG_WIN32

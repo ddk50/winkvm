@@ -18,7 +18,6 @@
 #define PAGE_MASK   (~(PAGE_SIZE-1))
 
 #define WINKVM_DEVICE_NAME "\\\\.\\winkvm"
-#define MAP                L"wkukss-%d"
 
 #define KVM_MAX_NUM_MEM_REGIONS 4u
 
@@ -40,10 +39,6 @@ static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map);
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map);
 
 struct winkvm_memmap {
-#ifndef USE_MDL
-	HANDLE hMapHandle;
-	PVOID  ptr;
-#endif
 	struct winkvm_getpvmap *mapping_pvmap;
 	struct winkvm_mapmem_initialize init;
 };
@@ -738,32 +733,6 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 	return kvm;
 }
 
-static BOOL winkvm_test_run(HANDLE hnd, int vcpu_fd)	
-{
-	BOOL ret = FALSE;
-	unsigned long retlen = 0;	
-
-	printf("%s\n", __FUNCTION__);
-	
-	ret = DeviceIoControl(
-		       hnd,
-			   WINKVM_EXECUTE_TEST,
-			   &vcpu_fd,						  
-			   sizeof(vcpu_fd),
-			   NULL,
-			   0,
-			   &retlen,
-			   NULL);
-
-	if (ret) {
-		printf(" Success: DeviceIoControl\n");
-	} else {
-		printf(" Failed: DeviceIoControl\n");		
-	}
-	
-	return ret;
-}
-
 static void print_seg(FILE *file, const char *name, struct kvm_segment *seg)
 {
 	fprintf(stderr, "%s %04x (%08llx/%08x p %d dpl %d db %d s %d type %x l %d"
@@ -1428,12 +1397,6 @@ int _cdecl winkvm_read_guest(kvm_context_t kvm, unsigned long addr,
 	return copyed_bytes;
 }
 
-int _cdecl test_write_guest(kvm_context_t kvm, unsigned long addr,
-							unsigned long size, void *data)
-{
-	return 1;
-}
-
 int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr, 
 							  unsigned long size, void *data)
 {
@@ -1483,92 +1446,7 @@ int _cdecl winkvm_write_guest(kvm_context_t kvm, unsigned long addr,
 		fprintf(stderr, "Could not copy to guest area\n");
 	}
 
-//	fprintf(stderr, "winkvm_write_guest end\n");	
-
 	return copyed_bytes;
-}
-
-static void GetPhysicalMap(kvm_context_t kvm, struct winkvm_memmap *map)
-{
-	struct winkvm_getpvmap tmp;
-	struct winkvm_getpvmap *pvmap;
-	BOOL Result;
-	ULONG ReturnedLength;
-	unsigned i;
-	char *p;
-
-	memset(&tmp, 0, sizeof(tmp));
-	tmp.slot = map->init.slot;
-
-	Result = DeviceIoControl(
-		  kvm->hnd,
-		  WINKVM_MAPMEM_GETPVMAP,
-		  &tmp,
-		  sizeof(tmp),
-		  &tmp,
-		  sizeof(tmp),
-		  &ReturnedLength,
-		  NULL);
-
-	if (!Result) {
-		fprintf(stderr, "%s: failed 1\n", __FUNCTION__);
-		return;
-	} else {
-		fprintf(stderr, "pvmap table size: %d, returned length: %d\n", 
-			tmp.tablesize,
-			ReturnedLength);
-	}
-
-	if (tmp.tablesize > 0) {
-		unsigned long table_size = tmp.tablesize + sizeof(struct winkvm_getpvmap);
-		pvmap = (struct winkvm_getpvmap*)malloc(table_size);
-		if (!pvmap) {
-			fprintf(stderr, "%s Could not allocate memory\n", 
-				    __FUNCTION__);
-			return;
-		}
-
-		pvmap->tablesize = tmp.tablesize;
-		pvmap->slot      = map->init.slot;
-
-		Result = DeviceIoControl(
-			  kvm->hnd,
-			  WINKVM_MAPMEM_GETPVMAP,
-			  pvmap,
-			  table_size,
-			  pvmap,
-			  table_size,
-			  &ReturnedLength,
-			  NULL);
-
-		if (!Result) {
-			fprintf(stderr, "%s: failed 2\n", __FUNCTION__);
-			goto free_and_error;
-		}
-
-		for (i = 0 ; i < pvmap->tablesize / sizeof(struct winkvm_pfmap) ; i++) {
-			p = (char*)pvmap->maptable[i].virt;
-//			p[PAGE_SIZE-1] = '\0';
-//			fprintf(stderr, "read: %s\n", p);
-//			fprintf(stderr, "[%d] 0x%08lx -> 0x%08lx\n", 
-//				    i,
-//					pvmap->maptable[i].virt,
-//					pvmap->maptable[i].phys);
-		}
-		map->mapping_pvmap = pvmap;
-	} else {
-		fprintf(stderr, "pvmap tablesize is zero\n");
-		return;
-	}
-
-	return;
-
-free_and_error:
-
-	if (map)
-		free(map);
-
-	return;
 }
 
 static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
@@ -1576,10 +1454,6 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 	BOOL Result;
 	ULONG ReturnedLength;
 	ULONG npages;
-#ifndef USE_MDL
-	PVOID ptr;
-	WCHAR SecName[100];
-#endif
 
 	npages = map->init.npages;
 	map->init.mapUserVA = NULL;
@@ -1599,52 +1473,35 @@ static BOOL SetMemmapArea(kvm_context_t kvm, struct winkvm_memmap *map)
 		goto error;
 	}
 
-#ifdef USE_MDL
 	if (map->init.mapUserVA == NULL) {
 		fprintf(stderr, "Could not map shared region\n");
 		goto error;
 	}
-#else /* USE Section */
-	wsprintf(SecName, MAP, map->init.slot);
-
-	map->hMapHandle = OpenFileMapping(FILE_MAP_WRITE, FALSE, SecName);
-	if (map->hMapHandle == NULL) {
-		fprintf(stderr, "failed to OpenFileMapping()\n");
-		goto error;
-	} else {
-		if (map->init.npages != npages) {
-			fprintf(stderr, "Could not allocate memory mapping area\n");
-			goto error;
-		}
-	}
-
-	ptr = MapViewOfFile(map->hMapHandle, FILE_MAP_WRITE, 0, 0, 0);
-	if (ptr == NULL) {
-		fprintf(stderr, "failed to MapViewOfFile\n");
-		goto error;
-	}
-
-	map->ptr = ptr;
-#endif  
 
 	return TRUE;
-
 error:
-
 	return FALSE;
 }
 
 static LPVOID WkVirtualAlloc(kvm_context_t kvm, struct winkvm_memmap *map)
 {
-	GetPhysicalMap(kvm, map);
-#ifdef USE_MDL
-	return (map->init.mapUserVA);
-#else
-	return (map->ptr);
-#endif
+	return map->init.mapUserVA;
 }
 
 static void WkVirtualFree(kvm_context_t kvm, struct winkvm_memmap *map)
 {
-	fprintf(stderr, "%s implement me\n", __FUNCTION__);
+	BOOL Result;
+	ULONG ReturnedLength;
+
+	Result = DeviceIoControl(
+		kvm->hnd,
+		WINKVM_MAPMEM_RELEASE,
+		&map->init,
+		sizeof(map->init),
+		&map->init,
+		sizeof(map->init),
+		&ReturnedLength,
+		NULL);
+
+	return;
 }

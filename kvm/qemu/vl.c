@@ -7650,7 +7650,7 @@ int main(int argc, char **argv)
                     gdbstub_port);
             exit(1);
         }
-    } else 
+    }
 #endif
     if (loadvm) {
 	do_loadvm(loadvm);
@@ -7658,7 +7658,6 @@ int main(int argc, char **argv)
 
     if (incoming) {
         int rc;
-
         rc = migrate_incoming(incoming);
         if (rc != 0) {
             fprintf(stderr, "Migration failed rc=%d\n", rc);
