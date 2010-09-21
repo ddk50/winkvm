@@ -5941,6 +5941,7 @@ static void qemu_fill_buffer(QEMUFile *f)
     int len;
 
     if (f->qemu_ff_compat) {
+      fprintf(stderr, "%s is called with qemu_ff_compat mode\n", __FUNCTION__);
         if (!f->get_buffer)
             return;
 
@@ -7440,11 +7441,11 @@ static int ram_load_live(QEMUFile *f, void *opaque)
     target_ulong addr;
 
     do {
-		addr = qemu_get_be32(f);
-		if (addr == 1)
-			break;
-		
-		qemu_get_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
+      addr = qemu_get_be32(f);
+      if (addr == 1)
+	break;
+      
+      qemu_get_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
     } while (1);
 
     return 0;
@@ -8248,6 +8249,7 @@ enum {
     QEMU_OPTION_daemonize,
     QEMU_OPTION_option_rom,
     QEMU_OPTION_semihosting,
+    QEMU_OPTION_incoming,
     QEMU_OPTION_name,
     QEMU_OPTION_prom_env,
     QEMU_OPTION_old_param,
@@ -8331,6 +8333,7 @@ const QEMUOption qemu_options[] = {
     { "serial", HAS_ARG, QEMU_OPTION_serial },
     { "parallel", HAS_ARG, QEMU_OPTION_parallel },
     { "loadvm", HAS_ARG, QEMU_OPTION_loadvm },
+    { "incoming", 1, QEMU_OPTION_incoming },
     { "full-screen", 0, QEMU_OPTION_full_screen },
 #ifdef CONFIG_SDL
     { "no-frame", 0, QEMU_OPTION_no_frame },
@@ -8930,7 +8933,7 @@ int main(int argc, char **argv)
                 break;
 #ifndef _WIN32
             case QEMU_OPTION_smb:
-        net_slirp_smb(optarg);
+	      net_slirp_smb(optarg);
                 break;
 #endif
             case QEMU_OPTION_redir:
@@ -8950,7 +8953,8 @@ int main(int argc, char **argv)
                 help(0);
                 break;
             case QEMU_OPTION_m:
-                ram_size = atoi(optarg) * 1024 * 1024;
+			{
+				ram_size = atoi(optarg) * 1024 * 1024;
                 if (ram_size <= 0)
                     help(1);
                 if (ram_size > PHYS_RAM_MAX_SIZE) {
@@ -8959,6 +8963,7 @@ int main(int argc, char **argv)
                     exit(1);
                 }
                 break;
+			}
             case QEMU_OPTION_d:
                 {
                     int mask;
@@ -9073,9 +9078,12 @@ int main(int argc, char **argv)
                         sizeof(parallel_devices[0]), optarg);
                 parallel_device_index++;
                 break;
-        case QEMU_OPTION_loadvm:
-        loadvm = optarg;
-        break;
+	    case QEMU_OPTION_loadvm:
+	        loadvm = optarg;
+	        break;
+	    case QEMU_OPTION_incoming:
+	        incoming = optarg;
+	        break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
                 break;
@@ -9370,7 +9378,11 @@ int main(int argc, char **argv)
 #endif
 
     /* init the memory */
-    phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE;
+    /* original: phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE */
+    /* phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE; */
+    phys_ram_size = ram_size + vga_ram_size + ((256 + 64) * 1024);
+    fprintf(stderr, "phys_ram_size: %d\nram_size: %d\nvga_ram_size: %d\n", 
+	    phys_ram_size, ram_size, vga_ram_size);
 
 #ifdef USE_KVM  
     /* Initialize kvm */

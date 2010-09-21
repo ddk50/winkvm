@@ -1289,9 +1289,9 @@ static int __cdecl kvm_get_map(kvm_context_t kvm, int ioctl_num, int slot, void 
 	return 1;
 }
 
+/* This is a most important function to enable live-migration */
 int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 {
-	fprintf(stderr, "implement me: %s\n", __FUNCTION__);
 	return kvm_get_map(kvm, KVM_GET_DIRTY_LOG, slot, buf);
 }
 

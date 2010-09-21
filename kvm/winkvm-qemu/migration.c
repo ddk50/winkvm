@@ -38,12 +38,6 @@
 #include <string.h>
 
 #include <sys/types.h>
-#ifdef __linux__
-   #include <linux/in.h>
-#endif
-#ifdef __CYGWIN__
-   #include <cygwin/in.h>
-#endif
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -501,8 +495,8 @@ static MigrationState *migration_init_fd(int detach, int fd)
 
     s = qemu_mallocz(sizeof(MigrationState));
     if (s == NULL) {
-	term_printf("Allocation error\n");
-	return NULL;
+		term_printf("Allocation error\n");
+		return NULL;
     }
 
     s->fd = fd;
@@ -555,7 +549,7 @@ again:
      */
     return status;
 #else
-    term_printf("Cygwin does not support waitpid()\n", strerror(errno));
+    term_printf("Cygwin does not support waitpid (%s)\n", strerror(errno));
     return -1;
 #endif
 }
@@ -750,15 +744,15 @@ static MigrationState *migration_init_tcp(int detach, const char *host)
     if (fd == -1) {
         term_printf("socket() failed %s\n", strerror(errno));
         status = MIG_STAT_SOCKET_FAILED;
-	return NULL;
+		return NULL;
     }
 
     addr.sin_family = AF_INET;
     if (parse_host_port(&addr, host) == -1) {
         term_printf("parse_host_port() FAILED for %s\n", host);
-	close(fd);
+		close(fd);
         status = MIG_STAT_INVALID_ADDR;
-	return NULL;
+		return NULL;
     }
 
 again:
@@ -766,15 +760,15 @@ again:
         if (errno == EINTR)
             goto again;
         term_printf("connect() failed %s\n", strerror(errno));
-	close(fd);
+		close(fd);
         status = MIG_STAT_CONNECT_FAILED;
-	return NULL;
+		return NULL;
     }
 
     s = migration_init_fd(detach, fd);
     if (s) {
-	s->opaque = s;
-	s->release = tcp_release;
+		s->opaque = s;
+		s->release = tcp_release;
     }
     return s;
 }
@@ -818,11 +812,25 @@ static int migrate_incoming_fd(int fd)
 {
     int ret = 0;
     QEMUFile *f = qemu_fopen_fd(fd);
+    uint32_t memsize;
+    int rret;
     uint32_t addr;
     extern void qemu_announce_self(void);
+	
+    memsize = 0;
+    rret = recv(fd, (void*)&memsize, sizeof(uint32_t), 0);
+    if (rret < 0) {
+      perror("recv error");		
+    }
 
-    if (qemu_get_be32(f) != phys_ram_size)
-	return MIG_STAT_DST_MEM_SIZE_MISMATCH;
+	memsize = bswap_32(memsize);   
+    if (memsize != phys_ram_size) {
+        fprintf(stderr, 
+		"src qemu is allocated %d [bytes] memory\n"
+		"host qemu is allocated %d [bytes]\n",
+		memsize, phys_ram_size);
+		return MIG_STAT_DST_MEM_SIZE_MISMATCH;
+    }
 
 #ifdef USE_KVM
     if (kvm_allowed) {
@@ -852,14 +860,13 @@ static int migrate_incoming_fd(int fd)
 #endif
 
     do {
-	addr = qemu_get_be32(f);
-	if (addr == 1)
-	    break;
-        ret = migrate_incoming_page(f, addr);
-        if (ret)
-            return ret;
+      addr = qemu_get_be32(f);
+      if (addr == 1)
+		  break;
+      ret = migrate_incoming_page(f, addr);
+      if (ret)
+		  return ret;
     } while (1);
-
 
     qemu_aio_flush();
     vm_stop(0);
@@ -883,61 +890,66 @@ static int migrate_incoming_tcp(const char *host)
     int reuse = 1;
     int rc;
 
+    fprintf(stderr, "%s\n", __FUNCTION__);
+
     addr.sin_family = AF_INET;
     if (parse_host_port(&addr, host) == -1) {
         fprintf(stderr, "parse_host_port() failed for %s\n", host);
         rc = MIG_STAT_DST_INVALID_ADDR;
-	goto error;
+        goto error;
     }
 
     fd = socket(PF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         perror("socket failed");
         rc = MIG_STAT_DST_SOCKET_FAILED;
-	goto error;
+        goto error;
     }
 
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&reuse, sizeof(reuse)) == -1) {
         perror("setsockopt() failed");
         rc = MIG_STAT_DST_SOCKOPT_FAILED;
-	goto error_socket;
+        goto error_socket;
     }
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         perror("bind() failed");
         rc = MIG_STAT_DST_BIND_FAILED;
-	goto error_socket;
+        goto error_socket;
     }
 
     if (listen(fd, 1) == -1) {
         perror("listen() failed");
         rc = MIG_STAT_DST_LISTEN_FAILED;
-	goto error_socket;
+        goto error_socket;
     }
 
 again:
     sfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (sfd == -1) {
-	if (errno == EINTR)
-	    goto again;
+        if (errno == EINTR)
+            goto again;
         perror("accept() failed");
         rc = MIG_STAT_DST_ACCEPT_FAILED;
-	goto error_socket;
+        goto error_socket;
     }
 
+    /* on my mark */
+    /* here is bugpoint */
     rc = migrate_incoming_fd(sfd);
     if (rc != 0) {
         fprintf(stderr, "migrate_incoming_fd failed (rc=%d)\n", rc);
-	goto error_accept;
+        goto error_accept;
     }
 
 send_ack:
     len = write(sfd, &status, 1);
     if (len == -1 && errno == EAGAIN)
-	goto send_ack;
+        goto send_ack;
     if (len != 1) {
         rc = MIG_STAT_DST_WRITE_FAILED;
-	goto error_accept;
+        goto error_accept;
     }
 
     rc = wait_for_message("WAIT FOR GO", sfd, wait_for_message_timeout);
@@ -949,7 +961,7 @@ send_ack:
 wait_for_go:
     len = read(sfd, &status, 1);
     if (len == -1 && errno == EAGAIN)
-	goto wait_for_go;
+    goto wait_for_go;
     if (len != 1)
         rc = MIG_STAT_DST_READ_FAILED;
 
@@ -967,17 +979,17 @@ int migrate_incoming(const char *device)
     int ret = 0;
 
     if (strcmp(device, "stdio") == 0)
-	ret = migrate_incoming_fd(STDIN_FILENO);
+      ret = migrate_incoming_fd(STDIN_FILENO);
     else if (strstart(device, "tcp://", &ptr)) {
-	char *host, *end;
-	host = strdup(ptr);
-	end = strchr(host, '/');
-	if (end) *end = 0;
-	ret = migrate_incoming_tcp(host);
-	qemu_free(host);
+      char *host, *end;
+      host = strdup(ptr);
+      end = strchr(host, '/');
+      if (end) *end = 0;
+      ret = migrate_incoming_tcp(host);
+      qemu_free(host);
     } else {
-	errno = EINVAL;
-	ret = MIG_STAT_DST_INVALID_PARAMS;
+      errno = EINVAL;
+      ret = MIG_STAT_DST_INVALID_PARAMS;
     }
 
     return ret;

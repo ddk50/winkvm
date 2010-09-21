@@ -60,3 +60,6 @@ GTAGS
 *.idc
 *.d
 *.a
+config-host.h
+config-host.mak
+i386-softmmu
