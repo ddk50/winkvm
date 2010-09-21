@@ -1392,6 +1392,8 @@ static term_cmd_t info_cmds[] = {
     { "slirp", "", do_info_slirp,
       "", "show SLIRP statistics", },
 #endif
+    { "migration", "", do_info_migration,
+      "", "show migration information" },
     { NULL, NULL, },
 };
 

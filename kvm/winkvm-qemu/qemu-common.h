@@ -156,6 +156,7 @@ void monitor_suspend(void);
 void monitor_resume(void);
 
 /* vl.c */
+void qemu_system_reset_request(void);
 void qemu_get_launch_info(int *argc, char ***argv, int *opt_daemonize, const char **opt_incoming);
 
 //struct QEMUFile;
