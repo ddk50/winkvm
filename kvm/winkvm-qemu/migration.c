@@ -883,8 +883,6 @@ static int migrate_incoming_tcp(const char *host)
     int reuse = 1;
     int rc;
 
-    fprintf(stderr, "%s\n", __FUNCTION__);
-
     addr.sin_family = AF_INET;
     if (parse_host_port(&addr, host) == -1) {
         fprintf(stderr, "parse_host_port() failed for %s\n", host);
