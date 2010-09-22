@@ -1160,26 +1160,42 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 
 int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-//	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-	/*
-	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
-    int r, e;
+	unsigned long retlen;
+	struct kvm_msrs *kmsrs;
+	unsigned long total_size = sizeof(*kmsrs) + n * sizeof(*msrs);
+//    int r, e;
 	BOOL ret;
 
+	kmsrs = (struct kvm_msrs*)malloc(total_size);
     if (!kmsrs) {
-//		errno = ENOMEM;
+		errno = ENOMEM;
 		return -1;
     }
 
     kmsrs->nmsrs = n;
-    memcpy(kmsrs->entries, msrs, n * sizeof *msrs);
-//    r = ioctl(kvm->vcpu_fd[vcpu], KVM_SET_MSRS, kmsrs);	
-    e = errno;
+	kmsrs->vcpu_fd = kvm->vcpu_fd[vcpu];
+
+    memcpy(kmsrs->entries, msrs, n * sizeof(*msrs));
+
+	ret = DeviceIoControl(
+		kvm->hnd,
+		KVM_SET_MSRS,
+		kmsrs,
+		total_size,
+		NULL,
+		0,
+		&retlen,
+		NULL);  
+
+//    r = ioctl(kvm->vcpu_fd[vcpu], KVM_SET_MSRS, kmsrs);
+//    e = errno;
     free(kmsrs);
-    errno = e;
-    return r;
-	*/
-	return -1;
+//    errno = e;
+
+	if (ret)
+		return 1;
+	else
+		return -1;
 }
 
 

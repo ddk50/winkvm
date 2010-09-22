@@ -954,13 +954,11 @@ send_ack:
 
 wait_for_go:
 //    len = read(sfd, &status, 1);
-	len = recv(sfd, &status, 1, 0);
+    len = recv(sfd, &status, 1, 0);
     if (len == -1 && errno == EAGAIN)
-    goto wait_for_go;
+		goto wait_for_go;
     if (len != 1)
         rc = MIG_STAT_DST_READ_FAILED;
-
-	fprintf(stderr, "migrate incoming tcp end\n");
 
 error_accept:
     close(sfd);
@@ -976,17 +974,17 @@ int migrate_incoming(const char *device)
     int ret = 0;
 
     if (strcmp(device, "stdio") == 0)
-      ret = migrate_incoming_fd(STDIN_FILENO);
+		ret = migrate_incoming_fd(STDIN_FILENO);
     else if (strstart(device, "tcp://", &ptr)) {
-      char *host, *end;
-      host = strdup(ptr);
-      end = strchr(host, '/');
-      if (end) *end = 0;
-      ret = migrate_incoming_tcp(host);
-      qemu_free(host);
+		char *host, *end;
+		host = strdup(ptr);
+		end = strchr(host, '/');
+		if (end) *end = 0;
+		ret = migrate_incoming_tcp(host);
+		qemu_free(host);
     } else {
-      errno = EINVAL;
-      ret = MIG_STAT_DST_INVALID_PARAMS;
+		errno = EINVAL;
+		ret = MIG_STAT_DST_INVALID_PARAMS;
     }
 
     return ret;
