@@ -272,19 +272,21 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 		/* IOCTL */
 		case KVM_GET_API_VERSION:
 			{
-				printk(KERN_ALERT "Call KVM_GET_API_VERSION\n");
-				ntStatus = STATUS_SUCCESS;
+				function_enter(DBG_IOCTL, "KVM_GET_API_VERSION"); {
+					ntStatus = STATUS_SUCCESS;
+				} function_exit(DBG_IOCTL, "KVM_GET_API_VERSION");
 				break;
 			} /* end KVM_GET_API_VERSION */
 
 		case KVM_CREATE_VM:
 			{
 				int ret;
-				printk(KERN_ALERT "Call KVM_CREATE_VM\n");
-				ret = kvm_dev_ioctl_create_vm();
-				RtlCopyMemory(outBuf, &ret, sizeof(ret));			
-				Irp->IoStatus.Information = sizeof(ret);	   
-				ntStatus = ConvertRetval(ret);
+				function_enter(DBG_IOCTL, "KVM_CREATE_VM"); {
+					ret = kvm_dev_ioctl_create_vm();
+					RtlCopyMemory(outBuf, &ret, sizeof(ret));			
+					Irp->IoStatus.Information = sizeof(ret);	   
+					ntStatus = ConvertRetval(ret);
+				} function_exit(DBG_IOCTL, "KVM_CREATE_VM");
 				break;
 			} /* end KVM_CREATE_VM */
 
@@ -292,12 +294,10 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			{
 				struct kvm_msr_list msr_list;
 				__u32 *indices;
-				printk(KERN_ALERT "Call KVM_GET_MSR_INDEX_LIST\n");
 
+				function_enter(DBG_IOCTL, "KVM_GET_MSR_INDEX_LIST");
 				ntStatus = STATUS_INVALID_DEVICE_REQUEST;
-
 				RtlCopyMemory(&msr_list, inBuf, sizeof(msr_list));
-
 				if (msr_list.nmsrs <= 0) {				
 					/* call for getting the number of msrlist size */
 					msr_list.nmsrs = num_msrs_to_save + get_emulated_msrs_array_size();
@@ -313,6 +313,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						(num_msrs_to_save * sizeof(u32)) + (get_emulated_msrs_array_size() * sizeof(u32));
 					ntStatus = STATUS_SUCCESS;
 				}
+				function_exit(DBG_IOCTL, "KVM_GET_MSR_INDEX_LIST");
 				break;
 			} /* end KVM_GET_MSR_INDEX_LIST */
 
@@ -320,7 +321,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			{	
 				int ret;
 				struct winkvm_create_vcpu vcpu;
-				printk(KERN_ALERT "Call KVM_CREATE_VCPU\n");
+				function_enter(DBG_IOCTL, "KVM_CREATE_VCPU");
 				RtlCopyMemory(&vcpu, inBuf, sizeof(vcpu));
 				{
 					ret = kvm_vm_ioctl_create_vcpu(get_kvm(vcpu.vm_fd), vcpu.vcpu_fd);
@@ -328,6 +329,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				} RtlCopyMemory(outBuf, &ret, sizeof(ret));
 				Irp->IoStatus.Information = sizeof(ret);
 				ntStatus = ConvertRetval(ret);
+				function_exit(DBG_IOCTL, "KVM_CREATE_VCPU");
 				break;
 			} /* end KVM_CREATE_VCPU */
 
@@ -337,8 +339,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_memory_region *kvm_mem;
 				int ret;
 
-				printk(KERN_ALERT "Call KVM_SET_MEMORY_REGION\n");
-
+				function_enter(DBG_IOCTL, "KVM_SET_MEMORY_REGION");
 				RtlCopyMemory(&winkvm_mem, inBuf, sizeof(winkvm_mem)); 
 				{
 					kvm_mem = &winkvm_mem.kvm_memory_region;
@@ -346,6 +347,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				} RtlCopyMemory(outBuf, &winkvm_mem, sizeof(winkvm_mem));
 				Irp->IoStatus.Information = sizeof(winkvm_mem);
 				ntStatus = ConvertRetval(ret);
+				function_exit(DBG_IOCTL, "KVM_SET_MEMORY_REGION");
+
 				break;
 			} /* end KVM_SET_MEMORY_REGION */
 
@@ -354,14 +357,17 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_dirty_log log;
 				int ret;
 
+				function_enter(DBG_IOCTL, "KVM_GET_DIRTY_LOG");
+
 				RtlCopyMemory(&log, inBuf, sizeof(log));
 				{
-					/* implement me */
 					ret = kvm_vm_ioctl_get_dirty_log(get_kvm(log.vm_fd), &log);
 				} RtlCopyMemory(outBuf, &log, sizeof(log));
 				Irp->IoStatus.Information = sizeof(log);
 				ntStatus = ConvertRetval(ret);
 
+				function_exit(DBG_IOCTL, "KVM_GET_DIRTY_LOG");
+				break;
 			} /* end KVM_GET_DIRTY_LOG */
 
 		case KVM_GET_REGS: 
@@ -370,19 +376,19 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu = NULL;
 				int vcpu_fd, r;
 
+				function_enter(DBG_IOCTL, "KVM_GET_REGS");
 				RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));
-
 				vcpu = get_vcpu(vcpu_fd);
 				if (!vcpu) {
 					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 					Irp->IoStatus.Information = 0;
 					break;
 				}
-
 				r = kvm_vcpu_ioctl_get_regs(get_vcpu(vcpu_fd), &kvm_regs);
 				RtlCopyMemory(outBuf, &kvm_regs, sizeof(struct kvm_regs));
 				Irp->IoStatus.Information = sizeof(struct kvm_regs);
 				ntStatus = ConvertRetval(r);
+				function_exit(DBG_IOCTL, "KVM_GET_REGS");
 				break;
 			} /* end KVM_GET_REGS */
 
@@ -392,18 +398,18 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu = NULL;
 				int r;
 
+				function_enter(DBG_IOCTL, "KVM_SET_REGS");
 				RtlCopyMemory(&kvm_regs, inBuf, sizeof(kvm_regs));
-
 				vcpu = get_vcpu(kvm_regs.vcpu_fd);
 				if (!vcpu) {
 					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 					Irp->IoStatus.Information = 0;
 					break;
 				}
-
 				r = kvm_vcpu_ioctl_set_regs(vcpu, &kvm_regs);
 				Irp->IoStatus.Information = 0;
 				ntStatus = ConvertRetval(r);
+				function_exit(DBG_IOCTL, "KVM_SET_REGS");
 				break;
 			} /* end KVM_SET_REGS */
 
@@ -414,12 +420,14 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				int vcpu_fd;
 				int r;
 
+				function_enter(DBG_IOCTL, "KVM_GET_SegREGS");
 				RtlCopyMemory(&vcpu_fd, inBuf, sizeof(vcpu_fd));			
 
 				vcpu = get_vcpu(vcpu_fd);
 				if (!vcpu) {
 					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 					Irp->IoStatus.Information = 0;
+					function_exit(DBG_IOCTL, "KVM_GET_SegREGS");
 					break;
 				}
 
@@ -427,6 +435,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = sizeof(kvm_sregs);
 				RtlCopyMemory(outBuf, &kvm_sregs, sizeof(kvm_sregs));
 				ntStatus = ConvertRetval(r);
+				function_exit(DBG_IOCTL, "KVM_GET_SegREGS");
 				break;
 			} /* end KVM_GET_SREGS */
 
@@ -436,19 +445,21 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu = NULL;
 				int r;
 
+				function_enter(DBG_IOCTL, "KVM_SET_SegREGS");
 				RtlCopyMemory(&kvm_sregs, inBuf, sizeof(kvm_sregs));
 				{
 					vcpu = get_vcpu(kvm_sregs.vcpu_fd);
 					if (!vcpu) {
 						ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 						Irp->IoStatus.Information = 0;
+						function_exit(DBG_IOCTL, "KVM_SET_SegREGS");
 						break;
 					}
 					r = kvm_vcpu_ioctl_set_sregs(vcpu, &kvm_sregs);
 				};
 				Irp->IoStatus.Information = 0;
-
 				ntStatus = ConvertRetval(r);
+				function_exit(DBG_IOCTL, "KVM_SET_SegREGS");
 				break;
 			} /* end KVM_SET_SREGS */
 
@@ -458,20 +469,22 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu = NULL;
 				int r;
 
+				function_enter(DBG_IOCTL, "KVM_TRANSLATE");
 				RtlCopyMemory(&tr, inBuf, sizeof(tr));
 				{
 					vcpu = get_vcpu(tr.vcpu_fd);
 					if (!vcpu) {
 						ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 						Irp->IoStatus.Information = 0;
+						function_exit(DBG_IOCTL, "KVM_TRANSLATE");
 						break;
 					}
 					r = kvm_vcpu_ioctl_translate(vcpu, &tr);
 
 					Irp->IoStatus.Information = sizeof(tr);
 				} RtlCopyMemory(outBuf, &tr, sizeof(tr));
-
 				ntStatus = ConvertRetval(r);
+				function_exit(DBG_IOCTL, "KVM_TRANSLATE");
 				break;
 			} /* end KVM_TRANSLATE */
 
@@ -481,6 +494,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu = NULL;
 				int r = 0;
 
+				function_enter(DBG_IOCTL, "KVM_TRANSLATE");
 				RtlCopyMemory(&irq, inBuf, sizeof(irq));
 
 				vcpu = get_vcpu(irq.vcpu_fd);
@@ -492,8 +506,28 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					Irp->IoStatus.Information = 0;
 					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 				}
+				function_exit(DBG_IOCTL, "KVM_TRANSLATE");
 				break;
 			} /* end KVM_INTERRUPT */
+
+		case KVM_GET_MSRS:
+			{
+				function_enter(DBG_IOCTL, "KVM_GET_MSRS");
+				function_exit(DBG_IOCTL, "KVM_GET_MSRS");
+				break;
+			} /* end KVM_GET_MSRS */
+
+		case KVM_SET_MSRS:
+			{
+				int r;
+				struct kvm_msrs *umsrs = (struct kvm_msrs*)outBuf;
+				function_enter(DBG_IOCTL, "KVM_SET_MSRS");
+				r = msr_io(get_vcpu(umsrs->vcpu_fd), umsrs, do_set_msr, 0);
+				Irp->IoStatus.Information = 0;
+				ntStatus = ConvertRetval(r);				
+				function_exit(DBG_IOCTL, "KVM_SET_MSRS");
+				break;
+			} /* end KVM_SET_MSRS */
 
 		case KVM_RUN:
 			{		
@@ -501,6 +535,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_run kvm_run;
 				struct kvm_vcpu *vcpu;
 
+				function_enter(DBG_IOCTL, "KVM_RUN");
 				RtlCopyMemory(&kvm_run, inBuf, sizeof(kvm_run));
 				kvm_run._errno = 0;
 
@@ -509,12 +544,10 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 				if (vcpu) {
 					resultvar = kvm_vcpu_ioctl_run(vcpu, &kvm_run);
-
 					if (INTERNAL_SYSCALL_ERROR_P(resultvar, )) {
 						kvm_run._errno = INTERNAL_SYSCALL_ERRNO(resultvar, );
 						resultvar = 0xffffffff;
 					} 
-
 					kvm_run.ioctl_r = (int)resultvar;
 					RtlCopyMemory(outBuf, &kvm_run, sizeof(kvm_run));
 					Irp->IoStatus.Information = sizeof(kvm_run);
@@ -523,6 +556,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 					Irp->IoStatus.Information = 0;
 					ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 				}
+				function_exit(DBG_IOCTL, "KVM_RUN");
 				break;
 			} /* end KVM_RUN */
 
@@ -532,6 +566,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct winkvm_transfer_mem trans_mem;
 				struct kvm_vcpu *vcpu;
 				int ret;
+
+				function_enter(DBG_IOCTL, "WINKVM_READ_GUEST");
 
 				ExAcquireFastMutex(&reader_mutex);
 
@@ -550,6 +586,7 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 				ExReleaseFastMutex(&reader_mutex);
 
+				function_exit(DBG_IOCTL, "WINKVM_READ_GUEST");
 				break;
 			} /* end WINKVM_READ_GUEST */
 
@@ -559,17 +596,19 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct kvm_vcpu *vcpu;
 				int ret;
 
+				function_enter(DBG_IOCTL, "WINKVM_WRITE_GUEST");
+
 				ExAcquireFastMutex(&writer_mutex);
 
 				trans_mem = (struct winkvm_transfer_mem*)inBuf;
 				vcpu = get_vcpu(trans_mem->vcpu_fd);
 
-				SAFE_ASSERT(inBufLen == (trans_mem->size + sizeof(struct winkvm_transfer_mem)));
-				//			printk(KERN_ALERT "write guest: gva: 0x%08lx, size: %d\n", 
-				//				trans_mem->gva, trans_mem->size);
+				SAFE_ASSERT(inBufLen == 
+					(trans_mem->size + sizeof(struct winkvm_transfer_mem)));
 
 				if (vcpu) {
-					ret = kvm_write_guest(vcpu, trans_mem->gva, trans_mem->size, trans_mem->payload);
+					ret = kvm_write_guest(vcpu, trans_mem->gva, 
+						trans_mem->size, trans_mem->payload);
 					RtlCopyMemory(outBuf, &ret, sizeof(ret));
 					Irp->IoStatus.Information = sizeof(ret);
 					ntStatus = ConvertRetval(ret);
@@ -580,6 +619,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 				ExReleaseFastMutex(&writer_mutex);
 
+				function_exit(DBG_IOCTL, "WINKVM_WRITE_GUEST");
+
 				break;
 			} /* end WINKVM_WRITE_GUEST */
 
@@ -588,10 +629,13 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				struct winkvm_mapmem_initialize init;
 				MAPMEM *mapMemInfo;
 
+				function_enter(DBG_IOCTL, "WINKVM_MAPMEM_INITIALIZE");
+
 				RtlCopyMemory(&init, inBuf, sizeof(init)); 
 				{
 					if (init.slot >= MAX_MEMMAP_SLOT) {
 						ntStatus = STATUS_UNSUCCESSFUL;
+						function_exit(DBG_IOCTL, "WINKVM_MAPMEM_INITIALIZE");
 						break;
 					}
 
@@ -615,14 +659,16 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 						mapMemInfo->npages   = init.npages;
 						mapMemInfo->base_gfn = init.base_gfn;
 						printk(KERN_ALERT 
-							"slot [%d] memory mapping: %x (PN) ... %x (PN) (%d [pages])\n", 
+							"slot [%d] memory mapping: 0x%x (PN) ... 0x%x (PN) (%d [pages])\n", 
 							init.slot,
 							mapMemInfo->base_gfn,
 							mapMemInfo->base_gfn + mapMemInfo->npages,
 							mapMemInfo->npages);
 					}
 				} RtlCopyMemory(outBuf, &init, sizeof(init));
+
 				Irp->IoStatus.Information = sizeof(init);
+				function_exit(DBG_IOCTL, "WINKVM_MAPMEM_INITIALIZE");
 				break;
 			} /* end WINKVM_MAPMEM_INITIALIZE */
 
@@ -630,9 +676,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 			{
 				struct winkvm_getpvmap  pvmap;
 
+				function_enter(DBG_IOCTL, "WINKVM_MAPMEM_RELEASE");
+
 				RtlCopyMemory(&pvmap, inBuf, sizeof(pvmap)); {
 					if (pvmap.slot >= MAX_MEMMAP_SLOT) {
 						ntStatus = STATUS_UNSUCCESSFUL;
+						function_exit(DBG_IOCTL, "WINKVM_MAPMEM_RELEASE");
 						break;
 					}
 					CloseUserMapping(
@@ -643,6 +692,8 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 				Irp->IoStatus.Information = sizeof(pvmap);
 
 				ntStatus = STATUS_SUCCESS;
+				function_exit(DBG_IOCTL, "WINKVM_MAPMEM_RELEASE");
+				break;
 			} /* end WINKVM_MAPMEM_RELEASE */
 
 		default:

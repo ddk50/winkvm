@@ -74,6 +74,7 @@ int _cdecl check_ensure_vmx(void)
 
 static enum dbgmsg_level dbgmsg_status[] = {
     DBG_RELEASE,
+	DBG_LIVEMIGRATION,
 };
 
 void _cdecl function_enter(enum dbgmsg_level x, const char *funcname)
