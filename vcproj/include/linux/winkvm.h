@@ -122,7 +122,9 @@ enum dbgmsg_level {
 	DBG_MISC = 0,	
 	DBG_INIT,	
 	DBG_RELEASE,
-	DBG_DESTROY_KVM_MMU,	
+	DBG_DESTROY_KVM_MMU,
+	DBG_LIVEMIGRATION,
+	DBG_IOCTL,	
 };
 
 #endif

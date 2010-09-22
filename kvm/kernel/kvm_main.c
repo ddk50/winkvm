@@ -851,6 +851,8 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
 	int cleared;
 	unsigned long any = 0;
 
+	function_enter(DBG_LIVEMIGRATION, __FUNCTION__);   
+
 	spin_lock(&kvm->lock);
 
 	/*
@@ -901,6 +903,7 @@ out:
 	spin_lock(&kvm->lock);
 	--kvm->busy;
 	spin_unlock(&kvm->lock);
+	function_exit(DBG_LIVEMIGRATION, __FUNCTION__);	
 	return r;
 }
 
@@ -1938,7 +1941,7 @@ static __init void kvm_init_msr_list(void)
 /*
  * Adapt set_msr() to msr_io()'s calling convention
  */
-static int do_set_msr(struct kvm_vcpu *vcpu, unsigned index, u64 *data)
+int do_set_msr(struct kvm_vcpu *vcpu, unsigned index, u64 *data)  
 {
 	return set_msr(vcpu, index, *data);
 }
@@ -1971,10 +1974,10 @@ static int __msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs *msrs,
  *
  * @return number of msrs set successfully.
  */
-static int msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs __user *user_msrs,
-		  int (*do_msr)(struct kvm_vcpu *vcpu,
-				unsigned index, u64 *data),
-		  int writeback)
+int msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs __user *user_msrs,
+		   int (*do_msr)(struct kvm_vcpu *vcpu,
+						 unsigned index, u64 *data),
+		   int writeback) 
 {
 	struct kvm_msrs msrs;
 	struct kvm_msr_entry *entries;

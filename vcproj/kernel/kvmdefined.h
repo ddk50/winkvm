@@ -38,4 +38,19 @@ extern int _cdecl kvm_vcpu_release(struct inode *inode, struct file *filp);
 
 extern int _cdecl check_function_pointer_test(void);
 
+/*
+ * Read or write a bunch of msrs. Parameters are user addresses.
+ *
+ * @return number of msrs set successfully.
+ */
+extern int _cdecl msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs *user_msrs,
+						 int (_cdecl *do_msr)(struct kvm_vcpu *vcpu, 
+						 unsigned index, u64 *data),
+						 int writeback);
+
+/*
+ * Adapt set_msr() to msr_io()'s calling convention
+ */
+int _cdecl do_set_msr(struct kvm_vcpu *vcpu, unsigned index, u64 *data);
+
 #endif

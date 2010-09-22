@@ -46,6 +46,9 @@
 #define module_init(x) extern int (*__first_call)(void) = x;
 #define module_exit(x) extern void (*__final_call)(void) = x;
 
+void _cdecl function_enter(enum dbgmsg_level x, const char *funcname);
+void _cdecl function_exit(enum dbgmsg_level x, const char *funcname);
+
 #define SAFE_ASSERT(x) \
 	do { \
 	   if (!(x)) { \

@@ -279,14 +279,18 @@ void _cdecl vfree(void *addr)
 
 unsigned long _cdecl copy_to_user(void *to, const void *from, unsigned long n)
 {
-	SAFE_ASSERT(0);
+	/* On Linux kernel, returns number of bytes that could not 
+	be copied. On success, this will be zero. */
+	RtlCopyMemory(to, from, n);
 	return 0;
 }
 
 int _cdecl copy_from_user(void *to, const void *from, int n)
 {
-	SAFE_ASSERT(0);
-	return 1;
+	/* On Linux kernel, returns number of bytes that could not 
+	be copied. On success, this will be zero. */
+	RtlCopyMemory(to, from, n);
+	return 0;
 }
 
 void _cdecl dump_stack(void)

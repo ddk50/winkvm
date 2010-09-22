@@ -234,6 +234,9 @@ struct kvm_msr_entry {
 
 /* for KVM_GET_MSRS and KVM_SET_MSRS */
 struct kvm_msrs {
+#ifdef __WINKVM__
+  int vcpu_fd;  
+#endif
   __u32 nmsrs; /* number of msrs in entries */
   __u32 pad;
 
