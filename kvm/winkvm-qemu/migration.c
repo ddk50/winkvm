@@ -985,7 +985,7 @@ int migrate_incoming(const char *device)
     } else {
 		errno = EINVAL;
 		ret = MIG_STAT_DST_INVALID_PARAMS;
-    }
+    }   
 
     return ret;
 }

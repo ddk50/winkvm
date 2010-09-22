@@ -6320,6 +6320,7 @@ int qemu_live_loadvm_state(QEMUFile *f)
         instance_id = qemu_get_be32(f);
         version_id = qemu_get_be32(f);
         se = find_se(idstr, instance_id);
+		fprintf(stderr, "load_state: %s\n", idstr);
         if (!se) {
             fprintf(stderr, "qemu: warning: instance 0x%x of device '%s' not present in current VM\n", 
                     instance_id, idstr);
@@ -9551,7 +9552,9 @@ int main(int argc, char **argv)
         if (rc != 0) {
             fprintf(stderr, "Migration failed rc=%d\n", rc);
             exit(rc);
-        }
+        } else {
+			fprintf(stderr, "migrate incoming is successful\n");
+		}
     }
 
     {
