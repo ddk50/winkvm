@@ -7430,9 +7430,9 @@ static void ram_save(QEMUFile *f, void *opaque)
     qemu_put_byte(f, in_migration);
 
     if (in_migration)
-    ram_save_live(f, opaque);
+		ram_save_live(f, opaque);
     else
-    ram_save_static(f, opaque);
+		ram_save_static(f, opaque);
 }
 
 static int ram_load_live(QEMUFile *f, void *opaque)
@@ -7440,11 +7440,11 @@ static int ram_load_live(QEMUFile *f, void *opaque)
     target_ulong addr;
 
     do {
-    addr = qemu_get_be32(f);
-    if (addr == 1)
-        break;
-
-    qemu_get_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
+		addr = qemu_get_be32(f);
+		if (addr == 1)
+			break;
+		
+		qemu_get_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
     } while (1);
 
     return 0;
