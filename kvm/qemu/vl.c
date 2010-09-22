@@ -5269,7 +5269,6 @@ void cpu_save(QEMUFile *f, void *opaque)
     if (kvm_allowed) {
         for (i = 0; i < NR_IRQ_WORDS ; i++) {
             qemu_put_betls(f, &env->kvm_interrupt_bitmap[i]);
-			
         }
         qemu_put_be64s(f, &env->tsc);
     }
@@ -6273,8 +6272,8 @@ int main_loop(void)
                 reset_requested = 0;
                 qemu_system_reset();
 #ifdef USE_KVM
-				if (kvm_allowed)
-				  kvm_load_registers(env);
+		if (kvm_allowed)
+		  kvm_load_registers(env);
 #endif
                 ret = EXCP_INTERRUPT;
             }

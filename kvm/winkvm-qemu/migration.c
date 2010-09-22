@@ -812,18 +812,11 @@ static int migrate_incoming_fd(int fd)
 {
     int ret = 0;
     QEMUFile *f = qemu_fopen_fd(fd);
-    uint32_t memsize;
-    int rret;
     uint32_t addr;
+    uint32_t memsize;
     extern void qemu_announce_self(void);
-	
-    memsize = 0;
-    rret = recv(fd, (void*)&memsize, sizeof(uint32_t), 0);
-    if (rret < 0) {
-      perror("recv error");		
-    }
 
-	memsize = bswap_32(memsize);   
+    memsize = qemu_get_be32(f);
     if (memsize != phys_ram_size) {
         fprintf(stderr, 
 		"src qemu is allocated %d [bytes] memory\n"
@@ -944,7 +937,8 @@ again:
     }
 
 send_ack:
-    len = write(sfd, &status, 1);
+//    len = write(sfd, &status, 1);
+	len = send(sfd, &status, 1, 0);
     if (len == -1 && errno == EAGAIN)
         goto send_ack;
     if (len != 1) {
@@ -959,11 +953,14 @@ send_ack:
     }
 
 wait_for_go:
-    len = read(sfd, &status, 1);
+//    len = read(sfd, &status, 1);
+	len = recv(sfd, &status, 1, 0);
     if (len == -1 && errno == EAGAIN)
     goto wait_for_go;
     if (len != 1)
         rc = MIG_STAT_DST_READ_FAILED;
+
+	fprintf(stderr, "migrate incoming tcp end\n");
 
 error_accept:
     close(sfd);

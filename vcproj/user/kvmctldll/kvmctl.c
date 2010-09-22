@@ -605,9 +605,9 @@ int kvm_set_regs(kvm_context_t kvm, int vcpu, struct kvm_regs *regs)
 {
 	BOOL ret;
 	int fd = kvm->vcpu_fd[vcpu];
-	unsigned long retlen;	
+	unsigned long retlen;
 
-	regs->vcpu_fd = fd;
+	regs->vcpu_fd = fd;	
 	ret = DeviceIoControl(
 		     kvm->hnd,
 			 KVM_SET_REGS,
@@ -631,6 +631,8 @@ int kvm_get_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *sregs)
 	unsigned long retlen;
 	int vcpu_fd = kvm->vcpu_fd[vcpu];
 
+	sregs->vcpu_fd = vcpu_fd;
+
 	ret = DeviceIoControl(
 		     kvm->hnd,
 			 KVM_GET_SREGS,
@@ -653,6 +655,8 @@ int kvm_set_sregs(kvm_context_t kvm, int vcpu, struct kvm_sregs *sregs)
 	BOOL ret;
 	unsigned long retlen;
 	int vcpu_fd = kvm->vcpu_fd[vcpu];
+
+	sregs->vcpu_fd = vcpu_fd;
 
 	ret = DeviceIoControl(
 		     kvm->hnd,

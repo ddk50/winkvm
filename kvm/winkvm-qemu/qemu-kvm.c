@@ -181,7 +181,7 @@ static void load_regs(CPUState *env)
     
     regs.rflags = env->eflags;
     regs.rip = env->eip;
-
+    
     kvm_set_regs(kvm_context, 0, &regs);
 
     memcpy(sregs.interrupt_bitmap, env->kvm_interrupt_bitmap, sizeof(sregs.interrupt_bitmap));

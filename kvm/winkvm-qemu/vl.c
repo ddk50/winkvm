@@ -5832,7 +5832,10 @@ static int fd_get_buffer(void *opaque, uint8_t *buf, int64_t pos, int size)
 	ssize_t len;
 	
 again:
-	len = read(s->fd, buf + offset, size - offset);
+	/* len = read(s->fd, buf + offset, size - offset); */
+	/* this function is called by only migration.c */
+	/* So, this function is specialized with migration.c */
+	len = recv(s->fd, buf + offset, size - offset, 0);
 	if (len == -1) {
 		if (errno == EINTR || errno == EAGAIN)
 			goto again;
@@ -5899,8 +5902,8 @@ QEMUFile *qemu_fopen_compat(void *opaque, QEMUFilePutBufferFunc *put_buffer,
     if (!f)
         return NULL;
 
-	f->qemu_ff_compat = 1; 
-	f->opaque = opaque;
+    f->qemu_ff_compat = 1; 
+    f->opaque = opaque;
     f->put_buffer = put_buffer;
     f->get_buffer = get_buffer;
     f->close = close;
@@ -5941,7 +5944,6 @@ static void qemu_fill_buffer(QEMUFile *f)
     int len;
 
     if (f->qemu_ff_compat) {
-      fprintf(stderr, "%s is called with qemu_ff_compat mode\n", __FUNCTION__);
         if (!f->get_buffer)
             return;
 
@@ -6290,6 +6292,7 @@ int qemu_live_savevm_state(QEMUFile *f)
     return ret;
 }
 
+/* here is bugpoint */
 int qemu_live_loadvm_state(QEMUFile *f)
 {
     SaveStateEntry *se;
@@ -6308,9 +6311,10 @@ int qemu_live_loadvm_state(QEMUFile *f)
     }
 
     for(;;) {
-        len = qemu_get_byte(f);
-    if (len == 0)
-        break;
+        len = qemu_get_byte(f);	   
+		if (len == 0)
+			break;
+		fprintf(stderr, "qemu_live_loadvm_state loop\n");
         qemu_get_buffer(f, idstr, len);
         idstr[len] = '\0';
         instance_id = qemu_get_be32(f);
@@ -6897,6 +6901,7 @@ int cpu_load(QEMUFile *f, void *opaque, int version_id)
             qemu_get_betls(f, &env->kvm_interrupt_bitmap[i]);
         }
         qemu_get_be64s(f, &env->tsc);
+		fprintf(stderr, "kvm_load_regsiters() in %s\n", __FUNCTION__);
         kvm_load_registers(env);
     }
 #endif   
@@ -7980,8 +7985,10 @@ static int main_loop(void)
                 reset_requested = 0;
                 qemu_system_reset();
 #ifdef USE_KVM
-                if (kvm_allowed)
+                if (kvm_allowed) {
+					fprintf(stderr, "kvm_load_registers() in %s\n", __FUNCTION__);
                     kvm_load_registers(env);
+				}
 #endif
                 ret = EXCP_INTERRUPT;
             }
@@ -8926,14 +8933,14 @@ int main(int argc, char **argv)
                 break;
 #ifdef CONFIG_SLIRP
             case QEMU_OPTION_tftp:
-        tftp_prefix = optarg;
+				tftp_prefix = optarg;
                 break;
             case QEMU_OPTION_bootp:
                 bootp_filename = optarg;
                 break;
 #ifndef _WIN32
             case QEMU_OPTION_smb:
-	      net_slirp_smb(optarg);
+				net_slirp_smb(optarg);
                 break;
 #endif
             case QEMU_OPTION_redir:
@@ -9228,8 +9235,8 @@ int main(int argc, char **argv)
 
 #ifndef _WIN32
     if (daemonize && !nographic && vnc_display == NULL) {
-    fprintf(stderr, "Can only daemonize if using -nographic or -vnc\n");
-    daemonize = 0;
+		fprintf(stderr, "Can only daemonize if using -nographic or -vnc\n");
+		daemonize = 0;
     }
 
     if (daemonize) {
