@@ -1,2 +1,59 @@
 
 WinKVM : Windows kernel-based Virtual Machine
+
+* How to build WinKVM (English)
+In this page will explain how to compile WinKVM.
+
+You have to prepare three thing as follow:
+1. Cygwin environment including gcc-3.x rsync, zlib and awk http://www.cygwin.com/
+2. Visual Studio 2008 professional edition (You can use Microsoft Visual Studio Express instead of professional edition) 
+http://www.microsoft.com/japan/msdn/vstudio/express/
+3. Windows DDK: We use 3790.1830 version (The Microsoft® Windows Server™ 2003 Service Pack 1 (SP1) DDK) to develop WinKVM
+
+You have to download and install these things.
+
+Before building WinKVM driver, you have to set an environmental value that point to your Windows DDK installation path. 
+Thus, you have to add BASEDIR2K3 environmental value (e.g.D:WINDDK3790.1830) to your Windows system. Visual Studio uses 
+this environmental value at building WinKVM driver.
+
+WinKVM building process is little confuse.
+You have to build three things separately.
+1. Building kvmctldll: Enter vcproj/user/kvmctldll and open kvmctldll.vcproj to build the kvm control library. 
+After building kvmctldll, check vcproj/bin whether or not the building process was successful. 
+If there is kvmctldll.dll in the directory, you succeeded.
+
+2. Building original KVM drivers using Cygwin environment: 
+cd kvm/kernel  ## Do not type configure
+make           ## you will get id: unrecognised emulation mode: elf_i386 but it's not error
+make cpobjs    ## If you get not a directory message, make it and try again
+
+3. Open vcproj/kernel/winkvm.vcproj to build WinKVM driver. 
+check vcproj/bin whether or not the building process was successful. 
+If there is winkvmstab.sys in the directory, you succeeded.
+
+4. Finally, You have to build QEMU using cygwin environment. Enter to kvm/winkvm-qemu
+cd kvm/winkvm-qemu
+./configure --prefix=path/to/installation --enable-kvm --target-list=i386-softmmu --disable-kqemu
+make
+make install
+
+* How to use WinKVM (English)
+Your operating system may be unstable after installing WinKVM 
+because this software is alpha version.
+
+Do not try to run on multi CPU system. If you want to it, you have to add the boot option to 
+your Windows system to run with single-core mode.
+
+First, Download the latest WinKVM binary file from as follow: http://github.com/ddk50/winkvm/downloads
+
+Second, you have to WinKVM driver. Execute DIP_gui.exe attached to the binary archive to install 
+winkvm driver. (Also, DIP_gui.exe is written by Mr.Kenji Akio. Thanks)
+
+Third, Push the "..." button to select winkvmstab.sys driver and push the "Install" button to 
+install the driver. Driver installation is required only one time. If you want to uninstall 
+the driver, you can "..." button again and push the "Uninstall" button.
+
+Finally, Now, you get ready to run WinKVM. Execute the batchfile which is 
+named "WinKVM.bat" to execute WinKVM.
+
+Have a fun!
