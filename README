@@ -6,21 +6,24 @@ In this page will explain how to compile WinKVM.
 
 You have to prepare three thing as follow:
 1. Cygwin environment including gcc-3.x rsync, zlib and awk http://www.cygwin.com/
-2. Visual Studio 2008 professional edition (You can use Microsoft Visual Studio Express instead of professional edition) 
+2. Visual Studio 2008 professional edition 
+(You can use Microsoft Visual Studio Express instead of professional edition) 
 http://www.microsoft.com/japan/msdn/vstudio/express/
-3. Windows DDK: We use 3790.1830 version (The Microsoft® Windows Server™ 2003 Service Pack 1 (SP1) DDK) to develop WinKVM
+3. Windows DDK: We use 3790.1830 version 
+(The Microsoft® Windows Server™ 2003 Service Pack 1 (SP1) DDK) to develop WinKVM
 
 You have to download and install these things.
 
-Before building WinKVM driver, you have to set an environmental value that point to your Windows DDK installation path. 
-Thus, you have to add BASEDIR2K3 environmental value (e.g.D:WINDDK3790.1830) to your Windows system. Visual Studio uses 
-this environmental value at building WinKVM driver.
+Before building WinKVM driver, you have to set an environmental value that point to your 
+Windows DDK installation path. Thus, you have to add BASEDIR2K3 environmental value 
+(e.g. D:WINDDK3790.1830) to your Windows system. Visual Studio uses this environmental 
+value at building WinKVM driver.
 
 WinKVM building process is little confuse.
 You have to build three things separately.
-1. Building kvmctldll: Enter vcproj/user/kvmctldll and open kvmctldll.vcproj to build the kvm control library. 
-After building kvmctldll, check vcproj/bin whether or not the building process was successful. 
-If there is kvmctldll.dll in the directory, you succeeded.
+1. Building kvmctldll: Enter vcproj/user/kvmctldll and open kvmctldll.vcproj to build the 
+kvm control library. After building kvmctldll, check vcproj/bin whether or not the building 
+process was successful. If there is kvmctldll.dll in the directory, you succeeded.
 
 2. Building original KVM drivers using Cygwin environment: 
 cd kvm/kernel  ## Do not type configure
@@ -43,8 +46,15 @@ because this software is alpha version.
 
 Do not try to run on multi CPU system. If you want to it, you have to add the boot option to 
 your Windows system to run with single-core mode.
+To enable onecpu mode, type command on windows command prompt as follows:
+cd c:\
+attrib -h -r -s boot.ini
+Now, you can see boot.ini in your c:\
+Boot.ini is just a textfile so you have to add the textline as follows:
+multi(0)disk(0)rdisk(0)partition(1)\WINDOWS="Microsoft Windows XP Professional (onecpumode)" /noexecute=optin /fastdetect /onecpu
+Reboot your system and select "onecpumode".
 
-First, Download the latest WinKVM binary file from as follow: http://github.com/ddk50/winkvm/downloads
+First, Download the latest WinKVM binary file from http://github.com/ddk50/winkvm/downloads
 
 Second, you have to WinKVM driver. Execute DIP_gui.exe attached to the binary archive to install 
 winkvm driver. (Also, DIP_gui.exe is written by Mr.Kenji Akio. Thanks)
@@ -53,7 +63,7 @@ Third, Push the "..." button to select winkvmstab.sys driver and push the "Insta
 install the driver. Driver installation is required only one time. If you want to uninstall 
 the driver, you can "..." button again and push the "Uninstall" button.
 
-Finally, Now, you get ready to run WinKVM. Execute the batchfile which is 
-named "WinKVM.bat" to execute WinKVM.
+Finally, Now, you get ready to run WinKVM. Execute the batchfile that is named "WinKVM.bat" 
+to execute WinKVM.
 
 Have a fun!
