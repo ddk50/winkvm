@@ -35,6 +35,11 @@
 #include <sys/ucontext.h>
 #endif
 
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern int kvm_allowed;
+#endif
+
 int tb_invalidated_flag;
 
 //#define DEBUG_EXEC
@@ -398,6 +403,13 @@ int cpu_exec(CPUState *env1)
                         longjmp(env->jmp_env, 1);
                     }
                 }
+            }
+#endif
+
+#ifdef USE_KVM
+            if (kvm_allowed) {
+                kvm_cpu_exec(env);
+                longjmp(env->jmp_env, 1);
             }
 #endif
 

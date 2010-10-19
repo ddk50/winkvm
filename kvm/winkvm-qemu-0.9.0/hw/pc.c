@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  */
 #include "vl.h"
+#ifdef USE_KVM
+#include "qemu-kvm.h"
+extern int kvm_allowed;
+#endif
 
 /* output Bochs bios info messages */
 //#define DEBUG_BIOS
@@ -442,6 +446,11 @@ static void pc_init_ne2k_isa(NICInfo *nd)
     nb_ne2k++;
 }
 
+#ifdef USE_KVM
+extern kvm_context_t kvm_context;
+extern int kvm_allowed;
+#endif
+
 /* PC hardware initialisation */
 static void pc_init1(int ram_size, int vga_ram_size, int boot_device,
                      DisplayState *ds, const char **fd_filename, int snapshot,
@@ -508,6 +517,11 @@ static void pc_init1(int ram_size, int vga_ram_size, int boot_device,
     /* setup basic memory access */
     cpu_register_physical_memory(0xc0000, 0x10000, 
                                  vga_bios_offset | IO_MEM_ROM);
+#ifdef USE_KVM
+    if (kvm_allowed)
+	    memcpy(phys_ram_base + 0xc0000, phys_ram_base + vga_bios_offset,
+		   0x10000);
+#endif
 
     /* map the last 128KB of the BIOS in ISA space */
     isa_bios_size = bios_size;
@@ -518,6 +532,26 @@ static void pc_init1(int ram_size, int vga_ram_size, int boot_device,
     cpu_register_physical_memory(0x100000 - isa_bios_size, 
                                  isa_bios_size, 
                                  (bios_offset + bios_size - isa_bios_size) | IO_MEM_ROM);
+
+#ifdef USE_KVM
+    if (kvm_allowed)
+	    memcpy(phys_ram_base + 0x100000 - isa_bios_size,
+		   phys_ram_base + (bios_offset + bios_size - isa_bios_size),
+		   isa_bios_size);
+#endif
+
+#ifdef USE_KVM
+    if (kvm_allowed) {
+	    bios_mem = kvm_create_phys_mem(kvm_context, (uint32_t)(-bios_size),
+					   bios_size, 2, 0, 1);
+	    if (!bios_mem)
+		    exit(1);
+	    memcpy(bios_mem, phys_ram_base + bios_offset, bios_size);
+
+	    cpu_register_physical_memory(phys_ram_size - KVM_EXTRA_PAGES * 4096, KVM_EXTRA_PAGES * 4096,
+					 (phys_ram_size - KVM_EXTRA_PAGES * 4096) | IO_MEM_ROM);
+    }
+#endif
 
     option_rom_offset = 0;
     for (i = 0; i < nb_option_roms; i++) {

@@ -25,6 +25,9 @@
 #include "disas.h"
 #include <dirent.h>
 
+#if USE_KVM
+#include "qemu-kvm.h"
+#endif
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
@@ -2187,6 +2190,15 @@ static void monitor_handle_command(const char *cmdline)
         goto fail;
     }
 
+#ifdef USE_KVM
+    if(1)
+    {
+        CPUState *env=mon_get_cpu();
+        if (kvm_allowed)
+            kvm_save_registers(env);
+    }
+#endif
+
     switch(nb_args) {
     case 0:
         cmd->handler();
@@ -2426,6 +2438,19 @@ static void term_read(void *opaque, const uint8_t *buf, int size)
     int i;
     for(i = 0; i < size; i++)
         readline_handle_byte(buf[i]);
+}
+
+static int monitor_suspended;
+
+void monitor_suspend(void)
+{
+    monitor_suspended = 1;
+}
+
+void monitor_resume(void)
+{
+    monitor_suspended = 0;
+    monitor_start_input();
 }
 
 static void monitor_start_input(void);

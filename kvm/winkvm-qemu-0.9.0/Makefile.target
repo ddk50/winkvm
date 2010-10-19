@@ -23,6 +23,7 @@ VPATH+=:$(SRC_PATH)/linux-user
 CPPFLAGS+=-I$(SRC_PATH)/linux-user -I$(SRC_PATH)/linux-user/$(TARGET_ARCH)
 endif
 BASE_CFLAGS=
+BASE_CFLAGS+=-I../../../vcproj/include
 BASE_LDFLAGS=
 #CFLAGS+=-Werror
 LIBS=
@@ -229,7 +230,7 @@ SRCS:= $(OBJS:.o=.c)
 OBJS+= libqemu.a
 
 # cpu emulator library
-LIBOBJS=exec.o kqemu.o translate-op.o translate-all.o cpu-exec.o\
+LIBOBJS=exec.o kqemu.o qemu-kvm.o translate-op.o translate-all.o cpu-exec.o\
         translate.o op.o 
 ifdef CONFIG_SOFTFLOAT
 LIBOBJS+=fpu/softfloat.o
@@ -322,7 +323,7 @@ endif
 
 # must use static linking to avoid leaving stuff in virtual address space
 VL_OBJS=vl.o osdep.o readline.o monitor.o pci.o console.o loader.o isa_mmio.o
-VL_OBJS+=cutils.o
+VL_OBJS+=cutils.o migration.o
 VL_OBJS+=block.o block-raw.o
 VL_OBJS+=block-cow.o block-qcow.o aes.o block-vmdk.o block-cloop.o block-dmg.o block-bochs.o block-vpc.o block-vvfat.o block-qcow2.o
 ifdef CONFIG_WIN32
@@ -468,8 +469,12 @@ ifdef CONFIG_WIN32
 SDL_LIBS := $(filter-out -mwindows, $(SDL_LIBS)) -mconsole
 endif
 
+# few addition for ddk
+KVMCTL_OBJS+=../../../vcproj/bin/kvmctldll.dll
+KVMCTL_LIBS+=-L../../../vcproj/bin -L../../vcproj/bin -lkvmctldll
+
 $(QEMU_SYSTEM): $(VL_OBJS) libqemu.a
-	$(CC) $(VL_LDFLAGS) -o $@ $^ $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS)
+	$(CC) $(VL_LDFLAGS) -o $@ $^ $(KVMCTL_LIBS) $(LIBS) $(SDL_LIBS) $(COCOA_LIBS) $(VL_LIBS)
 
 cocoa.o: cocoa.m
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) -c -o $@ $<
@@ -487,7 +492,7 @@ depend: $(SRCS)
 	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend
 
 vldepend: $(VL_OBJS:.o=.c)
-	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $^ 1>.depend
+	$(CC) -MM $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $(KVMCTL_LIBS) $^ 1>.depend
 
 # libqemu 
 
@@ -512,6 +517,11 @@ gen-op.h: op.o $(DYNGEN)
 
 op.o: op.c
 	$(CC) $(OP_CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+# addition for Kazushi
+WINKVM_INC=-I../../vcproj/include/linux
+qemu-kvm.o: qemu-kvm.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(BASE_CFLAGS) $(WINKVM_INC) -c -o $@ $<
 
 # HELPER_CFLAGS is used for all the code compiled with static register
 # variables

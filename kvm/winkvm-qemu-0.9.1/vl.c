@@ -5822,33 +5822,33 @@ struct QEMUFile {
 
 typedef struct QEMUFileFD
 {
-	int fd;
+  int fd;
 } QEMUFileFD;
 
 static int fd_get_buffer(void *opaque, uint8_t *buf, int64_t pos, int size)
 {
-	QEMUFileFD *s = opaque;
-	int offset = 0;
-	ssize_t len;
-	
-again:
-	/* len = read(s->fd, buf + offset, size - offset); */
-	/* this function is called by only migration.c */
-	/* So, this function is specialized with migration.c */
-	len = recv(s->fd, buf + offset, size - offset, 0);
-	if (len == -1) {
-		if (errno == EINTR || errno == EAGAIN)
-			goto again;
-	}
-	
-	return len;
+  QEMUFileFD *s = opaque;
+  int offset = 0;
+  ssize_t len;
+  
+ again:
+  /* len = read(s->fd, buf + offset, size - offset); */
+  /* this function is called by only migration.c */
+  /* So, this function is specialized with migration.c */
+  len = recv(s->fd, buf + offset, size - offset, 0);
+  if (len == -1) {
+    if (errno == EINTR || errno == EAGAIN)
+      goto again;
+  }
+  
+  return len;
 }
 
 QEMUFile *qemu_fopen_fd(int fd)
 {
-	QEMUFileFD *s = qemu_mallocz(sizeof(QEMUFileFD));
-	s->fd = fd;
-	return qemu_fopen_compat(s, NULL, fd_get_buffer, qemu_free);
+  QEMUFileFD *s = qemu_mallocz(sizeof(QEMUFileFD));
+  s->fd = fd;
+  return qemu_fopen_compat(s, NULL, fd_get_buffer, qemu_free);
 }
 
 QEMUFile *qemu_fopen(const char *filename, const char *mode)
@@ -5894,7 +5894,7 @@ static QEMUFile *qemu_fopen_bdrv(BlockDriverState *bs, int64_t offset, int is_wr
 }
 
 QEMUFile *qemu_fopen_compat(void *opaque, QEMUFilePutBufferFunc *put_buffer,
-							QEMUFileGetBufferFunc *get_buffer, QEMUFileCloseFunc *close)
+			    QEMUFileGetBufferFunc *get_buffer, QEMUFileCloseFunc *close)
 {
     QEMUFile *f;
 

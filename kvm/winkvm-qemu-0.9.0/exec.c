@@ -69,6 +69,10 @@
 #define TARGET_PHYS_ADDR_SPACE_BITS 32
 #endif
 
+#ifdef USE_KVM
+extern int kvm_allowed;
+#endif
+
 TranslationBlock tbs[CODE_GEN_MAX_BLOCKS];
 TranslationBlock *tb_phys_hash[CODE_GEN_PHYS_HASH_SIZE];
 int nb_tbs;
@@ -82,6 +86,8 @@ int phys_ram_size;
 int phys_ram_fd;
 uint8_t *phys_ram_base;
 uint8_t *phys_ram_dirty;
+uint8_t *bios_mem;
+static int in_migration;
 
 CPUState *first_cpu;
 /* current CPU in the current thread. It is only valid inside
@@ -1044,6 +1050,11 @@ int cpu_breakpoint_insert(CPUState *env, target_ulong pc)
         return -1;
     env->breakpoints[env->nb_breakpoints++] = pc;
     
+#ifdef USE_KVM
+    if (kvm_allowed)
+	kvm_update_debugger(env);
+#endif
+    
     breakpoint_invalidate(env, pc);
     return 0;
 #else
@@ -1066,6 +1077,11 @@ int cpu_breakpoint_remove(CPUState *env, target_ulong pc)
     if (i < env->nb_breakpoints)
       env->breakpoints[i] = env->breakpoints[env->nb_breakpoints];
 
+#ifdef USE_KVM
+    if (kvm_allowed)
+	kvm_update_debugger(env);
+#endif
+
     breakpoint_invalidate(env, pc);
     return 0;
 #else
@@ -1084,6 +1100,10 @@ void cpu_single_step(CPUState *env, int enabled)
         /* XXX: only flush what is necessary */
         tb_flush(env);
     }
+#ifdef USE_KVM
+    if (kvm_allowed)
+	kvm_update_debugger(env);
+#endif
 #endif
 }
 
@@ -1406,6 +1426,22 @@ void cpu_physical_memory_reset_dirty(ram_addr_t start, ram_addr_t end,
         }
     }
 #endif
+}
+
+int cpu_physical_memory_set_dirty_tracking(int enable)
+{
+    int r=0;
+
+#ifdef USE_KVM
+    r = kvm_physical_memory_set_dirty_tracking(enable);
+#endif
+    in_migration = enable;
+    return r;
+}
+
+int cpu_physical_memory_get_dirty_tracking(void)
+{
+    return in_migration;
 }
 
 static inline void tlb_update_dirty(CPUTLBEntry *tlb_entry)

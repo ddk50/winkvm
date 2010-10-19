@@ -214,6 +214,11 @@ static void sdl_update_caption(void)
 {
     char buf[1024];
     strcpy(buf, "QEMU");
+#if USE_KVM
+    if (kvm_allowed) {
+        strcat(buf, "/WinKVM");
+    }
+#endif
     if (!vm_running) {
         strcat(buf, " [Stopped]");
     }
