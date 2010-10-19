@@ -1,0 +1,15 @@
+Index: Makefile.target
+===================================================================
+RCS file: /sources/qemu/qemu/Makefile.target,v
+retrieving revision 1.142
+diff -u -r1.142 Makefile.target
+--- Makefile.target	24 Jan 2007 21:40:21 -0000	1.142
++++ Makefile.target	26 Jan 2007 09:53:04 -0000
+@@ -13,6 +13,7 @@
+ TARGET_PATH=$(SRC_PATH)/target-$(TARGET_BASE_ARCH)
+ VPATH=$(SRC_PATH):$(TARGET_PATH):$(SRC_PATH)/hw:$(SRC_PATH)/audio
+ CPPFLAGS=-I. -I.. -I$(TARGET_PATH) -I$(SRC_PATH)
++CPPFLAGS+=-I/usr/local/directx/include
+ ifdef CONFIG_DARWIN_USER
+ VPATH+=:$(SRC_PATH)/darwin-user
+ CPPFLAGS+=-I$(SRC_PATH)/darwin-user -I$(SRC_PATH)/darwin-user/$(TARGET_ARCH)

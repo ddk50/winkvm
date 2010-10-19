@@ -1,0 +1,120 @@
+Index: slirp/bootp.c
+===================================================================
+RCS file: /sources/qemu/qemu/slirp/bootp.c,v
+retrieving revision 1.8
+diff -u -r1.8 bootp.c
+--- slirp/bootp.c	16 Apr 2006 11:06:58 -0000	1.8
++++ slirp/bootp.c	7 Feb 2007 06:24:39 -0000
+@@ -64,6 +64,18 @@
+     return bc;
+ }
+ 
++/* From VirtualBox */
++static void release_addr(struct in_addr *paddr)
++{
++    int i;
++
++    i = ntohl(paddr->s_addr) - START_ADDR - ntohl(special_addr.s_addr);
++    if (i >= NB_ADDR)
++        return;
++    memset(bootp_clients[i].macaddr, '\0', 6);
++    bootp_clients[i].allocated = 0;
++}
++
+ static BOOTPClient *find_addr(struct in_addr *paddr, const uint8_t *macaddr)
+ {
+     BOOTPClient *bc;
+@@ -131,6 +143,7 @@
+     struct in_addr dns_addr;
+     int dhcp_msg_type, val;
+     uint8_t *q;
++    int freply_nack = 0;
+ 
+     /* extract exact DHCP msg type */
+     dhcp_decode(bp->bp_vend, DHCP_OPT_LEN, &dhcp_msg_type);
+@@ -139,6 +152,13 @@
+     if (dhcp_msg_type == 0)
+         dhcp_msg_type = DHCPREQUEST; /* Force reply for old BOOTP clients */
+         
++    if (dhcp_msg_type == DHCPRELEASE) {
++        release_addr(&bp->bp_ciaddr);
++        dprintf("released addr=%08lx\n", ntohl(bp->bp_ciaddr.s_addr));
++        /* This message is not to be answered in any way. */
++        return;
++    }
++
+     if (dhcp_msg_type != DHCPDISCOVER && 
+         dhcp_msg_type != DHCPREQUEST)
+         return;
+@@ -153,7 +173,6 @@
+     memset(rbp, 0, sizeof(struct bootp_t));
+ 
+     if (dhcp_msg_type == DHCPDISCOVER) {
+-    new_addr:
+         bc = get_new_addr(&daddr.sin_addr);
+         if (!bc) {
+             dprintf("no address left\n");
+@@ -163,12 +182,14 @@
+     } else {
+         bc = find_addr(&daddr.sin_addr, bp->bp_hwaddr);
+         if (!bc) {
+-            /* if never assigned, behaves as if it was already
+-               assigned (windows fix because it remembers its address) */
+-            goto new_addr;
++            /* if never assigned, reply DHCPNACK to BROADCAST.
++               (windows fix because it remembers its address). */
++            daddr.sin_addr.s_addr = htonl(0xffffffff);
++            freply_nack = 1;
++            dprintf("reply NACK\n");
+         }
+     }
+-    dprintf("offered addr=%08x\n", ntohl(daddr.sin_addr.s_addr));
++    dprintf("offered addr=%08lx\n", ntohl(daddr.sin_addr.s_addr));
+ 
+     saddr.sin_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_ALIAS);
+     saddr.sin_port = htons(BOOTP_SERVER);
+@@ -181,7 +202,10 @@
+     rbp->bp_hlen = 6;
+     memcpy(rbp->bp_hwaddr, bp->bp_hwaddr, 6);
+ 
+-    rbp->bp_yiaddr = daddr.sin_addr; /* Client IP address */
++    if (freply_nack)
++        rbp->bp_yiaddr.s_addr = htonl(0); /* When NACK, IP address is 0. */
++    else
++        rbp->bp_yiaddr = daddr.sin_addr; /* Client IP address */
+     rbp->bp_siaddr = saddr.sin_addr; /* Server IP address */
+ 
+     q = rbp->bp_vend;
+@@ -195,11 +219,14 @@
+     } else if (dhcp_msg_type == DHCPREQUEST) {
+         *q++ = RFC2132_MSG_TYPE;
+         *q++ = 1;
+-        *q++ = DHCPACK;
++        if (freply_nack)
++            *q++ = DHCPNACK;
++        else
++            *q++ = DHCPACK;
+     }
+         
+     if (dhcp_msg_type == DHCPDISCOVER ||
+-        dhcp_msg_type == DHCPREQUEST) {
++        ((dhcp_msg_type == DHCPREQUEST) && !freply_nack)) {
+         *q++ = RFC2132_SRV_ID;
+         *q++ = 4;
+         memcpy(q, &saddr.sin_addr, 4);
+Index: slirp/bootp.h
+===================================================================
+RCS file: /sources/qemu/qemu/slirp/bootp.h,v
+retrieving revision 1.2
+diff -u -r1.2 bootp.h
+--- slirp/bootp.h	5 Jun 2005 17:11:42 -0000	1.2
++++ slirp/bootp.h	7 Feb 2007 06:24:39 -0000
+@@ -71,6 +71,8 @@
+ #define DHCPOFFER		2
+ #define DHCPREQUEST		3
+ #define DHCPACK			5
++#define DHCPNACK		6
++#define DHCPRELEASE		7
+ 
+ #define RFC1533_VENDOR_MAJOR	0
+ #define RFC1533_VENDOR_MINOR	0

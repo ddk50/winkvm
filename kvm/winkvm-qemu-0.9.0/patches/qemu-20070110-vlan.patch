@@ -1,0 +1,449 @@
+Index: qemu_socket.h
+===================================================================
+RCS file: /sources/qemu/qemu/qemu_socket.h,v
+retrieving revision 1.2
+diff -u -r1.2 qemu_socket.h
+--- qemu_socket.h	21 Dec 2006 19:46:43 -0000	1.2
++++ qemu_socket.h	10 Jan 2007 03:25:26 -0000
+@@ -13,6 +13,7 @@
+ #define EWOULDBLOCK WSAEWOULDBLOCK
+ #define EINTR       WSAEINTR
+ #define EINPROGRESS WSAEINPROGRESS
++#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+ 
+ #else
+ 
+Index: vl.c
+===================================================================
+RCS file: /sources/qemu/qemu/vl.c,v
+retrieving revision 1.236
+diff -u -r1.236 vl.c
+--- vl.c	9 Jan 2007 19:44:41 -0000	1.236
++++ vl.c	10 Jan 2007 03:25:33 -0000
+@@ -3356,13 +3356,74 @@
+     int packet_len;
+     uint8_t buf[4096];
+     struct sockaddr_in dgram_dst; /* contains inet host and port destination iff connectionless (SOCK_DGRAM) */
++#ifdef _WIN32
++    WSAEVENT hEvent;
++#endif
+ } NetSocketState;
+ 
+ typedef struct NetSocketListenState {
+     VLANState *vlan;
+     int fd;
++#ifdef _WIN32
++    WSAEVENT hEvent;
++#endif
+ } NetSocketListenState;
+ 
++#ifdef _WIN32
++#define FD_NOEVENT FD_MAX_EVENTS + 1 /* used for already connected */
++
++static int net_socket_set_event(SOCKET fd, WSAEVENT hEvent, int fd_events) 
++{
++    int ret;
++    
++    ret = WSAEventSelect(fd, hEvent, fd_events);
++    if (ret == SOCKET_ERROR) {
++        perror("connect: EventSelect");
++        return -1;
++    }
++    return 0;
++}
++
++static int net_socket_enum_event(SOCKET fd, WSAEVENT hEvent)
++{
++    WSANETWORKEVENTS events;
++    int ret;
++
++    ret = WSAEnumNetworkEvents(fd, hEvent, &events);
++    if (ret == SOCKET_ERROR) {
++        perror("EnumNetworkEvents");
++    } else {
++        if (events.lNetworkEvents & FD_READ) {
++            if (events.iErrorCode[FD_READ_BIT] == 0) {
++                return FD_READ;
++            } else {
++                perror("fd_read: refused");
++                return -1;
++            }
++        } else if (events.lNetworkEvents & FD_ACCEPT) {
++            if (events.iErrorCode[FD_ACCEPT_BIT] == 0) {
++                return FD_ACCEPT;
++            } else {
++                perror("fd_accept: refused");
++                return -1;
++            }
++        } else if (events.lNetworkEvents & FD_CONNECT) {
++            if (events.iErrorCode[FD_CONNECT_BIT] == 0) {
++                return FD_CONNECT;
++            } else {
++                perror("fd_connect: refused");
++                return -1;
++            }
++        } else if (events.lNetworkEvents & FD_CLOSE) {
++            return FD_CLOSE;
++        } else {
++            return FD_NOEVENT;
++        }
++    }
++    return -1;
++}
++#endif
++
+ /* XXX: we consider we can send the whole packet without blocking */
+ static void net_socket_receive(void *opaque, const uint8_t *buf, int size)
+ {
+@@ -3387,7 +3448,18 @@
+     int l, size, err;
+     uint8_t buf1[4096];
+     const uint8_t *buf;
++#ifdef _WIN32
++    int ret;
+ 
++    ret = net_socket_enum_event(s->fd, s->hEvent);
++    if (ret == FD_CLOSE) {
++        qemu_del_wait_object(s->hEvent, NULL, NULL);
++        WSACloseEvent(s->hEvent);
++        closesocket(s->fd);
++        return;
++    } else if (ret != FD_READ)
++        return;
++#endif
+     size = recv(s->fd, buf1, sizeof(buf1), 0);
+     if (size < 0) {
+         err = socket_error();
+@@ -3441,7 +3513,13 @@
+ {
+     NetSocketState *s = opaque;
+     int size;
++#ifdef _WIN32
++    int ret;
+ 
++    ret = net_socket_enum_event(s->fd, s->hEvent);
++    if (ret != FD_READ)
++        return;
++#endif
+     size = recv(s->fd, s->buf, sizeof(s->buf), 0);
+     if (size < 0) 
+         return;
+@@ -3457,7 +3535,9 @@
+ {
+     struct ip_mreq imr;
+     int fd;
+-    int val, ret;
++    int val, ret, err;
++    struct sockaddr_in addr;
++
+     if (!IN_MULTICAST(ntohl(mcastaddr->sin_addr.s_addr))) {
+ 	fprintf(stderr, "qemu: error: specified mcastaddr \"%s\" (0x%08x) does not contain a multicast address\n",
+ 		inet_ntoa(mcastaddr->sin_addr), 
+@@ -3465,7 +3545,11 @@
+ 	return -1;
+ 
+     }
++#ifdef _WIN32
++    fd = WSASocket(AF_INET, SOCK_DGRAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
++#else
+     fd = socket(PF_INET, SOCK_DGRAM, 0);
++#endif
+     if (fd < 0) {
+         perror("socket(PF_INET, SOCK_DGRAM)");
+         return -1;
+@@ -3481,8 +3565,22 @@
+ 
+     ret = bind(fd, (struct sockaddr *)mcastaddr, sizeof(*mcastaddr));
+     if (ret < 0) {
+-        perror("bind");
+-        goto fail;
++        err = socket_error();
++        if (err == EADDRNOTAVAIL) {
++            memset(&addr, 0, sizeof(addr));
++            addr.sin_family = AF_INET;
++            addr.sin_port = mcastaddr->sin_port;
++            addr.sin_addr.s_addr = INADDR_ANY;
++
++            ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
++            if (ret < 0) {
++                perror("bind");
++                goto fail;
++            }
++        } else {
++            perror("bind");
++            goto fail;
++        }
+     }
+     
+     /* Add host to multicast group */
+@@ -3520,6 +3618,9 @@
+     int newfd;
+     socklen_t saddr_len;
+     NetSocketState *s;
++#ifdef _WIN32
++    int ret;
++#endif
+ 
+     /* fd passed: multicast: "learn" dgram_dst address from bound address and save it
+      * Because this may be "shared" socket from a "master" process, datagrams would be recv() 
+@@ -3556,9 +3657,24 @@
+     if (!s)
+         return NULL;
+     s->fd = fd;
+-
+     s->vc = qemu_new_vlan_client(vlan, net_socket_receive_dgram, NULL, s);
++#ifdef _WIN32
++    s->hEvent = WSACreateEvent();
++    if (s->hEvent == WSA_INVALID_EVENT) {
++        closesocket(fd);
++        return NULL;
++    }
++    ret = net_socket_set_event(s->fd, s->hEvent, FD_READ);
++    if (ret < 0) {
++        perror("dgram: set_event");
++        WSACloseEvent(s->hEvent);
++        closesocket(fd);
++        return NULL;
++    }
++    qemu_add_wait_object(s->hEvent, net_socket_send_dgram, s);
++#else
+     qemu_set_fd_handler(s->fd, net_socket_send_dgram, NULL, s);
++#endif
+ 
+     /* mcast: save bound address as dst */
+     if (is_connected) s->dgram_dst=saddr;
+@@ -3573,17 +3689,36 @@
+ static void net_socket_connect(void *opaque)
+ {
+     NetSocketState *s = opaque;
++
++#ifdef _WIN32
++    int ret;
++
++    ret = net_socket_enum_event(s->fd, s->hEvent);
++    if (ret != FD_CONNECT && ret != FD_NOEVENT)
++        return;
++    qemu_del_wait_object(s->hEvent, NULL, NULL);
++    WSAResetEvent(s->hEvent);
++    ret = net_socket_set_event(s->fd, s->hEvent, FD_READ | FD_CLOSE);
++    if (ret < 0)
++        return;
++    qemu_add_wait_object(s->hEvent, net_socket_send, s);
++#else
+     qemu_set_fd_handler(s->fd, net_socket_send, NULL, s);
++#endif
+ }
+ 
+ static NetSocketState *net_socket_fd_init_stream(VLANState *vlan, int fd, 
+-                                          int is_connected)
++                                          int is_connected, void *opaque)
+ {
+     NetSocketState *s;
+     s = qemu_mallocz(sizeof(NetSocketState));
+     if (!s)
+         return NULL;
+     s->fd = fd;
++#ifdef _WIN32
++    if (opaque)
++        s->hEvent = *(WSAEVENT *)opaque;
++#endif
+     s->vc = qemu_new_vlan_client(vlan, 
+                                  net_socket_receive, NULL, s);
+     snprintf(s->vc->info_str, sizeof(s->vc->info_str),
+@@ -3591,13 +3726,17 @@
+     if (is_connected) {
+         net_socket_connect(s);
+     } else {
++#ifdef _WIN32
++        qemu_add_wait_object(s->hEvent, net_socket_connect, s);
++#else
+         qemu_set_fd_handler(s->fd, NULL, net_socket_connect, s);
++#endif
+     }
+     return s;
+ }
+ 
+ static NetSocketState *net_socket_fd_init(VLANState *vlan, int fd, 
+-                                          int is_connected)
++                                          int is_connected, void *opaque)
+ {
+     int so_type=-1, optlen=sizeof(so_type);
+ 
+@@ -3609,11 +3748,11 @@
+     case SOCK_DGRAM:
+         return net_socket_fd_init_dgram(vlan, fd, is_connected);
+     case SOCK_STREAM:
+-        return net_socket_fd_init_stream(vlan, fd, is_connected);
++        return net_socket_fd_init_stream(vlan, fd, is_connected, opaque);
+     default:
+         /* who knows ... this could be a eg. a pty, do warn and continue as stream */
+         fprintf(stderr, "qemu: warning: socket type=%d for fd=%d is not SOCK_DGRAM or SOCK_STREAM\n", so_type, fd);
+-        return net_socket_fd_init_stream(vlan, fd, is_connected);
++        return net_socket_fd_init_stream(vlan, fd, is_connected, opaque);
+     }
+     return NULL;
+ }
+@@ -3626,6 +3765,15 @@
+     socklen_t len;
+     int fd;
+ 
++#ifdef _WIN32
++    int ret;
++    WSAEVENT hEvent;
++
++    ret = net_socket_enum_event(s->fd, s->hEvent);
++    if (ret != FD_ACCEPT)
++        return;
++#endif
++
+     for(;;) {
+         len = sizeof(saddr);
+         fd = accept(s->fd, (struct sockaddr *)&saddr, &len);
+@@ -3635,7 +3783,17 @@
+             break;
+         }
+     }
+-    s1 = net_socket_fd_init(s->vlan, fd, 1); 
++#ifdef _WIN32
++    hEvent = WSACreateEvent();
++    if (hEvent == WSA_INVALID_EVENT) {
++        perror("accept: CreateEvent");
++        closesocket(fd);
++        return;
++    }
++    s1 = net_socket_fd_init(s->vlan, fd, 1, &hEvent);
++#else 
++    s1 = net_socket_fd_init(s->vlan, fd, 1, NULL); 
++#endif
+     if (!s1) {
+         closesocket(fd);
+     } else {
+@@ -3650,6 +3808,9 @@
+     NetSocketListenState *s;
+     int fd, val, ret;
+     struct sockaddr_in saddr;
++#ifdef _WIN32
++    WSAEVENT hEvent;
++#endif
+ 
+     if (parse_host_port(&saddr, host_str) < 0)
+         return -1;
+@@ -3658,13 +3819,31 @@
+     if (!s)
+         return -1;
+ 
++#ifdef _WIN32
++    fd = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
++#else
+     fd = socket(PF_INET, SOCK_STREAM, 0);
++#endif
+     if (fd < 0) {
+         perror("socket");
+         return -1;
+     }
+     socket_set_nonblock(fd);
+ 
++#ifdef _WIN32
++    hEvent = WSACreateEvent();
++    if (hEvent == WSA_INVALID_EVENT) {
++        closesocket(fd);
++        return -1;
++    }
++    ret = net_socket_set_event(fd, hEvent, FD_ACCEPT);
++    if (ret < 0) {
++        perror("connect: set_event");
++        WSACloseEvent(hEvent);
++        closesocket(fd);
++        return -1;
++    }
++#endif
+     /* allow fast reuse */
+     val = 1;
+     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&val, sizeof(val));
+@@ -3681,26 +3860,57 @@
+     }
+     s->vlan = vlan;
+     s->fd = fd;
++#ifdef _WIN32
++    s->hEvent = hEvent;
++    qemu_add_wait_object(hEvent, net_socket_accept, s);
++#else
+     qemu_set_fd_handler(fd, net_socket_accept, NULL, s);
++#endif
+     return 0;
+ }
+ 
+ static int net_socket_connect_init(VLANState *vlan, const char *host_str)
+ {
+     NetSocketState *s;
++#ifdef _WIN32
++    WSAEVENT hEvent;
++    int fd, connected, ret;
++#else
+     int fd, connected, ret, err;
++#endif
+     struct sockaddr_in saddr;
+ 
+     if (parse_host_port(&saddr, host_str) < 0)
+         return -1;
+ 
++#ifdef _WIN32
++    fd = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
++#else
+     fd = socket(PF_INET, SOCK_STREAM, 0);
++#endif
+     if (fd < 0) {
+         perror("socket");
+         return -1;
+     }
+     socket_set_nonblock(fd);
+ 
++#ifdef _WIN32
++    hEvent = WSACreateEvent();
++    if (hEvent == WSA_INVALID_EVENT) {
++        closesocket(fd);
++        return -1;
++    }
++    ret = net_socket_set_event(fd, hEvent, FD_CONNECT);
++    if (ret < 0) {
++        perror("connect: set_event");
++        WSACloseEvent(hEvent);
++        closesocket(fd);
++        return -1;
++    }
++    connected = 0;
++    ret = connect(fd, (struct sockaddr *)&saddr, sizeof(saddr));
++    s = net_socket_fd_init(vlan, fd, connected, &hEvent);
++#else
+     connected = 0;
+     for(;;) {
+         ret = connect(fd, (struct sockaddr *)&saddr, sizeof(saddr));
+@@ -3719,7 +3929,9 @@
+             break;
+         }
+     }
+-    s = net_socket_fd_init(vlan, fd, connected);
++    s = net_socket_fd_init(vlan, fd, connected, NULL);
++#endif
++
+     if (!s)
+         return -1;
+     snprintf(s->vc->info_str, sizeof(s->vc->info_str),
+@@ -3742,7 +3954,7 @@
+     if (fd < 0)
+ 	return -1;
+ 
+-    s = net_socket_fd_init(vlan, fd, 0);
++    s = net_socket_fd_init(vlan, fd, 0, NULL);
+     if (!s)
+         return -1;
+ 
+@@ -3901,7 +4113,7 @@
+             int fd;
+             fd = strtol(buf, NULL, 0);
+             ret = -1;
+-            if (net_socket_fd_init(vlan, fd, 1))
++            if (net_socket_fd_init(vlan, fd, 1, NULL))
+                 ret = 0;
+         } else if (get_param_value(buf, sizeof(buf), "listen", p) > 0) {
+             ret = net_socket_listen_init(vlan, buf);

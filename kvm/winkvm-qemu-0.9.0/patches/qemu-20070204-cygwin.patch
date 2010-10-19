@@ -1,0 +1,15 @@
+Index: Makefile.target
+===================================================================
+RCS file: /sources/qemu/qemu/Makefile.target,v
+retrieving revision 1.144
+diff -u -r1.144 Makefile.target
+--- Makefile.target	2 Feb 2007 03:13:18 -0000	1.144
++++ Makefile.target	4 Feb 2007 10:19:03 -0000
+@@ -177,6 +177,7 @@
+ BASE_LDFLAGS+=-Wl,-segaddr,__STD_PROG_ZONE,0x1000 -image_base 0x0e000000
+ endif
+ 
++BASE_CFLAGS+=$(OS_CFLAGS)
+ OP_CFLAGS+=$(OS_CFLAGS)
+ 
+ #########################################################

@@ -22,10 +22,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#if 0
 
 #include "vl.h"
+#include "qemu-kvm"
 
-#include "usb.h"
+#include <usb.h>
 #if !defined(ETIMEDOUT) && defined(_WIN32)
 #define ETIMEDOUT 116
 #endif
@@ -506,3 +508,4 @@ void usb_host_info(void)
     usb_host_scan(NULL, NULL, usb_host_info_device);
 }
 
+#endif
