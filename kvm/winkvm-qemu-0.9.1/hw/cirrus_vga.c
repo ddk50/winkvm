@@ -2666,13 +2666,19 @@ static void cirrus_update_memory_access(CirrusVGAState *s)
 				void *vram_pointer, *old_vram;
 				
 				vram_pointer = set_vram_mapping(s->cirrus_lfb_addr,
-												s->cirrus_lfb_end);
+								s->cirrus_lfb_end);				
 				if (!vram_pointer) {
-					fprintf(stderr, "NULL vram_pointer\n");
+				  fprintf(stderr, "NULL vram_pointer\n");
 				} else {
-					old_vram = vga_update_vram((VGAState *)s, vram_pointer,
-											   VGA_RAM_SIZE);
-					qemu_free(old_vram);
+				  old_vram = vga_update_vram((VGAState *)s, vram_pointer,
+							     VGA_RAM_SIZE);
+ 				  printf("s->cirrus_lfb_addr: %lu\n", s->cirrus_lfb_addr);
+				  printf("s->cirrus_lfb_end: %lu\n", s->cirrus_lfb_end);
+				  printf("s->map_addr: %p\n", s->map_addr);
+				  printf("vram_point: %p\n", vram_pointer);
+				  printf("old_vram: %p\n", old_vram);
+				  printf("VGA_RAM_SIZE: %d\n", VGA_RAM_SIZE);
+				  qemu_free(old_vram);
 				}
 				s->map_addr = s->cirrus_lfb_addr;
 				s->map_end = s->cirrus_lfb_end;

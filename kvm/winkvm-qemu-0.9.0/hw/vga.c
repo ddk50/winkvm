@@ -1829,12 +1829,13 @@ void vga_common_init(VGAState *s, DisplayState *ds, uint8_t *vga_ram_base,
 #ifndef USE_KVM
     s->vram_ptr = vga_ram_base;
 #else
-    if (kvm_allowed)
-	    s->vram_ptr = qemu_malloc(vga_ram_size);	
-    else
-	    s->vram_ptr = vga_ram_base;
+    if (kvm_allowed) {
+	   s->vram_ptr = qemu_malloc(vga_ram_size);	
+	   memset(s->vram_ptr, 0, vga_ram_size); 
+    } else {
+           s->vram_ptr = vga_ram_base;
+    }
 #endif
-    s->vram_ptr = vga_ram_base;
     s->vram_offset = vga_ram_offset;
     s->vram_size = vga_ram_size;
     s->ds = ds;

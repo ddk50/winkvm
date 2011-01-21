@@ -6243,10 +6243,10 @@ static int qemu_loadvm_state(QEMUFile *f)
         instance_id = qemu_get_be32(f);
         version_id = qemu_get_be32(f);
         record_len = qemu_get_be32(f);
-#if 0
-        printf("idstr=%s instance=0x%x version=%d len=%d\n",
-               idstr, instance_id, version_id, record_len);
-#endif
+	//#if 1
+        fprintf(stderr, "idstr=%s instance=0x%x version=%d len=%d\n",
+		idstr, instance_id, version_id, record_len);
+	//#endif
         cur_pos = qemu_ftell(f);
         se = find_se(idstr, instance_id);
         if (!se) {
@@ -7461,12 +7461,14 @@ static int ram_load_static(QEMUFile *f, void *opaque)
     uint8_t buf[10];
     int i;
 
+
     /*
     if (version_id == 1)
         return ram_load_v1(f, opaque);
     if (version_id != 2)
         return -EINVAL;
     */
+    
     if (qemu_get_be32(f) != phys_ram_size)
         return -EINVAL;
     if (ram_decompress_open(s, f) < 0)
@@ -9384,9 +9386,8 @@ int main(int argc, char **argv)
 #endif
 
     /* init the memory */
-    /* original: phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE */
-    /* phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE; */
-    phys_ram_size = ram_size + vga_ram_size + ((256 + 64) * 1024);
+    phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE;
+    /* phys_ram_size = ram_size + vga_ram_size + ((256 + 64) * 1024); */
     fprintf(stderr, "phys_ram_size: %d\nram_size: %d\nvga_ram_size: %d\n", 
 	    phys_ram_size, ram_size, vga_ram_size);
 
