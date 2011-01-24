@@ -6253,7 +6253,7 @@ static int qemu_loadvm_state(QEMUFile *f)
             fprintf(stderr, "qemu: warning: instance 0x%x of device '%s' not present in current VM\n",
                     instance_id, idstr);
         } else {
-            ret = se->load_state(f, se->opaque, version_id);
+	    ret = se->load_state(f, se->opaque, version_id);
             if (ret < 0) {
                 fprintf(stderr, "qemu: warning: error while loading state for instance 0x%x of device '%s'\n",
                         instance_id, idstr);
@@ -6319,6 +6319,8 @@ int qemu_live_loadvm_state(QEMUFile *f)
         instance_id = qemu_get_be32(f);
         version_id = qemu_get_be32(f);
         se = find_se(idstr, instance_id);
+	printf("idstr=%s instance=0x%x version=%d len=%d\n",
+	       idstr, instance_id, version_id, len);
         if (!se) {
             fprintf(stderr, "qemu: warning: instance 0x%x of device '%s' not present in current VM\n", 
                     instance_id, idstr);
@@ -7461,16 +7463,12 @@ static int ram_load_static(QEMUFile *f, void *opaque)
     uint8_t buf[10];
     int i;
 
-
-    /*
-    if (version_id == 1)
-        return ram_load_v1(f, opaque);
-    if (version_id != 2)
-        return -EINVAL;
-    */
+    printf("ram_load_static:\n");
     
-    if (qemu_get_be32(f) != phys_ram_size)
-        return -EINVAL;
+    if (qemu_get_be32(f) != phys_ram_size) {
+      printf("%s: invalid phys_ram_size: %d\n", phys_ram_size);
+      return -EINVAL;
+    }
     if (ram_decompress_open(s, f) < 0)
         return -EINVAL;
     for(i = 0; i < phys_ram_size; i+= BDRV_HASH_BLOCK_SIZE) {
@@ -7525,19 +7523,23 @@ static int ram_load(QEMUFile *f, void *opaque, int version_id)
 
     switch (version_id) {
     case 1:
-        ret = ram_load_v1(f, opaque);
+      printf("version_id 1\n");
+      ret = ram_load_v1(f, opaque);
     break;
     case 3:
-    if (qemu_get_byte(f)) {
+      printf("version_id 3\n");
+      if (qemu_get_byte(f)) {
         ret = ram_load_live(f, opaque);
         break;
-    }
+      }
     case 2:
-    ret = ram_load_static(f, opaque);
-    break;
+      printf("version_id 2\n");
+      ret = ram_load_static(f, opaque);
+      break;
     default:
-    ret = -EINVAL;
-    break;
+      printf("version_id: nothing\n");
+      ret = -EINVAL;
+      break;
     }
 
     return ret;
@@ -9387,7 +9389,7 @@ int main(int argc, char **argv)
 
     /* init the memory */
     phys_ram_size = ram_size + vga_ram_size + MAX_BIOS_SIZE;
-    /* phys_ram_size = ram_size + vga_ram_size + ((256 + 64) * 1024); */
+    //phys_ram_size = ram_size + vga_ram_size + ((256 + 64) * 1024);
     fprintf(stderr, "phys_ram_size: %d\nram_size: %d\nvga_ram_size: %d\n", 
 	    phys_ram_size, ram_size, vga_ram_size);
 
@@ -9438,8 +9440,8 @@ int main(int argc, char **argv)
         if (drive_init(drives_opt[i], snapshot, machine) == -1)
         exit(1);
 
-    register_savevm("timer", 0, 2, timer_save, timer_load, NULL);
-    register_savevm("ram", 0, 2, ram_save, ram_load, NULL);
+    register_savevm("timer", 0, 2, timer_save, timer_load, NULL);    
+    register_savevm("ram", 0, 3, ram_save, ram_load, NULL); /* ddk check */
 
     init_ioports();
 
@@ -9586,6 +9588,7 @@ int main(int argc, char **argv)
         close(fd);
     }
 
+    printf("go mainloop");
     main_loop();
     quit_timers();
 

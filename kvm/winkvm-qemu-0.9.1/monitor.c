@@ -36,6 +36,11 @@
 #include "disas.h"
 #include <dirent.h>
 
+#if USE_KVM
+#include "qemu-kvm.h"
+extern int kvm_allowed;
+#endif
+
 #ifdef CONFIG_PROFILER
 #include "qemu-timer.h" /* for ticks_per_sec */
 #endif
@@ -2309,6 +2314,15 @@ static void monitor_handle_command(const char *cmdline)
                     cmdname);
         goto fail;
     }
+
+#ifdef USE_KVM
+    if(1)
+      {
+        CPUState *env=mon_get_cpu();
+        if (kvm_allowed)
+	  kvm_save_registers(env);
+      }
+#endif
 
     switch(nb_args) {
     case 0:

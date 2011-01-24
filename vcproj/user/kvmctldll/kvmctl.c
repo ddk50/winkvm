@@ -1124,11 +1124,10 @@ struct kvm_msr_list* __cdecl kvm_get_msr_list(kvm_context_t kvm)
 
 int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)
 {
-//	fprintf(stderr, " %s implement me\n", __FUNCTION__);
-/*
 	struct kvm_msrs *kmsrs = malloc(sizeof *kmsrs + n * sizeof *msrs);
-    int r, e;
+    int e;
 	BOOL ret;
+	unsigned long retlen;
 
     if (!kmsrs) {
 //		errno = ENOMEM;
@@ -1138,12 +1137,12 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
     kmsrs->nmsrs = n;
     memcpy(kmsrs->entries, msrs, n * sizeof *msrs);
 
-	ret = DeviceIoControl(kvm->hnd,
-		                  KVM_GET_REGS,
-						  &fd,
-						  sizeof(int),
-						  regs,
-						  sizeof(struct kvm_regs),
+	ret = DeviceIoControl(kvm->hnd, 
+		                  KVM_GET_MSRS,
+						  kmsrs,
+						  sizeof *kmsrs + n * sizeof *msrs,
+						  kmsrs,
+						  sizeof *kmsrs + n * sizeof *msrs,
 						  &retlen,
 						  NULL);
 
@@ -1153,9 +1152,11 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
     memcpy(msrs, kmsrs->entries, n * sizeof *msrs);
     free(kmsrs);
     errno = e;
-    return r;
-	*/
-	return -1;
+
+	if (ret)
+		return 1;
+	else
+		return -1;
 }
 
 int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs, int n)

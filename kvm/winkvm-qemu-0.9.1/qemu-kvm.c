@@ -380,7 +380,7 @@ static void save_regs(CPUState *env)
 #endif
     rc = kvm_get_msrs(kvm_context, 0, msrs, n);
     if (rc == -1) {
-        perror("kvm_get_msrs FAILED");
+      perror("kvm_get_msrs FAILED");
     }
     else {
         n = rc; /* actual number of MSRs */
@@ -397,14 +397,15 @@ static void save_regs(CPUState *env)
 static int try_push_interrupts(void *opaque)
 {
     CPUState **envs = opaque, *env;
-    env = envs[0];
+    env = envs[0];    
 
     if (env->ready_for_interrupt_injection &&
         (env->interrupt_request & CPU_INTERRUPT_HARD) &&
         (env->eflags & IF_MASK)) {
             env->interrupt_request &= ~CPU_INTERRUPT_HARD;
-            // for now using cpu 0
-            kvm_inject_irq(kvm_context, 0, cpu_get_pic_interrupt(env));
+            // for now using cpu 0	    
+	    unsigned irq = cpu_get_pic_interrupt(env);
+            kvm_inject_irq(kvm_context, 0, irq);
     }
 
     return (env->interrupt_request & CPU_INTERRUPT_HARD) != 0;

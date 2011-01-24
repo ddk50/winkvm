@@ -943,8 +943,10 @@ send_ack:
         rc = MIG_STAT_DST_WRITE_FAILED;
         goto error_accept;
     }
-
+    
+    printf("Wait for go\n");
     rc = wait_for_message("WAIT FOR GO", sfd, wait_for_message_timeout);
+    printf("WAIT FOR GO\n");
     if (rc) {
         rc += 200;
         goto error_accept;

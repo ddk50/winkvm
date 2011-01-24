@@ -47,7 +47,7 @@ typedef struct PicState {
     uint8_t rotate_on_auto_eoi;
     uint8_t special_fully_nested_mode;
     uint8_t init4; /* true if 4 byte init */
-  //    uint8_t single_mode; /* true if slave pic is not initialized */
+    uint8_t single_mode; /* true if slave pic is not initialized */
     uint8_t elcr; /* PIIX edge/trigger selection*/
     uint8_t elcr_mask;
     PicState2 *pics_state;
@@ -276,7 +276,7 @@ static void pic_reset(void *opaque)
     s->rotate_on_auto_eoi = 0;
     s->special_fully_nested_mode = 0;
     s->init4 = 0;
-//    s->single_mode = 0;
+    s->single_mode = 0;
     /* Note: ELCR is not reset */
 }
 
@@ -297,7 +297,7 @@ static void pic_ioport_write(void *opaque, uint32_t addr, uint32_t val)
             qemu_irq_lower(s->pics_state->parent_irq);
             s->init_state = 1;
             s->init4 = val & 1;
-			//            s->single_mode = val & 2;
+			s->single_mode = val & 2;
 			if (val & 0x02)
 				hw_error("single mode not supported");
             if (val & 0x08)
@@ -356,8 +356,7 @@ static void pic_ioport_write(void *opaque, uint32_t addr, uint32_t val)
             break;
         case 1:
             s->irq_base = val & 0xf8;
-//            s->init_state = s->single_mode ? (s->init4 ? 3 : 0) : 2;
-			s->init_state = 2;
+            s->init_state = s->single_mode ? (s->init4 ? 3 : 0) : 2;
             break;
         case 2:
             if (s->init4) {
@@ -469,7 +468,7 @@ static void pic_save(QEMUFile *f, void *opaque)
     qemu_put_8s(f, &s->rotate_on_auto_eoi);
     qemu_put_8s(f, &s->special_fully_nested_mode);
     qemu_put_8s(f, &s->init4);
-    //    qemu_put_8s(f, &s->single_mode);
+    qemu_put_8s(f, &s->single_mode);
     qemu_put_8s(f, &s->elcr);
 }
 
@@ -494,7 +493,7 @@ static int pic_load(QEMUFile *f, void *opaque, int version_id)
     qemu_get_8s(f, &s->rotate_on_auto_eoi);
     qemu_get_8s(f, &s->special_fully_nested_mode);
     qemu_get_8s(f, &s->init4);
-    //    qemu_get_8s(f, &s->single_mode);
+    qemu_get_8s(f, &s->single_mode);
     qemu_get_8s(f, &s->elcr);
     return 0;
 }
