@@ -512,7 +512,12 @@ __winkvmstab_ioctl(IN PDEVICE_OBJECT DeviceObject,
 
 		case KVM_GET_MSRS:
 			{
+				int r;
+				struct kvm_msrs *umsrs = (struct kvm_msrs*)outBuf;
 				function_enter(DBG_IOCTL, "KVM_GET_MSRS");
+				r = msr_io(get_vcpu(umsrs->vcpu_fd), umsrs, get_msr, 1);
+				Irp->IoStatus.Information = sizeof(struct kvm_msrs) + umsrs->nmsrs * sizeof(struct kvm_msr_entry);
+				ntStatus = ConvertRetval(r);
 				function_exit(DBG_IOCTL, "KVM_GET_MSRS");
 				break;
 			} /* end KVM_GET_MSRS */

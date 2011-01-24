@@ -52,5 +52,6 @@ extern int _cdecl msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs *user_msrs,
  * Adapt set_msr() to msr_io()'s calling convention
  */
 int _cdecl do_set_msr(struct kvm_vcpu *vcpu, unsigned index, u64 *data);
+int _cdecl get_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *pdata);
 
 #endif
