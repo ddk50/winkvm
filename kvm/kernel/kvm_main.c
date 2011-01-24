@@ -1546,7 +1546,7 @@ EXPORT_SYMBOL_GPL(kvm_get_msr_common);
  * Returns 0 on success, non-0 otherwise.
  * Assumes vcpu_load() was already called.
  */
-static int get_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *pdata)
+int get_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *pdata)
 {
 	return kvm_arch_ops->get_msr(vcpu, msr_index, pdata);
 }
