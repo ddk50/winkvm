@@ -1134,6 +1134,8 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 	BOOL ret;
 	unsigned long retlen;
 
+	printf("%s\n", __FUNCTION__);
+
     if (!kmsrs) {
 //		errno = ENOMEM;
 		return -1;
