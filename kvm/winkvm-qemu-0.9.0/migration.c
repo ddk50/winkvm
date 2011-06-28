@@ -785,6 +785,8 @@ static int migrate_incoming_fd(int fd)
     uint32_t memsize;
     extern void qemu_announce_self(void);
 
+    settimer();
+
     memsize = qemu_get_be32(f);
     if (memsize != phys_ram_size) {
         fprintf(stderr, 
@@ -821,6 +823,10 @@ static int migrate_incoming_fd(int fd)
     }
 #endif
 
+    printf("migration 1st phase: %f\n", stoptimer());
+
+    settimer();
+
     do {
       addr = qemu_get_be32(f);
       if (addr == 1)
@@ -829,14 +835,21 @@ static int migrate_incoming_fd(int fd)
       if (ret)
 		  return ret;
     } while (1);
+    printf("migration 2nd phase: %f\n", stoptimer());
 
     qemu_aio_flush();
     vm_stop(0);
+
+    settimer();
+
     if (qemu_live_loadvm_state(f))
         ret = MIG_STAT_DST_LOADVM_FAILED;
 #ifdef MIGRATION_VERIFY
     if (ret==0) ret=load_verify_memory(f, NULL, 1);
 #endif /* MIGRATION_VERIFY */
+    
+    printf("migration 3rd-4th phase: %f\n", stoptimer());
+    
     qemu_fclose(f);
 
     return ret;

@@ -135,6 +135,9 @@ int inet_aton(const char *cp, struct in_addr *ia);
 #include "qemu-kvm.h"
 #endif
 
+extern void set_migrate_global_timer(void);
+extern double stop_migrate_global_timer(void);
+
 #define DEFAULT_NETWORK_SCRIPT "/etc/qemu-ifup"
 #define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/qemu-ifdown"
 #ifdef __sun__
@@ -6319,8 +6322,10 @@ int qemu_live_loadvm_state(QEMUFile *f)
         instance_id = qemu_get_be32(f);
         version_id = qemu_get_be32(f);
         se = find_se(idstr, instance_id);
+#if 0      
 	printf("idstr=%s instance=0x%x version=%d len=%d\n",
 	       idstr, instance_id, version_id, len);
+#endif
         if (!se) {
             fprintf(stderr, "qemu: warning: instance 0x%x of device '%s' not present in current VM\n", 
                     instance_id, idstr);
@@ -7807,8 +7812,7 @@ void main_loop_wait(int timeout)
     int ret2, i;
 #endif
     struct timeval tv;
-    PollingEntry *pe;
-
+    PollingEntry *pe;   
 
     /* XXX: need to suppress polling by better using win32 events */
     ret = 0;
@@ -9554,6 +9558,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "Migration failed rc=%d\n", rc);
             exit(rc);
         }
+
     }
 
     {
@@ -9587,8 +9592,7 @@ int main(int argc, char **argv)
         
         close(fd);
     }
-
-    printf("go mainloop");
+    
     main_loop();
     quit_timers();
 

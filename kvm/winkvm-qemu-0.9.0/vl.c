@@ -7810,11 +7810,14 @@ int main(int argc, char **argv)
 
     if (incoming) {
         int rc;
+	set_migrate_global_timer();
         rc = migrate_incoming(incoming);
         if (rc != 0) {
             fprintf(stderr, "Migration failed rc=%d\n", rc);
             exit(rc);
 	}
+	printf("livemigration whole time: %f\n",
+	       stop_migrate_global_timer());
     }
 
     {

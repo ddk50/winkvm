@@ -12,6 +12,7 @@
 #include <string.h>
 //#include <stdio.h>
 //#include <stdlib.h>
+#include <sys/time.h>
 
 #define MSR_IA32_TSC		0x10
 
@@ -35,9 +36,42 @@ kvm_context_t kvm_context;
 /* FIXME!!: kvm_msr_list size is fixed num */
 static struct kvm_msr_list *kvm_msr_list = NULL;
 static int kvm_has_msr_star;
+static double g_t1;
+static double migrate_global_t1;
 
 #define NR_CPU 16
 static CPUState *saved_env[NR_CPU];
+
+static double gettimeofday_sec(void)
+{
+  struct timeval tv;
+  unsigned long msec;
+  gettimeofday(&tv, NULL);
+  msec = (tv.tv_sec * 1000.0) + (unsigned long)(tv.tv_usec / 1000.0);
+  return (double)msec / 1000.0;
+}
+
+void set_migrate_global_timer(void)
+{
+  migrate_global_t1 = gettimeofday_sec();
+}
+
+double stop_migrate_global_timer(void)
+{
+  double g_t2 = gettimeofday_sec();
+  return g_t2 - migrate_global_t1;
+}
+
+void settimer(void)
+{
+  g_t1 = gettimeofday_sec();
+}
+
+double stoptimer(void)
+{
+  double g_t2 = gettimeofday_sec();
+  return g_t2 - g_t1;
+}
 
 static void set_msr_entry(struct kvm_msr_entry *entry, uint32_t index, 
                           uint64_t data)

@@ -61,6 +61,11 @@
 /* qemu-kvm.c */
 extern int kvm_update_dirty_pages_log(void);
 extern int kvm_get_phys_ram_page_bitmap(unsigned char *bitmap);
+extern void settimer(void);
+extern double stoptimer(void);
+extern void set_migrate_global_timer(void);
+extern double stop_migrate_global_timer(void);
+
 
 /* vl.c */
 extern int parse_host_port(struct sockaddr_in *saddr, const char *str);
@@ -168,7 +173,8 @@ static void migrate_put_buffer(void *opaque, const uint8_t *buf, int64_t pos, in
     while (offset < size) {
 	ssize_t len;
 
-	len = write(s->fd, buf + offset, size - offset);
+	/*	len = write(s->fd, buf + offset, size - offset); */
+	len = send(s->fd, buf + offset, size - offset, 0);
 	if (len == -1) {
 	    if (errno == EAGAIN || errno == EINTR)
 		continue;
@@ -237,7 +243,8 @@ static int migrate_write_buffer(MigrationState *s)
     if (s->n_buffer < s->l_buffer) {
 	ssize_t len;
     again:
-	len = write(s->fd, s->buffer + s->n_buffer, s->l_buffer - s->n_buffer);
+	/* len = write(s->fd, s->buffer + s->n_buffer, s->l_buffer - s->n_buffer); */
+	len = send(s->fd, s->buffer + s->n_buffer, s->l_buffer - s->n_buffer, 0);
 	if (len == -1) {
 	    if (errno == EINTR)
 		goto again;
@@ -399,13 +406,14 @@ static int write_whole_buffer(int fd, const void *buff, size_t size)
     size_t offset = 0, len;
 
     while (offset < size) {
-        len = write(fd, buff + offset, size - offset);
-	if (len == -1 && errno == EINTR)
-	    continue;
-	if (len < 1)
-	    return -EIO;
-        
-	offset += len;
+      /*        len = write(fd, buff + offset, size - offset); */
+      len = send(fd, buff + offset, size - offset, 0);
+	  if (len == -1 && errno == EINTR)
+		  continue;
+	  if (len < 1)
+		  return -EIO;
+	  
+	  offset += len;
     }
     return !(offset == size); /* returns 0 on success */
 }
@@ -450,7 +458,7 @@ static int start_migration(MigrationState *s)
             goto out;
     }
 #endif
-    //    fcntl(s->fd, F_SETFL, O_NONBLOCK);
+//	fcntl(s->fd, F_SETFL, O_NONBLOCK);
 
     for (addr = 0; addr < phys_ram_size; addr += TARGET_PAGE_SIZE) {
 #ifdef USE_KVM
@@ -720,7 +728,8 @@ wait_for_ack:
     }
 
 send_go:
-    len = write(s->fd, &status, 1);
+    /*    len = write(s->fd, &status, 1); */
+    len = send(s->fd, &status, 1, 0);
     if (len == -1 && errno == EINTR)
 	goto send_go;
     if (len != 1) {
@@ -816,6 +825,8 @@ static int migrate_incoming_fd(int fd)
     uint32_t memsize;
     extern void qemu_announce_self(void);
 
+    settimer();
+
     memsize = qemu_get_be32(f);
     if (memsize != phys_ram_size) {
         fprintf(stderr, 
@@ -852,6 +863,10 @@ static int migrate_incoming_fd(int fd)
     }
 #endif
 
+    printf("migration 1st phase: %f\n", stoptimer());
+    
+    settimer();
+
     do {
       addr = qemu_get_be32(f);
       if (addr == 1)
@@ -860,14 +875,19 @@ static int migrate_incoming_fd(int fd)
       if (ret)
 		  return ret;
     } while (1);
+    printf("migration 2nd phase: %f\n", stoptimer());
 
     qemu_aio_flush();
     vm_stop(0);
+
+    settimer();
+    
     if (qemu_live_loadvm_state(f))
         ret = MIG_STAT_DST_LOADVM_FAILED;
 #ifdef MIGRATION_VERIFY
     if (ret==0) ret=load_verify_memory(f, NULL, 1);
 #endif /* MIGRATION_VERIFY */
+    printf("migration 3rd-4th phase: %f\n", stoptimer());
     qemu_fclose(f);
 
     return ret;
@@ -928,14 +948,17 @@ again:
 
     /* on my mark */
     /* here is bugpoint */
+    set_migrate_global_timer();
     rc = migrate_incoming_fd(sfd);
     if (rc != 0) {
         fprintf(stderr, "migrate_incoming_fd failed (rc=%d)\n", rc);
         goto error_accept;
     }
+    printf("livemigration whole time: %f\n",
+	   stop_migrate_global_timer());
 
 send_ack:
-//    len = write(sfd, &status, 1);
+/*    len = write(sfd, &status, 1); */
 	len = send(sfd, &status, 1, 0);
     if (len == -1 && errno == EAGAIN)
         goto send_ack;
@@ -944,16 +967,15 @@ send_ack:
         goto error_accept;
     }
     
-    printf("Wait for go\n");
     rc = wait_for_message("WAIT FOR GO", sfd, wait_for_message_timeout);
-    printf("WAIT FOR GO\n");
+    
     if (rc) {
         rc += 200;
         goto error_accept;
     }
 
 wait_for_go:
-//    len = read(sfd, &status, 1);
+/*    len = read(sfd, &status, 1); */
     len = recv(sfd, &status, 1, 0);
     if (len == -1 && errno == EAGAIN)
 		goto wait_for_go;

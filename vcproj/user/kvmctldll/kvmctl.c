@@ -5,6 +5,8 @@
 #include <tchar.h>
 #include <asm-generic/errno.h> /* !FIXME! */
 
+#pragma comment (lib, "winmm.lib")
+
 #undef _IOW
 #undef _IOR
 #undef _IO
@@ -712,6 +714,9 @@ kvm_context_t __cdecl kvm_init(struct kvm_callbacks *callbacks,
 	HANDLE hnd;
 	kvm_context_t kvm;
 
+	//For benchmark by kazushi
+	//timeBeginPeriod(1000);
+
 	hnd = OpenWinkvm();
 
 	kvm = malloc(sizeof(struct kvm_context));
@@ -1135,6 +1140,7 @@ int __cdecl kvm_get_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
     }
 
     kmsrs->nmsrs = n;
+	kmsrs->vcpu_fd = kvm->vcpu_fd[vcpu];
     memcpy(kmsrs->entries, msrs, n * sizeof *msrs);
 
 	ret = DeviceIoControl(kvm->hnd, 
@@ -1206,7 +1212,8 @@ int __cdecl kvm_set_msrs(kvm_context_t kvm, int vcpu, struct kvm_msr_entry *msrs
 static int __cdecl kvm_dirty_pages_log_change(kvm_context_t kvm, int regnum, __u32 flag)
 {
 //	int r;
-	struct kvm_memory_region *mem;
+//	struct kvm_memory_region *mem;
+	struct winkvm_memory_region winkvm_mem;
 	unsigned long retlen;
 	BOOL ret;
 
@@ -1214,30 +1221,35 @@ static int __cdecl kvm_dirty_pages_log_change(kvm_context_t kvm, int regnum, __u
 		fprintf(stderr, "BUG: %s: invalid parameters\n", __FUNCTION__);
 		return 1;
 	}
-	mem = &kvm->mem_regions[regnum];
-	if (mem->memory_size == 0) /* not used */
+	winkvm_mem.vm_fd = kvm->vm_fd;
+//	mem = &kvm->mem_regions[regnum];
+	memcpy(&winkvm_mem.kvm_memory_region, &kvm->mem_regions[regnum], sizeof(struct kvm_memory_region));
+
+	if (winkvm_mem.kvm_memory_region.memory_size == 0) /* not used */
 		return 0;
-	if (mem->flags & KVM_MEM_LOG_DIRTY_PAGES) /* log already enabled */
+	if (winkvm_mem.kvm_memory_region.flags & KVM_MEM_LOG_DIRTY_PAGES) /* log already enabled */
 		return 0;
-	mem->flags |= flag;  /* temporary turn on flag */
+	winkvm_mem.kvm_memory_region.flags |= flag;  /* temporary turn on flag */
+
+	memcpy(&kvm->mem_regions[regnum], &winkvm_mem.kvm_memory_region, sizeof(struct kvm_memory_region));
 
 	/* r = ioctl(kvm->vm_fd, KVM_SET_MEMORY_REGION, mem); */
 	ret = DeviceIoControl(
 			 kvm->hnd,
 			 KVM_SET_MEMORY_REGION,
-			 mem,
-			 sizeof(struct kvm_memory_region),
-			 mem,
-			 sizeof(struct kvm_memory_region),
+			 &winkvm_mem,
+			 sizeof(struct winkvm_memory_region),
+			 &winkvm_mem,
+			 sizeof(struct winkvm_memory_region),
 			 &retlen,
 			 NULL);
 
-	mem->flags &= ~flag; /* back to previous value */
+	winkvm_mem.kvm_memory_region.flags &= ~flag; /* back to previous value */
 	if (!ret) {
 		fprintf(stderr, "%s: %m\n", __FUNCTION__);
 	}
 /*	return r; */
-	return 1;
+	return 0;
 }
 
 static int __cdecl kvm_dirty_pages_log_change_all(kvm_context_t kvm, __u32 flag)
@@ -1288,6 +1300,7 @@ static int __cdecl kvm_get_map(kvm_context_t kvm, int ioctl_num, int slot, void 
 
 	log.slot = slot;
 	log.dirty_bitmap = buf;
+	log.vm_fd = kvm->vm_fd;	
 
 	ret = DeviceIoControl(
 			 kvm->hnd,
@@ -1307,7 +1320,7 @@ static int __cdecl kvm_get_map(kvm_context_t kvm, int ioctl_num, int slot, void 
 	if (!ret)
 		return -1;
 
-	return 1;
+	return 0;
 }
 
 /* This is a most important function to enable live-migration */
