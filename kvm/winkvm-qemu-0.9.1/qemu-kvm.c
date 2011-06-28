@@ -866,6 +866,7 @@ int kvm_get_dirty_pages_log_slot(int slot,
                                  unsigned int offset,
                                  unsigned int len)
 {
+	/* here is bug point */
     int r;
     unsigned int i, j, n=0;
     unsigned char c;
@@ -873,8 +874,10 @@ int kvm_get_dirty_pages_log_slot(int slot,
 
     memset(bitmap, 0, len);
     r = kvm_get_dirty_pages(kvm_context, slot, bitmap);
-    if (r)
+    if (r) {
+		printf("%s: %d\n", __FUNCTION__, r);
         return r;
+	}
 
     /* 
      * bitmap-traveling is faster than memory-traveling (for addr...) 

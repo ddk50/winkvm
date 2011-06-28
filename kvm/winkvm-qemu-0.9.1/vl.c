@@ -6279,6 +6279,7 @@ int qemu_live_savevm_state(QEMUFile *f)
     qemu_put_be32(f, QEMU_VM_FILE_VERSION);
 
     for(se = first_se; se != NULL; se = se->next) {
+		printf("%s: %s\n", __FUNCTION__, se->idstr);
         len = strlen(se->idstr);
 
         qemu_put_byte(f, len);
@@ -7380,10 +7381,11 @@ static void ram_save_live(QEMUFile *f, void *opaque)
         if (kvm_allowed && (addr>=0xa0000) && (addr<0xc0000)) /* do not access video-addresses */
             continue;
 #endif
-    if (cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG)) {
-        qemu_put_be32(f, addr);
-        qemu_put_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
-    }
+		
+		if (cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG)) {
+			qemu_put_be32(f, addr);
+			qemu_put_buffer(f, phys_ram_base + addr, TARGET_PAGE_SIZE);
+		}
     }
     qemu_put_be32(f, 1);
 }
@@ -7440,6 +7442,7 @@ static void ram_save(QEMUFile *f, void *opaque)
     int in_migration = cpu_physical_memory_get_dirty_tracking();
 
     qemu_put_byte(f, in_migration);
+	printf("%s\n", __FUNCTION__);
 
     if (in_migration)
 		ram_save_live(f, opaque);

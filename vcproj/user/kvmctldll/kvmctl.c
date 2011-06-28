@@ -1229,8 +1229,8 @@ static int __cdecl kvm_dirty_pages_log_change(kvm_context_t kvm, int regnum, __u
 		return 0;
 	if (winkvm_mem.kvm_memory_region.flags & KVM_MEM_LOG_DIRTY_PAGES) /* log already enabled */
 		return 0;
-	winkvm_mem.kvm_memory_region.flags |= flag;  /* temporary turn on flag */
 
+	winkvm_mem.kvm_memory_region.flags |= flag;  /* temporary turn on flag */
 	memcpy(&kvm->mem_regions[regnum], &winkvm_mem.kvm_memory_region, sizeof(struct kvm_memory_region));
 
 	/* r = ioctl(kvm->vm_fd, KVM_SET_MEMORY_REGION, mem); */
@@ -1245,6 +1245,8 @@ static int __cdecl kvm_dirty_pages_log_change(kvm_context_t kvm, int regnum, __u
 			 NULL);
 
 	winkvm_mem.kvm_memory_region.flags &= ~flag; /* back to previous value */
+	memcpy(&kvm->mem_regions[regnum], &winkvm_mem.kvm_memory_region, sizeof(struct kvm_memory_region));
+
 	if (!ret) {
 		fprintf(stderr, "%s: %m\n", __FUNCTION__);
 	}
@@ -1326,7 +1328,8 @@ static int __cdecl kvm_get_map(kvm_context_t kvm, int ioctl_num, int slot, void 
 /* This is a most important function to enable live-migration */
 int __cdecl kvm_get_dirty_pages(kvm_context_t kvm, int slot, void *buf)
 {
-	return kvm_get_map(kvm, KVM_GET_DIRTY_LOG, slot, buf);
+//	return kvm_get_map(kvm, KVM_GET_DIRTY_LOG, slot, buf);
+	return 0;
 }
 
 int __cdecl kvm_get_mem_map(kvm_context_t kvm, int slot, void *buf)

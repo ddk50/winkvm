@@ -202,7 +202,7 @@ static void migrate_close(void *opaque)
     current_migration = NULL;
 }
 
-/* Outgoing migration routines */
+/* Outgoing finish */
 static void migrate_finish(MigrationState *s)
 {
     QEMUFile *f;
@@ -342,12 +342,16 @@ static void migrate_write(void *opaque)
 {
     MigrationState *s = opaque;
 
+	printf("%s: \n", __FUNCTION__);
+
     if (migrate_write_buffer(s))
 	return;
 
 #ifdef USE_KVM
-    if (kvm_allowed && !*s->has_error && kvm_update_dirty_pages_log())
-        *s->has_error = MIG_STAT_KVM_UPDATE_DIRTY_PAGES_LOG_FAILED;
+    if (kvm_allowed && !*s->has_error && kvm_update_dirty_pages_log()) {
+		printf("%s: MIG_STAT_KVM_UPDATE_DIRTY_PAGES_LOG_FAILED\n", __FUNCTION__);
+		*s->has_error = MIG_STAT_KVM_UPDATE_DIRTY_PAGES_LOG_FAILED;
+	}
 #endif
 
     if (migrate_check_convergence(s) || *s->has_error) {
@@ -423,6 +427,7 @@ static int bit_is_set(int bit, unsigned char *map)
     return map[bit/8] & (1 << (bit%8));
 }
 
+/* migration outgoing */
 static int start_migration(MigrationState *s)
 {
     uint32_t value = cpu_to_be32(phys_ram_size);
@@ -469,14 +474,16 @@ static int start_migration(MigrationState *s)
             continue;
         }
 #endif
-	if (!cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG))
-	    cpu_physical_memory_set_dirty(addr);
+		if (!cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG))
+			cpu_physical_memory_set_dirty(addr);
     }
 
     if (cpu_physical_memory_set_dirty_tracking(1)) {
         *s->has_error = MIG_STAT_KVM_SET_DIRTY_TRACKING_FAILED;
         return -1;
     }
+
+ 	printf("1\n", __FUNCTION__);
 
     s->addr = 0;
     s->iteration = 0;
@@ -486,14 +493,20 @@ static int start_migration(MigrationState *s)
     s->rapid_writes = 0;
     s->timer = qemu_new_timer(rt_clock, migrate_reset_throttle, s);
 
+  	printf("2\n", __FUNCTION__);
+
     qemu_mod_timer(s->timer, qemu_get_clock(rt_clock));
     qemu_set_fd_handler2(s->fd, NULL, NULL, migrate_write, s);
+
+  	printf("3\n", __FUNCTION__);
 
  out:
 #ifdef USE_KVM
     if (phys_ram_page_exist_bitmap)
         qemu_free(phys_ram_page_exist_bitmap);
 #endif
+	printf("4\n", __FUNCTION__);
+	
     return r;
 }
 
@@ -717,7 +730,8 @@ static int tcp_release(void *opaque)
     }
 
 wait_for_ack:
-    len = read(s->fd, &status, 1);
+//    len = read(s->fd, &status, 1);
+	len = recv(s->fd, &status, 1, 0);
     if (len == -1 && errno == EINTR)
 	goto wait_for_ack;
     if (len != 1 || status != 0) {
@@ -775,6 +789,7 @@ again:
     }
 
     s = migration_init_fd(detach, fd);
+	printf("%s exit\n", "migration_init_fd");
     if (s) {
 		s->opaque = s;
 		s->release = tcp_release;
@@ -1049,6 +1064,7 @@ void do_migrate(int detach, const char *uri)
 	term_printf("Unknown migration protocol '%s'\n", uri);
 	return;
     }
+	printf("%s\n", __FUNCTION__);
 }
 
 void do_migrate_set_speed(const char *value)
